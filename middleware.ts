@@ -1,20 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-type CookieOptions = {
-  path?: string;
-  domain?: string;
-  maxAge?: number;
-  expires?: Date;
-  httpOnly?: boolean;
-  secure?: boolean;
-  sameSite?: boolean | "lax" | "strict" | "none";
-};
-
 type CookieToSet = {
   name: string;
   value: string;
-  options?: CookieOptions;
+  options?: any;
 };
 
 export async function updateSession(request: NextRequest) {
