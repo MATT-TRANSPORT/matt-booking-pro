@@ -1,0 +1,1 @@
+export default function PanelNav(){return <nav className="nav"><a href="/panel">Dashboard</a><a href="/panel/rezerwacje">Rezerwacje</a><a href="/panel/dyspozytor">Dyspozytor</a><a href="/panel/kierowcy">Kierowcy</a><a href="/panel/pojazdy">Pojazdy</a><a href="/kierowca">Panel kierowcy</a></nav>}
