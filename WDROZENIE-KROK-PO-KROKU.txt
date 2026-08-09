@@ -1,0 +1,22 @@
+MATT BOOKING PRO v1.1 — WDROŻENIE
+
+1. Ustal dostęp do AUTORYTATYWNEJ strefy DNS dla matt-transport.pl.
+   Aktualnie nslookup wskazuje: ns1.dns-parking.com / ns2.dns-parking.com.
+2. W tej strefie dodaj CNAME booking i panel dokładnie wg wartości pokazanej przez Vercel.
+3. Wgraj wszystkie pliki tej paczki do repozytorium GitHub matt-booking-pro (branch main).
+4. Supabase → SQL Editor → uruchom supabase/schema.sql.
+5. Supabase Authentication → utwórz konto kontakt@matt-transport.pl.
+6. Vercel Environment Variables:
+   NEXT_PUBLIC_SUPABASE_URL
+   NEXT_PUBLIC_SUPABASE_ANON_KEY
+   GOOGLE_MAPS_API_KEY
+   NEXT_PUBLIC_BOOKING_HOST=booking.matt-transport.pl
+   NEXT_PUBLIC_PANEL_HOST=panel.matt-transport.pl
+7. Google Cloud: włącz Places API (New) i Routes API.
+8. Redeploy w Vercel.
+9. Test: /booking, /panel, /kierowca, /panel/kalendarz, /panel/raporty.
+10. Po uruchomieniu wybieramy dostawców SMS / lotów / płatności i dokładamy ich klucze.
+
+WAŻNE:
+- SMS, monitoring lotów i płatności wymagają zewnętrznych dostawców i nie mogą realnie działać bez ich API.
+- Kod ma przygotowane osobne endpointy integracyjne pod te moduły.

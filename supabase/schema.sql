@@ -56,3 +56,15 @@ insert into public.drivers(full_name,phone,status) select 'Mateusz','+48 691 242
 insert into public.drivers(full_name,phone,status) select 'Wojciech','+48 691 242 691','available' where not exists(select 1 from public.drivers where full_name='Wojciech');
 insert into public.vehicles(name,registration,color,seats,type,status) select 'BAIC 7','ST 305AF','niebieski',4,'car','available' where not exists(select 1 from public.vehicles where registration='ST 305AF');
 insert into public.vehicles(name,registration,color,seats,type,status) select 'SsangYong','SRB GV50','biały',4,'car','available' where not exists(select 1 from public.vehicles where registration='SRB GV50');
+
+-- GPS kierowców (v1.1)
+create table if not exists public.driver_locations (
+  id bigint generated always as identity primary key,
+  driver_id uuid not null references public.drivers(id) on delete cascade,
+  lat double precision not null,
+  lng double precision not null,
+  created_at timestamptz not null default now()
+);
+alter table public.driver_locations enable row level security;
+drop policy if exists authenticated_locations on public.driver_locations;
+create policy authenticated_locations on public.driver_locations for all to authenticated using(true) with check(true);

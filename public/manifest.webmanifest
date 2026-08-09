@@ -1,0 +1,9 @@
+{
+  "name": "MATT Booking PRO",
+  "short_name": "MATT Booking",
+  "start_url": "/panel",
+  "display": "standalone",
+  "background_color": "#090b10",
+  "theme_color": "#090b10",
+  "icons": []
+}

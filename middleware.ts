@@ -1,50 +1,22 @@
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { updateSession } from "@/lib/supabase/middleware";
 
-type CookieToSet = {
-  name: string;
-  value: string;
-  options?: any;
-};
+export async function middleware(request: NextRequest) {
+  const response = await updateSession(request);
+  const host = request.headers.get("host")?.split(":")[0] ?? "";
+  const pathname = request.nextUrl.pathname;
+  const bookingHost = process.env.NEXT_PUBLIC_BOOKING_HOST;
+  const panelHost = process.env.NEXT_PUBLIC_PANEL_HOST;
 
-export async function updateSession(request: NextRequest) {
-  let response = NextResponse.next({
-    request
-  });
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-
-        setAll(cookiesToSet: CookieToSet[]) {
-          cookiesToSet.forEach(({ name, value }) => {
-            request.cookies.set(name, value);
-          });
-
-          response = NextResponse.next({
-            request
-          });
-
-          cookiesToSet.forEach(
-            ({ name, value, options }) => {
-              response.cookies.set(
-                name,
-                value,
-                options
-              );
-            }
-          );
-        }
-      }
-    }
-  );
-
-  await supabase.auth.getUser();
-
+  if (host === bookingHost && pathname === "/") {
+    return NextResponse.rewrite(new URL("/booking", request.url));
+  }
+  if (host === panelHost && pathname === "/") {
+    return NextResponse.rewrite(new URL("/panel", request.url));
+  }
   return response;
 }
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"]
+};
