@@ -1,0 +1,19 @@
+MATT BOOKING PRO v1.3.1 — PANEL HOTFIX
+
+NAPRAWIONO:
+1. Dodano brakujący lib/panel.ts.
+2. Karta rezerwacji nie odwołuje się już do nieistniejących:
+   - /api/dispatch
+   - /api/bookings/[id]/status
+3. Status, kierowca i pojazd korzystają z istniejącego:
+   /api/admin/bookings
+4. Dodano pełną obsługę statusów i wpis historii zmian.
+
+ZACHOWANO:
+- zapis rezerwacji przez service role
+- ekran sukcesu
+- Google Places/Routes
+- listę i kartę rezerwacji
+
+WDROŻENIE:
+Rozpakuj ZIP → zastąp pliki w GitHub → commit main → Vercel.
