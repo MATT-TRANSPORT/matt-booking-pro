@@ -1,0 +1,15 @@
+MATT BOOKING PRO v1.4.1
+
+NAPRAWIONO:
+- TypeScript: Cannot find name 'b'
+- endpoint rezerwacji używa konsekwentnie zmiennej `body`
+- dodano brakujące importy modułów e-mail
+- usunięto nieistniejącą zmienną `vehicle`
+- zapis przez service role pozostaje bez zmian
+- błąd wysyłki e-mail NIE powoduje utraty rezerwacji
+
+WDROŻENIE:
+1. Rozpakuj paczkę.
+2. Zastąp pliki w GitHub.
+3. Commit do main.
+4. Poczekaj na Vercel Ready.
