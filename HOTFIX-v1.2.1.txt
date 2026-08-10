@@ -1,0 +1,23 @@
+MATT BOOKING PRO v1.2.1 — HOTFIX RLS
+
+NAPRAWIONO
+- zapis publicznej rezerwacji nie korzysta już z klienta Supabase podlegającego RLS
+- /api/bookings używa teraz bezpiecznego klienta serwerowego
+- SUPABASE_SERVICE_ROLE_KEY jest odczytywany wyłącznie po stronie serwera
+- ekran sukcesu i UX z v1.2 pozostają bez zmian
+
+WYMAGANIE
+W Vercel musi istnieć:
+SUPABASE_SERVICE_ROLE_KEY
+
+WDROŻENIE
+1. Rozpakuj ZIP.
+2. Zastąp pliki w repozytorium GitHub zawartością paczki.
+3. Commit do main.
+4. Poczekaj na Vercel: Ready.
+5. Zrób testową rezerwację.
+
+OCZEKIWANY EFEKT
+Po kliknięciu ZAREZERWUJ zamiast błędu RLS pojawi się ekran:
+"Rezerwacja przyjęta!"
+z numerem MB-...
