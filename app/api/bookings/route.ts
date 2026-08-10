@@ -18,7 +18,53 @@ export async function POST(req: NextRequest) {
     phone:body.phone,email:body.email,invoice_required:Boolean(body.invoiceRequired),company_name:body.companyName||null,company_nip:body.companyNip||null,
     company_address:body.companyAddress||null,flight_number:body.flightNumber||null,return_flight_number:body.returnFlightNumber||null,
     base_price:q.basePrice,extra_price:q.extraPrice,vat_price:q.vatPrice,total_price:q.totalPrice,status:"pending",notes:body.notes||null
-  }).select("id,booking_number,total_price,status").single();
+  }).select("*").single();
   if(error) return NextResponse.json({error:error.message},{status:500});
-  return NextResponse.json(data);
+  
+  const bookingForMail = {
+    ...data,
+    customer_name: b.customerName,
+    pickup_address: b.address,
+    airport_label: PRICES[b.airport as keyof typeof PRICES].label,
+    service_type: b.serviceType,
+    travel_date: b.travelDate,
+    travel_time: b.travelTime,
+    passengers: Number(b.passengers),
+    vehicle_type: vehicle,
+    flight_number: b.flightNumber || null,
+    total_price: data.total_price
+  };
+
+  let customerEmailSent = false;
+  let adminEmailSent = false;
+
+  try {
+    const customerMail = receivedEmail(bookingForMail);
+    const customerResult = await sendMattEmail({
+      to: b.email,
+      subject: customerMail.subject,
+      html: customerMail.html
+    });
+    customerEmailSent = customerResult.sent;
+
+    const adminMail = adminNewBookingEmail(
+      bookingForMail,
+      b.email,
+      b.phone
+    );
+    const adminResult = await sendMattEmail({
+      to: "kontakt@matt-transport.pl",
+      subject: adminMail.subject,
+      html: adminMail.html
+    });
+    adminEmailSent = adminResult.sent;
+  } catch (mailError) {
+    console.error("E-mail po rezerwacji:", mailError);
+  }
+
+  return NextResponse.json({
+    ...data,
+    email_sent: customerEmailSent,
+    admin_email_sent: adminEmailSent
+  });
 }

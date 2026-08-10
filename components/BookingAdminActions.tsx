@@ -37,7 +37,7 @@ export default function BookingAdminActions({
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
 
-  async function saveChanges(mode: "status" | "resources") {
+  async function sendUpdate(mode: "status" | "resources") {
     if (saving) return;
 
     setSaving(true);
@@ -50,9 +50,7 @@ export default function BookingAdminActions({
     try {
       const response = await fetch("/api/admin/bookings", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: bookingId,
           status,
@@ -69,16 +67,57 @@ export default function BookingAdminActions({
         return;
       }
 
+      if (data.status) {
+        setStatus(data.status);
+      }
+
+      const emailText = data.email_sent
+        ? " E-mail do klienta został wysłany."
+        : data.email_error
+        ? ` Zmiana zapisana, ale e-mail: ${data.email_error}`
+        : "";
+
       setMessage(
         mode === "status"
-          ? "✓ Status został zapisany."
-          : "✓ Kierowca i pojazd zostały zapisane."
+          ? `✓ Status został zapisany.${emailText}`
+          : `✓ Kierowca i pojazd zostały zapisane.${emailText}`
       );
 
       setSaving(false);
       router.refresh();
     } catch {
-      setMessage("Nie udało się połączyć z panelem administracyjnym.");
+      setMessage("Nie udało się połączyć z panelem.");
+      setSaving(false);
+    }
+  }
+
+  async function resendConfirmation() {
+    if (saving) return;
+    setSaving(true);
+    setMessage("Wysyłanie potwierdzenia...");
+
+    try {
+      const response = await fetch("/api/admin/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: bookingId,
+          action: "resend_confirmation"
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setMessage(data.error ?? "Nie udało się wysłać wiadomości.");
+        setSaving(false);
+        return;
+      }
+
+      setMessage("✓ Potwierdzenie zostało wysłane ponownie.");
+      setSaving(false);
+    } catch {
+      setMessage("Nie udało się połączyć z usługą e-mail.");
       setSaving(false);
     }
   }
@@ -90,10 +129,7 @@ export default function BookingAdminActions({
       <div className="admin-action-grid">
         <label>
           Status
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-          >
+          <select value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="pending">Oczekuje na potwierdzenie</option>
             <option value="confirmed">Potwierdzona</option>
             <option value="assigned">Kierowca przypisany</option>
@@ -107,7 +143,7 @@ export default function BookingAdminActions({
         <div className="admin-action-button">
           <button
             className="btn"
-            onClick={() => saveChanges("status")}
+            onClick={() => sendUpdate("status")}
             disabled={saving}
           >
             {saving ? "ZAPISYWANIE..." : "ZAPISZ STATUS"}
@@ -120,12 +156,8 @@ export default function BookingAdminActions({
       <div className="admin-action-grid">
         <label>
           Kierowca
-          <select
-            value={driverId}
-            onChange={(e) => setDriverId(e.target.value)}
-          >
+          <select value={driverId} onChange={(e) => setDriverId(e.target.value)}>
             <option value="">— Nieprzypisany —</option>
-
             {drivers.map((driver) => (
               <option key={driver.id} value={driver.id}>
                 {driver.full_name}
@@ -136,12 +168,8 @@ export default function BookingAdminActions({
 
         <label>
           Pojazd
-          <select
-            value={vehicleId}
-            onChange={(e) => setVehicleId(e.target.value)}
-          >
+          <select value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
             <option value="">— Nieprzypisany —</option>
-
             {vehicles.map((vehicle) => (
               <option key={vehicle.id} value={vehicle.id}>
                 {vehicle.name} · {vehicle.registration}
@@ -153,11 +181,20 @@ export default function BookingAdminActions({
 
       <button
         className="btn secondary"
-        style={{ marginTop: 14 }}
-        onClick={() => saveChanges("resources")}
+        style={{ marginTop: 14, width: "100%" }}
+        onClick={() => sendUpdate("resources")}
         disabled={saving}
       >
         ZAPISZ KIEROWCĘ I POJAZD
+      </button>
+
+      <button
+        className="btn secondary"
+        style={{ marginTop: 10, width: "100%" }}
+        onClick={resendConfirmation}
+        disabled={saving}
+      >
+        WYŚLIJ POTWIERDZENIE PONOWNIE
       </button>
 
       {message && (

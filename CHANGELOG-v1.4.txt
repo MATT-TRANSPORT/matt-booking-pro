@@ -1,0 +1,25 @@
+MATT BOOKING PRO v1.4 — STATUSY + E-MAILE
+
+NOWE:
+- e-mail do klienta po złożeniu rezerwacji
+- e-mail do kontakt@matt-transport.pl o nowej rezerwacji
+- e-mail po statusie "Potwierdzona"
+- e-mail z kierowcą, telefonem, pojazdem i rejestracją
+- e-mail po zakończeniu kursu
+- automatyczny status "Kierowca przypisany", gdy zapisano kierowcę i pojazd
+- przycisk "Wyślij potwierdzenie ponownie"
+- historia wysłanych wiadomości w booking_history
+- błędy e-mail nie kasują ani nie cofają rezerwacji
+
+WYMAGANE DO WYSYŁKI:
+1. Konto Resend.
+2. Zweryfikowana domena matt-transport.pl (lub dedykowana subdomena wysyłkowa).
+3. RESEND_API_KEY w Vercel.
+4. Redeploy po dodaniu zmiennej.
+
+NADAWCA:
+MATT TRANSPORT <kontakt@matt-transport.pl>
+
+UWAGA:
+Kod jest gotowy, ale wiadomości nie będą wysyłane, dopóki RESEND_API_KEY
+i domena wysyłkowa nie będą poprawnie skonfigurowane.
