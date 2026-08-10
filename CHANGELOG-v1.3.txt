@@ -1,0 +1,22 @@
+MATT BOOKING PRO v1.3
+
+NOWOŚCI PANELU:
+- numer rezerwacji jest klikalny
+- nowa strona /panel/rezerwacje/[id]
+- pełna karta rezerwacji
+- zmiana statusu rezerwacji
+- przypisanie kierowcy
+- przypisanie pojazdu
+- historia zmian
+- telefon i e-mail klienta są klikalne
+- podgląd wyceny i danych lotu
+- dashboard prowadzi bezpośrednio do rezerwacji
+
+STATUSY:
+- Oczekuje
+- Potwierdzona
+- Kierowca przypisany
+- W trakcie
+- Klient odebrany
+- Zakończona
+- Anulowana
