@@ -1,0 +1,15 @@
+MATT BOOKING PRO v1.2
+
+NOWOŚCI:
+- blokada wielokrotnego kliknięcia „ZAREZERWUJ”
+- stan „ZAPISYWANIE REZERWACJI...”
+- formularz znika po udanym zapisie
+- duży ekran sukcesu z animowanym znacznikiem
+- numer rezerwacji
+- trasa, pojazd i kwota
+- informacja „Potwierdzimy rezerwację do 60 minut”
+- pasek statusu rezerwacji
+- przycisk „NOWA REZERWACJA”
+- pełne czyszczenie formularza po rozpoczęciu nowej rezerwacji
+- lepszy wygląd błędów
+- lepszy wygląd listy podpowiedzi adresów

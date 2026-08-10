@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { PRICES, calculateQuote } from "@/lib/pricing";
 export async function POST(req: NextRequest) {
   const body=await req.json();
@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   const when=new Date(`${body.travelDate}T${body.travelTime}`);
   if(when.getTime()-Date.now()<48*3600*1000) return NextResponse.json({error:"Rezerwacja online wymaga minimum 48 godzin wyprzedzenia. Zadzwoń: +48 691 242 691"},{status:400});
   const q=calculateQuote({serviceType:body.serviceType,airport:body.airport,vehicleType:body.vehicleType,distanceKm:Number(body.distanceKm),invoiceRequired:Boolean(body.invoiceRequired)});
-  const supabase = createAdminClient();
+  const supabase=await createClient();
   const {data,error}=await supabase.from("bookings").insert({
     service_type:body.serviceType,pickup_address:body.address,airport_key:body.airport,airport_label:PRICES[body.airport].label,
     travel_date:body.travelDate,travel_time:body.travelTime,return_date:body.returnDate||null,return_time:body.returnTime||null,
