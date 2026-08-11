@@ -1,0 +1,48 @@
+MATT BOOKING PRO v2.1 OPERATIONS
+
+WDROŻENIE
+1. Zastąp pliki w GitHub zawartością tej paczki.
+2. Poczekaj na Vercel: Ready.
+3. Supabase -> SQL Editor:
+   uruchom supabase/migrations-v2.1-operations.sql
+4. Sprawdź w Vercel Environment Variables:
+   RESEND_API_KEY
+   SUPABASE_SERVICE_ROLE_KEY
+   NEXT_PUBLIC_SUPABASE_URL
+   NEXT_PUBLIC_SUPABASE_ANON_KEY
+5. Redeploy po zmianie zmiennych środowiskowych.
+
+CO NAPRAWIONO
+- "Dyspozytor" wcześniej pokazywał wyłącznie kursy dokładnie z dzisiejszej daty.
+- Teraz "Plan kursów" pokazuje 7 dni i ma filtry.
+- Panel MATT korzysta z service role dopiero po sprawdzeniu roli użytkownika,
+  więc administrator widzi firmy B2B mimo polityk RLS.
+- Dashboard wyróżnia B2B i klientów indywidualnych.
+
+B2B
+- nowy pracownik może być wpisany podczas rezerwacji
+- pracownik zapisuje się automatycznie
+- deduplikacja po e-mail/telefonie
+- firma może edytować rezerwację przed realizacją
+- zmiana ceny jest przeliczana
+- historia zmian jest zapisywana
+- "Powtórz rezerwację"
+
+ROZLICZENIA
+- miesięczne rozliczenia
+- faktura jest tylko załącznikiem zewnętrznego systemu/KSeF
+- obsługa PDF/JPG/PNG
+- pliki trafiają do prywatnego bucketu Supabase
+- klient firmy pobiera dokument przez bezpieczny link czasowy
+
+E-MAILE
+- rezerwacja indywidualna: klient + kontakt@matt-transport.pl
+- rezerwacja B2B: pracownik (jeśli ma e-mail) + kontakt@matt-transport.pl
+- potwierdzenie/status/kierowca: istniejący mechanizm v1.4
+- Dashboard administratora ma przycisk TEST E-MAIL.
+  Jeśli test zwróci błąd, jego treść pojawi się na ekranie.
+
+WAŻNE
+Sama działająca skrzynka pocztowa nie wystarcza do Resend.
+RESEND_API_KEY musi być w Vercel, a domena nadawcy kontakt@matt-transport.pl
+musi być oznaczona w Resend jako Verified.

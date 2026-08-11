@@ -285,3 +285,80 @@
 .company-admin-card:hover{transform:translateY(-2px);border-color:rgba(213,174,93,.65)}.company-mini-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:18px}
 .company-mini-stats>div{background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:10px;padding:10px}.company-mini-stats strong,.company-mini-stats span{display:block}.company-mini-stats strong{color:var(--gold2);font-size:18px}.company-mini-stats span{color:var(--muted);font-size:11px;margin-top:4px}.company-small-btn{padding:7px 10px;font-size:12px}
 @media(max-width:1000px){.company-admin-grid{grid-template-columns:1fr 1fr}}@media(max-width:700px){.company-admin-grid{grid-template-columns:1fr}.company-section-head{align-items:stretch;flex-direction:column}}
+
+
+/* MATT Booking PRO v2.1 Operations */
+.origin-badge{
+  display:inline-flex;
+  flex-direction:column;
+  gap:2px;
+  padding:6px 9px;
+  border-radius:9px;
+  font-size:11px;
+  font-weight:800;
+  line-height:1.15;
+  white-space:nowrap;
+}
+.origin-badge small{font-size:10px;font-weight:600;opacity:.85}
+.origin-badge.b2b{
+  color:#ffe2a2;
+  background:rgba(213,174,93,.14);
+  border:1px solid rgba(213,174,93,.45);
+}
+.origin-badge.private{
+  color:#c9deff;
+  background:rgba(90,137,206,.12);
+  border:1px solid rgba(90,137,206,.35);
+}
+.b2b-row{background:rgba(213,174,93,.025)}
+.ops-filters,.passenger-mode{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin:0 0 14px;
+}
+.ops-filters button,.passenger-mode button{
+  border:1px solid var(--line);
+  background:var(--panel);
+  color:var(--muted);
+  border-radius:999px;
+  padding:9px 13px;
+  cursor:pointer;
+}
+.ops-filters button.active,.passenger-mode button.active{
+  color:var(--gold2);
+  border-color:var(--gold);
+  background:#2a261c;
+}
+.empty-state{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  padding:44px 16px;
+  color:var(--muted);
+}
+.empty-state strong{color:var(--text);font-size:20px;margin-bottom:8px}
+.company-actions{position:sticky;top:18px;height:max-content}
+.repeat-box,.company-edit-form{
+  margin-top:14px;
+  padding-top:14px;
+  border-top:1px solid var(--line);
+  display:grid;
+  gap:10px;
+}
+.new-employee-inline{
+  margin-top:10px;
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:rgba(255,255,255,.015);
+}
+.email-test{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.email-test span{color:var(--gold2);font-size:13px}
+@media(max-width:900px){.company-actions{position:static}}

@@ -4,7 +4,7 @@ export default function CompanyNav() {
     <a href="/firma/nowa-rezerwacja">+ Nowa rezerwacja</a>
     <a href="/firma/rezerwacje">Rezerwacje</a>
     <a href="/firma/pracownicy">Pracownicy</a>
-    <a href="/firma/faktury">Faktury</a>
+    <a href="/firma/faktury">Rozliczenia</a>
     <a href="/firma/ustawienia">Dane firmy</a>
   </nav>;
 }

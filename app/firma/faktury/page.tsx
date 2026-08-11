@@ -1,2 +1,55 @@
-import CompanyNav from "@/components/CompanyNav";import {companyClient} from "@/lib/company";
-export default async function Page(){const {s,company}=await companyClient();const {data}=await s.from("bookings").select("id,booking_number,travel_date,total_price,invoice_status,invoice_number").eq("company_id",company.id).eq("status","completed").order("travel_date",{ascending:false}).limit(100);const pending=(data??[]).filter((x:any)=>!x.invoice_number).reduce((a:number,x:any)=>a+Number(x.total_price||0),0);return <main className="container"><h1>Faktury i rozliczenia</h1><CompanyNav/><div className="stats"><div className="stat"><strong>{pending.toFixed(2)} zł</strong><span>Do rozliczenia zbiorczego</span></div><div className="stat"><strong>{company.payment_days??14} dni</strong><span>Termin płatności</span></div></div><div className="card"><h2>Zrealizowane przejazdy</h2><p className="muted">Generowanie faktur PDF i rozliczenia miesięczne rozwiniemy w v2.1.</p><table className="table"><thead><tr><th>Rezerwacja</th><th>Data</th><th>Kwota</th><th>Faktura</th></tr></thead><tbody>{(data??[]).map((b:any)=><tr key={b.id}><td>{b.booking_number}</td><td>{b.travel_date}</td><td>{Number(b.total_price).toFixed(2)} zł</td><td>{b.invoice_number||"Do rozliczenia"}</td></tr>)}</tbody></table></div></main>}
+import CompanyNav from "@/components/CompanyNav";
+import { companyClient } from "@/lib/company";
+
+export default async function Page() {
+  const { s, company } = await companyClient();
+
+  const { data: settlements } = await s
+    .from("company_settlements")
+    .select("*")
+    .eq("company_id", company.id)
+    .order("period_month", { ascending: false });
+
+  return (
+    <main className="container">
+      <h1>Rozliczenia</h1>
+      <CompanyNav />
+
+      <div className="card">
+        <h2>Miesięczne rozliczenia</h2>
+        <p className="muted">
+          Faktury są wystawiane poza MATT Booking PRO. Tutaj znajdują się dokumenty przypisane do miesięcznych rozliczeń.
+        </p>
+
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Miesiąc</th>
+              <th>Kwota</th>
+              <th>Numer faktury</th>
+              <th>Status</th>
+              <th>Dokument</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(settlements ?? []).map((x: any) => (
+              <tr key={x.id}>
+                <td>{String(x.period_month).slice(0,7)}</td>
+                <td>{Number(x.amount).toFixed(2)} zł</td>
+                <td>{x.invoice_number || "—"}</td>
+                <td>{x.status}</td>
+                <td>
+                  {x.invoice_file_path ? (
+                    <a className="btn secondary company-small-btn" href={`/api/company/settlements/${x.id}/download`}>
+                      POBIERZ
+                    </a>
+                  ) : "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </main>
+  );
+}
