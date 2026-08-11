@@ -1,0 +1,28 @@
+MATT BOOKING PRO v2.0 ENTERPRISE
+
+1. Wgraj paczkę do GitHub i poczekaj na Vercel Ready.
+2. Supabase -> SQL Editor -> uruchom supabase/migrations-v2.0-enterprise.sql
+3. Utwórz firmę:
+insert into public.companies(name,nip,email,phone,contact_person,payment_days)
+values('FIRMA TESTOWA','1234567890','biuro@firma.pl','123456789','Jan Kowalski',14)
+returning id;
+4. Supabase -> Authentication -> Users -> utwórz użytkownika firmy i skopiuj UUID.
+5. Przypisz:
+insert into public.company_users(company_id,user_id,role)
+values('UUID_FIRMY','UUID_USERA','admin');
+6. Logowanie firmy: /firma/login
+
+v2.0:
+- dashboard firmy
+- pracownicy
+- rezerwacje B2B
+- historia rezerwacji
+- dane kierowcy/pojazdu
+- rozliczenia do faktury
+- Firmy B2B w panelu MATT
+
+v2.1:
+- zbiorcze faktury PDF
+- Excel/CSV
+- zapisane adresy
+- indywidualne cenniki i limity

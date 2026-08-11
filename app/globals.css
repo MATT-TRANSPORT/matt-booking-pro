@@ -279,3 +279,9 @@
   .reservation-title-row{flex-direction:column}
   .reservation-price{text-align:left}
 }
+
+.company-login-card{margin-top:8vh}.company-section-head{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:14px}
+.company-admin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.company-admin-card{color:var(--text);transition:.15s}
+.company-admin-card:hover{transform:translateY(-2px);border-color:rgba(213,174,93,.65)}.company-mini-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:18px}
+.company-mini-stats>div{background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:10px;padding:10px}.company-mini-stats strong,.company-mini-stats span{display:block}.company-mini-stats strong{color:var(--gold2);font-size:18px}.company-mini-stats span{color:var(--muted);font-size:11px;margin-top:4px}.company-small-btn{padding:7px 10px;font-size:12px}
+@media(max-width:1000px){.company-admin-grid{grid-template-columns:1fr 1fr}}@media(max-width:700px){.company-admin-grid{grid-template-columns:1fr}.company-section-head{align-items:stretch;flex-direction:column}}
