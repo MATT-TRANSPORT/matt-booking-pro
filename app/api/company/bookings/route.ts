@@ -135,7 +135,7 @@ export async function POST(req: NextRequest) {
   const multiplier = body.serviceType === "roundtrip" ? 2 : 1;
   const base = price[vehicle] * multiplier;
   const extra =
-    Math.max(0, Number(body.distanceKm || 0) - 20) * 2.4 * multiplier;
+    Math.max(0, Number(body.distanceKm || 0) - 40) * 2.4 * multiplier;
   const total = base + extra;
 
   const { data, error } = await admin

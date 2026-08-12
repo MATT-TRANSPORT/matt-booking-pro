@@ -1,2 +1,4 @@
-import { redirect } from "next/navigation";import { createClient } from "@/lib/supabase/server";import PanelNav from "@/components/PanelNav";
-export default async function Page(){const s=await createClient();const {data:{user}}=await s.auth.getUser();if(!user)redirect("/login");const {data}=await s.from("vehicles").select("*").order("name");return <main className="container"><h1>Pojazdy</h1><PanelNav/><div className="grid">{(data??[]).map((v:any)=><div className="card" key={v.id}><h2>{v.name}</h2><p>{v.registration} · {v.color}</p><p className="muted">{v.seats} miejsc · {v.status}</p></div>)}</div></main>}
+import PanelNav from "@/components/PanelNav";
+import VehiclesManager from "@/components/VehiclesManager";
+import { panelClient } from "@/lib/panel";
+export default async function Page(){const {s}=await panelClient();const {data}=await s.from("vehicles").select("*").order("name");return <main className="container"><h1>Pojazdy</h1><PanelNav/><VehiclesManager vehicles={data??[]}/></main>}

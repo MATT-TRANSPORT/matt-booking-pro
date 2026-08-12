@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PRICES } from "@/lib/pricing";
 
 type Suggestion = {
@@ -17,6 +17,7 @@ type BookingSuccess = {
 };
 
 export default function BookingForm() {
+  const customerSectionRef = useRef<HTMLDivElement | null>(null);
   const [serviceType, setServiceType] =
     useState<"to_airport" | "from_airport" | "roundtrip">("to_airport");
   const [address, setAddress] = useState("");
@@ -38,6 +39,8 @@ export default function BookingForm() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [invoice, setInvoice] = useState(false);
+  const [nip, setNip] = useState("");
+  const [notes, setNotes] = useState("");
   const [result, setResult] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState<BookingSuccess | null>(null);
@@ -86,11 +89,7 @@ export default function BookingForm() {
       }
 
       setDistanceKm(data.distanceKm);
-      setRouteMessage(
-        `✓ ${data.distanceKm} km od bazy · ${data.billableKm} km płatne · ${Number(
-          data.extraOneWay
-        ).toFixed(2)} zł dopłaty`
-      );
+      setRouteMessage("Trasa została obliczona.");
     } catch {
       setRouteMessage("Nie udało się połączyć z usługą tras.");
     }
@@ -99,7 +98,7 @@ export default function BookingForm() {
   const quote = useMemo(() => {
     const multiplier = serviceType === "roundtrip" ? 2 : 1;
     const base = PRICES[airport][vehicle] * multiplier;
-    const extra = Math.max(0, distanceKm - 20) * 2.4 * multiplier;
+    const extra = Math.max(0, distanceKm - 40) * 2.4 * multiplier;
     const subtotal = base + extra;
     const vat = invoice ? subtotal * 0.08 : 0;
 
@@ -117,6 +116,22 @@ export default function BookingForm() {
       : serviceType === "roundtrip"
       ? `${address || "—"} ↔ ${PRICES[airport].label}`
       : `${address || "—"} → ${PRICES[airport].label}`;
+
+  function mobileAdvanceAfterVehicle(nextVehicle: "car" | "bus") {
+    setVehicle(nextVehicle);
+    if (typeof window !== "undefined" && window.innerWidth <= 900) {
+      window.setTimeout(() => {
+        customerSectionRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+      }, 180);
+    }
+  }
+
+  function normalizeNip(value: string) {
+    return value.replace(/\D/g, "").slice(0, 10);
+  }
 
   function resetForm() {
     setServiceType("to_airport");
@@ -137,6 +152,8 @@ export default function BookingForm() {
     setPhone("");
     setEmail("");
     setInvoice(false);
+    setNip("");
+    setNotes("");
     setResult("");
     setSuccess(null);
     setIsSubmitting(false);
@@ -168,6 +185,11 @@ export default function BookingForm() {
       return;
     }
 
+    if (invoice && normalizeNip(nip).length !== 10) {
+      setResult("Podaj poprawny NIP składający się z 10 cyfr.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -190,7 +212,9 @@ export default function BookingForm() {
           customerName: name,
           phone,
           email,
-          invoiceRequired: invoice
+          invoiceRequired: invoice,
+          companyNip: invoice ? normalizeNip(nip) : null,
+          notes: notes || null
         })
       });
 
@@ -377,10 +401,6 @@ export default function BookingForm() {
           </label>
         </div>
 
-        <div className={`route-status ${distanceKm ? "ok" : ""}`}>
-          {routeMessage}
-        </div>
-
         <h3>Termin</h3>
         <div className="grid">
           <label>
@@ -461,7 +481,7 @@ export default function BookingForm() {
             type="button"
             className={`choice ${vehicle === "car" ? "active" : ""}`}
             disabled={passengers > 3}
-            onClick={() => setVehicle("car")}
+            onClick={() => mobileAdvanceAfterVehicle("car")}
           >
             <strong>Samochód osobowy</strong>
             <small>Do 3 pasażerów z bagażami</small>
@@ -470,14 +490,14 @@ export default function BookingForm() {
           <button
             type="button"
             className={`choice ${vehicle === "bus" ? "active" : ""}`}
-            onClick={() => setVehicle("bus")}
+            onClick={() => mobileAdvanceAfterVehicle("bus")}
           >
             <strong>Bus do 8 osób</strong>
             <small>Dla grup i większego bagażu</small>
           </button>
         </div>
 
-        <h3>Dane klienta</h3>
+        <div ref={customerSectionRef} className="booking-customer-section"><h3>Dane klienta</h3>
         <div className="grid">
           <label>
             Imię i nazwisko
@@ -499,15 +519,41 @@ export default function BookingForm() {
           </label>
 
           <label>
-            Faktura
+            Faktura VAT
             <select
               value={invoice ? "1" : "0"}
-              onChange={(e) => setInvoice(e.target.value === "1")}
+              onChange={(e) => {
+                const next = e.target.value === "1";
+                setInvoice(next);
+                if (!next) setNip("");
+              }}
             >
               <option value="0">Nie</option>
               <option value="1">Tak, +8%</option>
             </select>
           </label>
+          {invoice && (
+            <label>
+              NIP
+              <input
+                inputMode="numeric"
+                maxLength={10}
+                value={nip}
+                onChange={(e) => setNip(normalizeNip(e.target.value))}
+                placeholder="10 cyfr"
+              />
+            </label>
+          )}
+        </div>
+        <label style={{ marginTop: 16 }}>
+          Uwagi do rezerwacji
+          <textarea
+            rows={4}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Np. fotelik dziecięcy, duży bagaż, dodatkowe informacje..."
+          />
+        </label>
         </div>
       </div>
 

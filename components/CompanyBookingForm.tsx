@@ -105,7 +105,7 @@ export default function CompanyBookingForm({
   const quote = useMemo(() => {
     const multiplier = serviceType === "roundtrip" ? 2 : 1;
     const base = PRICES[airport][vehicle] * multiplier;
-    const extra = Math.max(0, distanceKm - 20) * 2.4 * multiplier;
+    const extra = Math.max(0, distanceKm - 40) * 2.4 * multiplier;
     return { base, extra, total: base + extra };
   }, [serviceType, airport, vehicle, distanceKm]);
 

@@ -125,7 +125,7 @@ export async function POST(
   const multiplier = serviceType === "roundtrip" ? 2 : 1;
   const distanceKm = Number(body.distanceKm ?? current.distance_km);
   const base = price[vehicle] * multiplier;
-  const extra = Math.max(0, distanceKm - 20) * 2.4 * multiplier;
+  const extra = Math.max(0, distanceKm - 40) * 2.4 * multiplier;
   const total = base + extra;
 
   const changes: string[] = [];

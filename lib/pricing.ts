@@ -19,7 +19,7 @@ export function calculateQuote(input: {
   const vehicle = input.vehicleType === "bus" ? "bus" : "car";
   const multiplier = input.serviceType === "roundtrip" ? 2 : 1;
   const basePrice = row[vehicle] * multiplier;
-  const billableKm = Math.max(0, Number(input.distanceKm) - 20);
+  const billableKm = Math.max(0, Number(input.distanceKm) - 40);
   const extraPrice = billableKm * 2.4 * multiplier;
   const subtotal = basePrice + extraPrice;
   const vatPrice = input.invoiceRequired ? subtotal * 0.08 : 0;

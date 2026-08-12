@@ -16,6 +16,6 @@ export async function POST(req: NextRequest) {
   const routes=(data.routes??[]).filter((r:any)=>r.distanceMeters).sort((a:any,b:any)=>a.distanceMeters-b.distanceMeters);
   if(!routes.length) return NextResponse.json({error:"Nie znaleziono trasy."},{status:404});
   const distanceKm=Math.round((routes[0].distanceMeters/1000)*10)/10;
-  const billableKm=Math.max(0,distanceKm-20);
+  const billableKm=Math.max(0,distanceKm - 40);
   return NextResponse.json({distanceKm,billableKm:Math.round(billableKm*10)/10,extraOneWay:Math.round(billableKm*2.4*100)/100});
 }

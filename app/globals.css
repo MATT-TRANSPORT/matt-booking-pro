@@ -362,3 +362,8 @@
 }
 .email-test span{color:var(--gold2);font-size:13px}
 @media(max-width:900px){.company-actions{position:static}}
+
+.booking-customer-section{scroll-margin-top:16px;margin-top:8px}
+.manager-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.expiry{display:flex;flex-direction:column;gap:3px}.expiry small{font-size:11px}
+.expiry.ok strong{color:#c2efd2}.expiry.warning strong,.expiry.warning small{color:#ffe09b}.expiry.danger strong,.expiry.danger small{color:#ffd2d4}

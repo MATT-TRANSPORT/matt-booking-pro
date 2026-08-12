@@ -1,0 +1,13 @@
+MATT BOOKING PRO v2.1.1 HOTFIX
+
+- bezpłatny dojazd: 40 km
+- usunięty techniczny box kilometrów z formularza klienta
+- auto-scroll mobile po wyborze pojazdu
+- uwagi do rezerwacji
+- NIP po wyborze Faktury VAT
+- zarządzanie kierowcami: dodaj/edytuj/dezaktywuj
+- zarządzanie pojazdami: dodaj/edytuj/dezaktywuj
+- przebieg, przegląd, ubezpieczenie, alert <=30 dni
+
+Po wdrożeniu uruchom:
+supabase/migrations-v2.1.1-hotfix.sql
