@@ -7,7 +7,9 @@ const esc = (value: unknown) =>
     .replaceAll("'", "&#039;");
 
 type BookingMail = {
+  id?: string;
   booking_number: string;
+  customer_access_token?: string | null;
   customer_name: string;
   pickup_address: string;
   airport_label: string;
@@ -26,13 +28,25 @@ type BookingMail = {
   vehicle_registration?: string | null;
 };
 
+function appBaseUrl() {
+  return process.env.NEXT_PUBLIC_APP_URL || "https://matt-booking-pro.vercel.app";
+}
+
+function clientUrl(b: BookingMail) {
+  return b.customer_access_token
+    ? `${appBaseUrl()}/rezerwacja/${b.customer_access_token}`
+    : null;
+}
+
+function adminUrl(b: BookingMail) {
+  return b.id
+    ? `${appBaseUrl()}/panel/rezerwacje/${b.id}`
+    : null;
+}
+
 function routeText(b: BookingMail) {
-  if (b.service_type === "from_airport") {
-    return `${b.airport_label} → ${b.pickup_address}`;
-  }
-  if (b.service_type === "roundtrip") {
-    return `${b.pickup_address} ↔ ${b.airport_label}`;
-  }
+  if (b.service_type === "from_airport") return `${b.airport_label} → ${b.pickup_address}`;
+  if (b.service_type === "roundtrip") return `${b.pickup_address} ↔ ${b.airport_label}`;
   return `${b.pickup_address} → ${b.airport_label}`;
 }
 
@@ -58,13 +72,41 @@ function shell(title: string, content: string) {
   </div>`;
 }
 
-function details(b: BookingMail) {
-  const vehicle =
-    b.vehicle_type === "bus" ? "Bus do 8 pasażerów" : "Samochód osobowy";
+function customerPortalButton(b: BookingMail) {
+  const url = clientUrl(b);
+  if (!url) return "";
+  return `
+    <div style="margin-top:20px">
+      <a href="${url}" style="display:inline-block;background:#d5ae5d;color:#111;padding:14px 20px;border-radius:11px;text-decoration:none;font-weight:800">
+        ZOBACZ / ZMIEŃ REZERWACJĘ
+      </a>
+    </div>
+    <p style="margin-top:10px;color:#aab1bc;font-size:12px;line-height:1.5">
+      Ten link jest indywidualny dla Twojej rezerwacji. Nie udostępniaj go osobom trzecim.
+    </p>`;
+}
+
+function bookingNumberForCustomer(b: BookingMail) {
+  const url = clientUrl(b);
+  return url
+    ? `<a href="${url}" style="color:#f1d28b;font-weight:800;text-decoration:underline">${esc(b.booking_number)}</a>`
+    : `<strong style="color:#f1d28b">${esc(b.booking_number)}</strong>`;
+}
+
+function bookingNumberForAdmin(b: BookingMail) {
+  const url = adminUrl(b);
+  return url
+    ? `<a href="${url}" style="color:#f1d28b;font-weight:800;text-decoration:underline">${esc(b.booking_number)}</a>`
+    : `<strong style="color:#f1d28b">${esc(b.booking_number)}</strong>`;
+}
+
+function details(b: BookingMail, forAdmin = false) {
+  const vehicle = b.vehicle_type === "bus" ? "Bus do 8 pasażerów" : "Samochód osobowy";
+  const number = forAdmin ? bookingNumberForAdmin(b) : bookingNumberForCustomer(b);
 
   return `
     <div style="background:#10141b;border:1px solid #343b49;border-radius:14px;padding:18px;line-height:1.8">
-      <div><span style="color:#aab1bc">Numer rezerwacji:</span> <strong style="color:#f1d28b">${esc(b.booking_number)}</strong></div>
+      <div><span style="color:#aab1bc">Numer rezerwacji:</span> ${number}</div>
       <div><span style="color:#aab1bc">Trasa:</span> <strong>${esc(routeText(b))}</strong></div>
       <div><span style="color:#aab1bc">Termin:</span> <strong>${esc(b.travel_date)} ${esc(b.travel_time)}</strong></div>
       <div><span style="color:#aab1bc">Pasażerowie:</span> <strong>${esc(b.passengers)}</strong></div>
@@ -79,15 +121,15 @@ export function receivedEmail(b: BookingMail) {
     subject: `Przyjęliśmy rezerwację ${b.booking_number}`,
     html: shell(
       "Rezerwacja została przyjęta",
-      `
-      <p style="color:#aab1bc;line-height:1.7">
+      `<p style="color:#aab1bc;line-height:1.7">
         Dzień dobry ${esc(b.customer_name)}, dziękujemy za złożenie rezerwacji.
         Rezerwacja oczekuje teraz na potwierdzenie przez naszego dyspozytora.
       </p>
       ${details(b)}
       <div style="margin-top:18px;padding:16px;border-radius:12px;background:#1b3a2a;color:#c2efd2">
         Potwierdzimy rezerwację do 60 minut.
-      </div>`
+      </div>
+      ${customerPortalButton(b)}`
     )
   };
 }
@@ -97,14 +139,14 @@ export function confirmedEmail(b: BookingMail) {
     subject: `Rezerwacja ${b.booking_number} została potwierdzona`,
     html: shell(
       "Rezerwacja potwierdzona",
-      `
-      <p style="color:#aab1bc;line-height:1.7">
+      `<p style="color:#aab1bc;line-height:1.7">
         Twoja rezerwacja została potwierdzona przez MATT TRANSPORT.
       </p>
       ${details(b)}
       <div style="margin-top:18px;padding:16px;border-radius:12px;background:#1b3a2a;color:#c2efd2">
         Kurs został przyjęty do realizacji.
-      </div>`
+      </div>
+      ${customerPortalButton(b)}`
     )
   };
 }
@@ -114,8 +156,7 @@ export function assignedEmail(b: BookingMail) {
     subject: `Kierowca został przydzielony – ${b.booking_number}`,
     html: shell(
       "Kierowca i pojazd przypisani",
-      `
-      <p style="color:#aab1bc;line-height:1.7">
+      `<p style="color:#aab1bc;line-height:1.7">
         Przydzieliliśmy obsadę do Twojego transferu.
       </p>
       ${details(b)}
@@ -124,7 +165,8 @@ export function assignedEmail(b: BookingMail) {
         <div><span style="color:#aab1bc">Telefon:</span> <strong>${esc(b.driver_phone || "—")}</strong></div>
         <div><span style="color:#aab1bc">Pojazd:</span> <strong>${esc(b.vehicle_name || "—")}</strong></div>
         <div><span style="color:#aab1bc">Rejestracja:</span> <strong>${esc(b.vehicle_registration || "—")}</strong></div>
-      </div>`
+      </div>
+      ${customerPortalButton(b)}`
     )
   };
 }
@@ -134,8 +176,7 @@ export function completedEmail(b: BookingMail) {
     subject: `Dziękujemy za przejazd – ${b.booking_number}`,
     html: shell(
       "Dziękujemy za podróż z MATT TRANSPORT",
-      `
-      <p style="color:#aab1bc;line-height:1.7">
+      `<p style="color:#aab1bc;line-height:1.7">
         Kurs ${esc(b.booking_number)} został zakończony. Dziękujemy za zaufanie
         i zapraszamy przy kolejnej podróży.
       </p>
@@ -145,17 +186,18 @@ export function completedEmail(b: BookingMail) {
 }
 
 export function adminNewBookingEmail(b: BookingMail, customerEmail: string, customerPhone: string) {
+  const url = adminUrl(b);
   return {
     subject: `NOWA REZERWACJA ${b.booking_number}`,
     html: shell(
       "Nowa rezerwacja w MATT Booking PRO",
-      `
-      ${details(b)}
+      `${details(b, true)}
       <div style="margin-top:18px;background:#10141b;border:1px solid #343b49;border-radius:14px;padding:18px;line-height:1.8">
         <div><span style="color:#aab1bc">Klient:</span> <strong>${esc(b.customer_name)}</strong></div>
         <div><span style="color:#aab1bc">Telefon:</span> <strong>${esc(customerPhone)}</strong></div>
         <div><span style="color:#aab1bc">E-mail:</span> <strong>${esc(customerEmail)}</strong></div>
-      </div>`
+      </div>
+      ${url ? `<div style="margin-top:20px"><a href="${url}" style="display:inline-block;background:#d5ae5d;color:#111;padding:14px 20px;border-radius:11px;text-decoration:none;font-weight:800">OTWÓRZ REZERWACJĘ W PANELU</a></div>` : ""}`
     )
   };
 }

@@ -1,0 +1,14 @@
+MATT BOOKING PRO v2.3.1
+
+NAPRAWIONO:
+- mail po przyjęciu rezerwacji: klikalny numer + przycisk ZOBACZ / ZMIEŃ REZERWACJĘ
+- mail po potwierdzeniu: klikalny numer + przycisk ZOBACZ / ZMIEŃ REZERWACJĘ
+- mail po przypisaniu kierowcy: klikalny numer + przycisk ZOBACZ / ZMIEŃ REZERWACJĘ
+- mail administratora: klikalny numer + OTWÓRZ REZERWACJĘ W PANELU
+
+Klient może edytować przy statusach:
+pending, confirmed, assigned.
+Po rozpoczęciu realizacji portal jest tylko do odczytu.
+
+Po wdrożeniu uruchom:
+supabase/migrations-v2.3.1-client-email-links.sql
