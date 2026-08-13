@@ -1,2 +1,33 @@
-import { redirect } from "next/navigation";import { createClient } from "@/lib/supabase/server";import DriverClient from "@/components/DriverClient";
-export default async function Page(){const s=await createClient();const {data:{user}}=await s.auth.getUser();if(!user)redirect("/login");const {data:profile}=await s.from("profiles").select("*").eq("id",user.id).maybeSingle();let driverId=null;if(profile?.role==="driver"){const {data:d}=await s.from("drivers").select("id").eq("profile_id",user.id).maybeSingle();driverId=d?.id??null}const q=s.from("bookings").select("*").order("travel_date").order("travel_time");const {data}=driverId?await q.eq("driver_id",driverId):await q.limit(6);return <main className="container driver-card"><span className="badge">MATT DRIVER</span><h1>Moje kursy</h1><DriverClient bookings={data??[]}/></main>}
+import DriverTrips from "@/components/DriverTrips";
+import { driverClient } from "@/lib/driver";
+
+export default async function Page() {
+  const { admin, driver } = await driverClient();
+
+  const today = new Date();
+  today.setDate(today.getDate() - 1);
+  const from = today.toISOString().slice(0, 10);
+
+  const toDate = new Date();
+  toDate.setDate(toDate.getDate() + 30);
+  const to = toDate.toISOString().slice(0, 10);
+
+  const { data: bookings } = await admin
+    .from("bookings")
+    .select("*,companies(name),vehicles(name,registration,color)")
+    .eq("driver_id", driver.id)
+    .gte("travel_date", from)
+    .lte("travel_date", to)
+    .neq("status", "cancelled")
+    .order("travel_date")
+    .order("travel_time");
+
+  return (
+    <main className="container driver-app-shell">
+      <DriverTrips
+        driver={driver}
+        bookings={bookings ?? []}
+      />
+    </main>
+  );
+}

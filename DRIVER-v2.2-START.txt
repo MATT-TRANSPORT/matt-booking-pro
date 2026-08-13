@@ -1,0 +1,38 @@
+MATT BOOKING PRO v2.2 DRIVER
+
+NOWE:
+- osobne logowanie kierowcy: /kierowca/login
+- mobilny panel kierowcy
+- Dzisiaj / Najbliższe / Wszystkie
+- dane pasażera
+- telefon jednym kliknięciem
+- Google Maps / nawigacja jednym kliknięciem
+- numer lotu
+- pojazd i rejestracja
+- uwagi do kursu
+- szybkie statusy:
+  WYJECHAŁEM
+  JESTEM NA MIEJSCU
+  PASAŻER ODEBRANY
+  ZAKOŃCZ KURS
+- historia zmian
+- automatyczne maile do klienta:
+  kierowca wyruszył
+  kierowca na miejscu
+  kurs zakończony
+- PWA / manifest aplikacji
+
+WDROŻENIE:
+1. Wgraj paczkę do GitHub.
+2. Supabase SQL Editor:
+   uruchom supabase/migrations-v2.2-driver.sql
+3. Supabase -> Authentication -> Users:
+   utwórz konto kierowcy (e-mail + hasło).
+4. Skopiuj UUID użytkownika.
+5. Panel MATT -> Kierowcy -> Edytuj:
+   wklej UUID w pole "UUID konta logowania".
+6. Kierowca loguje się pod:
+   /kierowca/login
+
+UWAGA:
+Kierowca widzi wyłącznie kursy przypisane do jego rekordu.

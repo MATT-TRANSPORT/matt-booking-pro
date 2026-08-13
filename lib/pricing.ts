@@ -4,7 +4,8 @@ export const PRICES: Record<string, { label: string; car: number; bus: number }>
   ostrawa: { label: "Ostrawa", car: 260, bus: 360 },
   wroclaw: { label: "Wrocław", car: 660, bus: 790 },
   warszawa: { label: "Warszawa", car: 990, bus: 1300 },
-  praga_wieden: { label: "Praga / Wiedeń", car: 1300, bus: 1650 }
+  prague: { label: "Praga", car: 1300, bus: 1650 },
+  vienna: { label: "Wiedeń", car: 1300, bus: 1650 }
 };
 
 export function calculateQuote(input: {

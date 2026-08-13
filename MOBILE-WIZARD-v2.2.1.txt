@@ -1,0 +1,12 @@
+MATT BOOKING PRO v2.2.1
+
+- mobilny formularz krokowy: 6 kroków
+- automatyczne przejście po wyborze typu przejazdu i pojazdu
+- pasek postępu
+- przycisk Wstecz zachowuje dane
+- Praga i Wiedeń osobno
+- Inne lotnisko -> wycena indywidualna
+- przycisk telefonu +48 691 242 691
+- brak możliwości standardowej rezerwacji dla "Inne"
+- desktop pozostaje pełnym formularzem
+- zachowano 40 km darmowego dojazdu, NIP, uwagi, B2B i Driver

@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
       phone: b.phone || null,
       email: b.email || null,
       license_number: b.licenseNumber || null,
+      user_id: b.userId || null,
       notes: b.notes || null,
       active: true,
       status: "available"
@@ -34,6 +35,7 @@ export async function POST(req: NextRequest) {
       phone: b.phone || null,
       email: b.email || null,
       license_number: b.licenseNumber || null,
+      user_id: b.userId || null,
       notes: b.notes || null,
       active: Boolean(b.active),
       status: b.active ? "available" : "inactive"
