@@ -66,9 +66,9 @@ export async function PATCH(
     return NextResponse.json({ error: "Podaj poprawny 10-cyfrowy NIP." }, { status: 400 });
   }
 
-  const airport = String(booking.airport);
+  const airport = String(booking.airport_key);
   if (!(airport in PRICES)) {
-    return NextResponse.json({ error: "Ta rezerwacja wymaga indywidualnej wyceny." }, { status: 400 });
+    return NextResponse.json({ error: "Nie udało się odczytać cennika tej rezerwacji. Skontaktuj się z MATT TRANSPORT." }, { status: 400 });
   }
 
   // Zachowujemy obecny dystans. Zmiana adresu wymaga ponownego potwierdzenia przez MATT,
