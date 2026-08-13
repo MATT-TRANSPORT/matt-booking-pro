@@ -621,3 +621,21 @@
 .individual-quote-summary strong{color:var(--gold2)}.individual-quote-summary span{color:var(--muted)}
 @keyframes wizardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:900px){.booking-form-wrap{display:none}}
+
+/* MATT Booking PRO v2.3 — Client Portal */
+.client-portal-shell{max-width:1100px}
+.client-portal-hero{margin-bottom:14px}
+.client-portal-hero h1{margin:10px 0}
+.client-booking-status{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:7px 11px;color:var(--gold2);background:rgba(213,174,93,.08)}
+.client-booking-status.completed{color:#bde7cc;border-color:rgba(79,189,125,.45)}
+.client-booking-status.cancelled{color:#ffb3b3;border-color:rgba(220,80,80,.45)}
+.client-portal-grid{display:grid;grid-template-columns:1.7fr .8fr;gap:14px}
+.client-booking-summary>div{display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--line)}
+.client-booking-summary span{color:var(--muted)}
+.client-booking-summary strong{text-align:right}
+.client-booking-summary .btn{display:flex;justify-content:center;margin-top:12px}
+.client-edit-warning{margin-top:14px;padding:12px;border:1px solid rgba(213,174,93,.4);border-radius:12px;background:rgba(213,174,93,.07);color:var(--gold2);font-size:12px;line-height:1.5}
+.client-success-message{margin-top:14px;padding:12px;border:1px solid rgba(79,189,125,.45);border-radius:12px;background:rgba(79,189,125,.08);color:#bde7cc}
+@media(max-width:800px){.client-portal-grid{grid-template-columns:1fr}.client-portal-shell{padding-left:10px;padding-right:10px}}
+
+.booking-number-link{color:var(--gold2);font-weight:800;text-decoration:underline;text-underline-offset:3px}

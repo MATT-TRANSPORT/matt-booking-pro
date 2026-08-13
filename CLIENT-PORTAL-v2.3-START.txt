@@ -1,0 +1,39 @@
+MATT BOOKING PRO v2.3 — CLIENT PORTAL
+
+NOWE:
+1. Mail administratora:
+   - numer rezerwacji może prowadzić bezpośrednio do karty w panelu.
+2. Panel -> Rezerwacje:
+   - numer rezerwacji jest aktywnym linkiem do szczegółów.
+3. Mail klienta:
+   - klient dostaje bezpieczny link "ZOBACZ / ZMIEŃ REZERWACJĘ".
+4. Portal klienta bez konta:
+   /rezerwacja/<bezpieczny-token>
+5. Klient może zmieniać:
+   - adres
+   - datę i godzinę
+   - numer lotu
+   - liczbę pasażerów
+   - pojazd
+   - NIP / fakturę
+   - uwagi
+6. Po zmianie adresu lub terminu:
+   - status wraca do "pending"
+   - MATT dostaje mail o zmianie
+   - rezerwacja wymaga ponownego potwierdzenia.
+7. Po rozpoczęciu kursu:
+   - portal przechodzi w tryb tylko do odczytu.
+
+WDROŻENIE:
+1. Wgraj paczkę do GitHub/Vercel.
+2. Supabase SQL Editor:
+   uruchom supabase/migrations-v2.3-client-portal.sql
+3. W Vercel ustaw (jeśli jeszcze nie ma):
+   NEXT_PUBLIC_APP_URL=https://matt-booking-pro.vercel.app
+   ADMIN_EMAIL=kontakt@matt-transport.pl
+4. Redeploy.
+5. Zrób nową testową rezerwację i sprawdź oba maile.
+
+UWAGA:
+Stare rezerwacje także dostaną token po uruchomieniu migracji,
+ale link klienta będzie automatycznie wysyłany przy nowych rezerwacjach.
