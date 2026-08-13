@@ -1,0 +1,12 @@
+MATT BOOKING PRO v2.3.2 — CLIENT EDIT FIX
+
+NAPRAWIONO:
+- po zmianie daty/godziny klient nie dostaje błędnego komunikatu
+  "Ta rezerwacja wymaga indywidualnej wyceny".
+- portal klienta korzysta teraz z prawidłowego pola bookings.airport_key.
+- zmiana daty lub godziny nadal ustawia status rezerwacji na "pending",
+  aby MATT TRANSPORT mógł ją ponownie potwierdzić.
+- portal zachowuje standardowe przeliczenie ceny zgodne z cennikiem i progiem 40 km.
+
+Nie jest wymagana nowa migracja Supabase.
+Wystarczy wdrożyć kod i zrobić Redeploy w Vercel.
