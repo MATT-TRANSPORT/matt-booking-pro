@@ -1,0 +1,43 @@
+MATT BOOKING PRO v2.4 — WEDDING + STABILITY
+
+NAJWAŻNIEJSZE:
+- nowy moduł Transport Weselny / Rozwożenie gości
+- osobny formularz /wesele
+- zapytania weselne wpadają na Dashboard z ikoną 💍 i odrębnym kolorem
+- mail do klienta + mail do MATT TRANSPORT
+- osobna karta zapytania weselnego w panelu
+
+STABILITY / MOBILE:
+- mobilne listy w Archiwum i panelu B2B jako karty
+- Dashboard: najnowsze zgłoszenia na górze
+- Plan kursów i Kalendarz pozostają chronologiczne
+- polskie statusy
+- Kalendarz: kolor kierowcy + kierowca + pojazd + BEZ OBSADY
+- Rezerwacje usunięte z głównego menu administratora; dostępne jako Archiwum/Wyszukiwarka
+- Rezerwacje usunięte z głównego menu firmy; Dashboard firmy przejmuje listę zleceń
+
+B2B:
+- poprawka Powtórz rezerwację: nowy customer_access_token
+- dynamiczna kolejność Adres/Lotnisko zależnie od kierunku
+- sposób płatności: Przelew firmowy / Płatność pracownika
+- link do płatności może zostać wpisany w panelu i wysłany pracownikowi
+- dodawanie firmy z poziomu Panel -> Firmy
+- indywidualne warunki: rabat %, darmowy dojazd km, termin płatności, domyślna płatność, notatki, przełącznik cennika indywidualnego
+- tabela company_airport_prices przygotowana pod stałe ceny lotniskowe
+
+KLIENT INDYWIDUALNY:
+- ekran po rezerwacji jasno informuje: Oczekuje na potwierdzenie
+- komunikat, że MATT potwierdzi rezerwację możliwie szybko i klient ma oczekiwać e-maila/kontaktu
+
+WDROŻENIE:
+1. Wgraj paczkę do GitHub/Vercel.
+2. Supabase -> SQL Editor:
+   supabase/migrations-v2.4-wedding-stability.sql
+3. Redeploy.
+4. Test:
+   - rezerwacja indywidualna
+   - zapytanie weselne
+   - B2B + powtórzenie
+   - płatność pracownika
+   - Dashboard mobile / firma mobile
+   - Kalendarz
