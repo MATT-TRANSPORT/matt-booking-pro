@@ -70,6 +70,7 @@ export async function POST(
       ...current,
       id: undefined,
       booking_number: undefined,
+      customer_access_token: crypto.randomUUID(),
       created_at: undefined,
       updated_at: undefined,
       driver_id: null,

@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
 
   const { data: membership } = await auth
     .from("company_users")
-    .select("company_id,role")
+    .select("company_id,role,companies(discount_percent,free_pickup_km,use_custom_pricing,default_payment_method)")
     .eq("user_id", user.id)
     .eq("active", true)
     .single();
@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
+  const companyTerms = Array.isArray((membership as any).companies) ? (membership as any).companies[0] : (membership as any).companies;
   const admin = createAdminClient();
 
   let employee: any = null;
@@ -135,8 +136,9 @@ export async function POST(req: NextRequest) {
   const multiplier = body.serviceType === "roundtrip" ? 2 : 1;
   const base = price[vehicle] * multiplier;
   const extra =
-    Math.max(0, Number(body.distanceKm || 0) - 40) * 2.4 * multiplier;
-  const total = base + extra;
+    Math.max(0, Number(body.distanceKm || 0) - Number(companyTerms?.free_pickup_km ?? 40)) * 2.4 * multiplier;
+  const discount = Number(companyTerms?.discount_percent ?? 0);
+  const total = (base + extra) * (1 - discount / 100);
 
   const { data, error } = await admin
     .from("bookings")
@@ -145,6 +147,7 @@ export async function POST(req: NextRequest) {
       company_employee_id: employee.id,
       ordered_by_user_id: user.id,
       booking_source: "b2b_portal",
+      payment_method: body.paymentMethod || companyTerms?.default_payment_method || "company_transfer",
       service_type: body.serviceType,
       pickup_address: body.address,
       airport_key: body.airport,

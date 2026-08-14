@@ -1,3 +1,4 @@
+import CompanyTermsEditor from "@/components/CompanyTermsEditor";
 import { notFound } from "next/navigation";
 import PanelNav from "@/components/PanelNav";
 import SettlementUpload from "@/components/SettlementUpload";
@@ -45,7 +46,7 @@ export default async function Page({
         <div className="stat"><strong>{users?.length ?? 0}</strong><span>Konta portalowe</span></div>
       </div>
 
-      <div className="reservation-detail-grid">
+      <div className="reservation-detail-grid"><CompanyTermsEditor company={company} />
         <div className="card">
           <h2>Dane firmy</h2>
           <div className="detail-list">

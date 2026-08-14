@@ -1,3 +1,4 @@
+import PaymentLinkBox from "@/components/PaymentLinkBox";
 import { notFound } from "next/navigation";
 import PanelNav from "@/components/PanelNav";
 import BookingAdminActions from "@/components/BookingAdminActions";
@@ -143,6 +144,6 @@ export default async function Page({
           </div>
         </div>
       </div>
-    </main>
+    <PaymentLinkBox booking={booking} /></main>
   );
 }

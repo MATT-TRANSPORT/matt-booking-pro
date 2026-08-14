@@ -34,6 +34,7 @@ export default function CompanyBookingForm({
   const [flightNumber, setFlightNumber] = useState("");
   const [returnFlightNumber, setReturnFlightNumber] = useState("");
   const [notes, setNotes] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"company_transfer"|"employee_payment">("company_transfer");
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [routeMessage, setRouteMessage] = useState(
     "Wybierz pracownika lub wpisz adres."
@@ -151,7 +152,8 @@ export default function CompanyBookingForm({
         returnTime,
         flightNumber,
         returnFlightNumber,
-        notes
+        notes,
+        paymentMethod
       })
     });
 
@@ -335,10 +337,10 @@ export default function CompanyBookingForm({
           </button>
         </div>
 
-        <h3>Trasa</h3>
+        <h3>{serviceType === "from_airport" ? "Skąd odbieramy pasażera?" : "Dokąd jedziemy?"}</h3>
         <div className="grid">
-          <label>
-            Adres
+          <label className={serviceType === "from_airport" ? "route-address second" : "route-address first"}>
+            {serviceType === "from_airport" ? "Adres docelowy" : "Adres odbioru"}
             <input
               value={address}
               onChange={(e) => setAddress(e.target.value)}
@@ -364,8 +366,8 @@ export default function CompanyBookingForm({
             )}
           </label>
 
-          <label>
-            Lotnisko
+          <label className={serviceType === "from_airport" ? "route-airport first" : "route-airport second"}>
+            {serviceType === "from_airport" ? "Z jakiego lotniska?" : "Lotnisko"}
             <select
               value={airport}
               onChange={(e) =>
@@ -440,6 +442,16 @@ export default function CompanyBookingForm({
           >
             <strong>Bus do 8 osób</strong>
             <small>Grupy / większy bagaż</small>
+          </button>
+        </div>
+
+        <h3>Płatność</h3>
+        <div className="choice-grid">
+          <button type="button" className={`choice ${paymentMethod==="company_transfer"?"active":""}`} onClick={()=>setPaymentMethod("company_transfer")}>
+            <strong>🏢 Przelew firmowy</strong><small>Rozliczenie zgodnie z warunkami firmy</small>
+          </button>
+          <button type="button" className={`choice ${paymentMethod==="employee_payment"?"active":""}`} onClick={()=>setPaymentMethod("employee_payment")}>
+            <strong>👤 Płatność pracownika</strong><small>Link do płatności może zostać wysłany pracownikowi</small>
           </button>
         </div>
 

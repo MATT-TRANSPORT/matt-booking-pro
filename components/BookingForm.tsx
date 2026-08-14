@@ -106,7 +106,7 @@ export default function BookingForm() {
     return <div className="booking-success-card">
       <div className="success-check">✓</div>
       <span className="badge">MATT TRANSPORT</span>
-      <h1>Rezerwacja przyjęta!</h1>
+      <h1>Dziękujemy! Rezerwacja przyjęta</h1><div className="pending-confirmation-badge">🕐 Oczekuje na potwierdzenie</div><div className="client-next-step"><strong>Co dalej?</strong><p>Twoje zgłoszenie zostało przyjęte. Potwierdzimy rezerwację najszybciej jak to możliwe.</p><p>Oczekuj wiadomości e-mail lub kontaktu z MATT TRANSPORT.</p></div>
       <div className="success-number"><span>Numer rezerwacji</span><strong>{success.booking_number}</strong></div>
       <div className="success-details"><div><span>Trasa</span><strong>{routeText}</strong></div><div><span>Kwota</span><strong>{Number(success.total_price).toFixed(2)} zł</strong></div></div>
       <div className="success-actions"><a className="btn" href="/booking">NOWA REZERWACJA</a></div>

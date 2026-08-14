@@ -1,34 +1,24 @@
 import PanelNav from "@/components/PanelNav";
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+import {panelClient} from "@/lib/panel";
+import {statusPl} from "@/lib/status";
 
-export default async function CalendarPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const { data } = await supabase.from("bookings")
-    .select("*")
-    .order("travel_date")
-    .order("travel_time")
-    .limit(150);
-
-  const grouped = (data ?? []).reduce((acc: Record<string, any[]>, row: any) => {
-    (acc[row.travel_date] ??= []).push(row);
-    return acc;
-  }, {});
-
-  return <main className="container">
-    <h1>Kalendarz kursów</h1>
-    <PanelNav />
-    {Object.entries(grouped).map(([date, rows]) =>
-      <div className="card" style={{marginBottom:14}} key={date}>
-        <h2>{date}</h2>
-        {rows.map((r:any)=><div className="row" key={r.id}>
-          <strong>{r.travel_time}</strong>
-          <span>{r.pickup_address} → {r.airport_label} · {r.customer_name}</span>
-        </div>)}
-      </div>
-    )}
-  </main>;
+const palette=["#d5ae5d","#4f8bd6","#52a86b","#a975d1","#d27a5a","#4eb9b0","#cf6b91","#8794aa"];
+function driverColor(id:string|null,ids:string[]){
+  if(!id)return "#6b7280";
+  const i=Math.max(0,ids.indexOf(id));return palette[i%palette.length];
+}
+export default async function CalendarPage(){
+  const {s}=await panelClient();
+  const {data}=await s.from("bookings").select("*,drivers(id,full_name),vehicles(name,registration)").neq("status","cancelled").order("travel_date").order("travel_time").limit(250);
+  const rows=data??[];
+  const ids=[...new Set(rows.map((x:any)=>x.driver_id).filter(Boolean))] as string[];
+  const grouped=rows.reduce((a:Record<string,any[]>,x:any)=>{(a[x.travel_date]??=[]).push(x);return a},{});
+  return <main className="container"><h1>Kalendarz kursów</h1><PanelNav/>
+    <div className="driver-legend">{ids.map(id=>{const b=rows.find((x:any)=>x.driver_id===id);const d=Array.isArray(b?.drivers)?b.drivers[0]:b?.drivers;return <span key={id}><i style={{background:driverColor(id,ids)}}/>{d?.full_name}</span>})}<span><i style={{background:"#6b7280"}}/>BEZ OBSADY</span></div>
+    {Object.entries(grouped).map(([date,list])=><div className="card calendar-day" key={date}><h2>{date}</h2><div className="calendar-events">
+      {(list as any[]).map((b:any)=>{const d=Array.isArray(b.drivers)?b.drivers[0]:b.drivers;const v=Array.isArray(b.vehicles)?b.vehicles[0]:b.vehicles;return <a href={`/panel/rezerwacje/${b.id}`} className="calendar-event" style={{borderLeftColor:driverColor(b.driver_id,ids)}} key={b.id}>
+        <strong>{b.travel_time} · {b.customer_name}</strong><span>{b.pickup_address} → {b.airport_label}</span><small>{d?.full_name??"BEZ OBSADY"} · {v?`${v.name} · ${v.registration}`:"brak pojazdu"} · {statusPl(b.status)}</small>
+      </a>})}
+    </div></div>)}
+  </main>
 }
