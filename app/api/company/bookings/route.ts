@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
 
   const { data: membership } = await auth
     .from("company_users")
-    .select("company_id,role,companies(discount_percent,free_pickup_km,use_custom_pricing,default_payment_method)")
+    .select("company_id,role,companies(email,name,discount_percent,free_pickup_km,use_custom_pricing,default_payment_method)")
     .eq("user_id", user.id)
     .eq("active", true)
     .single();
@@ -52,9 +52,9 @@ export async function POST(req: NextRequest) {
   } else if (body.newEmployee) {
     const n = body.newEmployee;
 
-    if (!n.firstName || !n.lastName || !n.phone) {
+    if (!n.firstName || !n.lastName) {
       return NextResponse.json(
-        { error: "Podaj imię, nazwisko i telefon nowego pracownika." },
+        { error: "Podaj imię i nazwisko nowego pracownika." },
         { status: 400 }
       );
     }
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
           company_id: membership.company_id,
           first_name: n.firstName,
           last_name: n.lastName,
-          phone: n.phone,
+          phone: n.phone || null,
           email: n.email || null,
           default_address: n.defaultAddress || body.address || null,
           department: n.department || null,
@@ -190,10 +190,11 @@ export async function POST(req: NextRequest) {
   let adminEmailSent = false;
 
   try {
-    if (data.email) {
+    const companyAdminEmail = companyTerms?.email || user.email || null;
+    if (companyAdminEmail) {
       const customerMail = receivedEmail(data);
       const customerResult = await sendMattEmail({
-        to: data.email,
+        to: companyAdminEmail,
         subject: customerMail.subject,
         html: customerMail.html
       });

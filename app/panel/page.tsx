@@ -11,7 +11,7 @@ export default async function PanelPage(){
     s.from("bookings").select("*",{count:"exact",head:true}).eq("status","pending"),
     s.from("bookings").select("*",{count:"exact",head:true}).eq("travel_date",today),
     s.from("bookings").select("*",{count:"exact",head:true}).not("company_id","is",null).in("status",["pending","confirmed","assigned"]),
-    s.from("bookings").select("*,companies(name)").order("created_at",{ascending:false}).limit(30),
+    s.from("bookings").select("*,companies(name),drivers(full_name,color)").order("created_at",{ascending:false}).limit(30),
     s.from("wedding_bookings").select("*").order("created_at",{ascending:false}).limit(15)
   ]);
 
@@ -39,7 +39,12 @@ export default async function PanelPage(){
           </a>}
           const b=x.data;const company=Array.isArray(b.companies)?b.companies[0]:b.companies;
           return <a className={`dashboard-feed-card ${b.company_id?"b2b-order":""}`} key={`a-${b.id}`} href={`/panel/rezerwacje/${b.id}`}>
-            <div className="feed-icon">{b.company_id?"🏢":"✈️"}</div><div>{b.company_id?<span className="origin-badge b2b">B2B · {company?.name??"Firma"}</span>:<span className="origin-badge private">INDYWIDUALNY</span>}<strong>{b.booking_number} · {b.customer_name}</strong><span>{b.travel_date} {b.travel_time} · {b.pickup_address} → {b.airport_label}</span></div><div className={`feed-status ${b.status}`}>{statusPl(b.status)}</div>
+            <div className="feed-icon">{b.company_id?"🏢":"✈️"}</div><div>{b.company_id?<span className="origin-badge b2b">B2B · {company?.name??"Firma"}</span>:<span className="origin-badge private">INDYWIDUALNY</span>}<strong>{b.booking_number} · {b.customer_name}</strong><span>{b.travel_date} {b.travel_time} · {b.pickup_address} → {b.airport_label}</span></div><div className="dashboard-feed-meta">
+              {b.driver_id&&<span className="driver-color-badge" style={{borderColor:(Array.isArray(b.drivers)?b.drivers[0]:b.drivers)?.color||"#D6AD55"}}><i style={{background:(Array.isArray(b.drivers)?b.drivers[0]:b.drivers)?.color||"#D6AD55"}}/>{(Array.isArray(b.drivers)?b.drivers[0]:b.drivers)?.full_name}</span>}
+              {b.payment_method==="employee_payment"&&<span className={`payment-dashboard-badge ${b.payment_link?"ready":"waiting"}`}>{b.payment_link?"PŁATNOŚĆ PRACOWNIKA · LINK GOTOWY":"PŁATNOŚĆ PRACOWNIKA · BRAK LINKU"}</span>}
+              {b.payment_method==="employee_payment"&&b.payment_link&&<span className="payment-dashboard-link">Otwórz link płatności ↗</span>}
+              <div className={`feed-status ${b.status}`}>{statusPl(b.status)}</div>
+            </div>
           </a>
         })}
       </div>

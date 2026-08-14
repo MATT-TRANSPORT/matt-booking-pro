@@ -178,9 +178,10 @@ export async function POST(
     created_by: user.id
   });
 
-  if (data.email && changes.length) {
+  const {data:companyForMail}=await admin.from("companies").select("email").eq("id",membership.company_id).single();
+  if (companyForMail?.email && changes.length) {
     await sendMattEmail({
-      to: data.email,
+      to: companyForMail.email,
       subject: `Zmieniono rezerwację ${data.booking_number}`,
       html: htmlUpdate(
         data.booking_number,

@@ -1,9 +1,15 @@
 import {notFound} from "next/navigation";
 import PanelNav from "@/components/PanelNav";
 import {panelClient} from "@/lib/panel";
+import WeddingAssignments from "@/components/WeddingAssignments";
 export default async function Page({params}:{params:Promise<{id:string}>}){
   const {id}=await params; const {s}=await panelClient();
-  const {data:b}=await s.from("wedding_bookings").select("*").eq("id",id).single();
+  const [{data:b},{data:slots},{data:drivers},{data:vehicles}]=await Promise.all([
+    s.from("wedding_bookings").select("*").eq("id",id).single(),
+    s.from("wedding_vehicle_assignments").select("*").eq("wedding_booking_id",id).order("slot_no"),
+    s.from("drivers").select("*").order("full_name"),
+    s.from("vehicles").select("*").order("name")
+  ]);
   if(!b)notFound();
   return <main className="container">
     <a className="back-link" href="/panel">← Dashboard</a>
@@ -26,5 +32,6 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
       <div className="card"><h2>Następny krok</h2><p>Przygotuj umowę na podstawie danych i prześlij ją klientowi na adres e-mail.</p>
       <a className="btn" href={`mailto:${b.email}`}>NAPISZ DO KLIENTA</a></div>
     </div>
+    <WeddingAssignments booking={b} slots={slots??[]} drivers={drivers??[]} vehicles={vehicles??[]}/>
   </main>
 }

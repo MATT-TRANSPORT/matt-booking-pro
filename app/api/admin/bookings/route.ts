@@ -8,6 +8,14 @@ import {
   completedEmail
 } from "@/lib/emailTemplates";
 
+async function recipientForBooking(admin:any, booking:any){
+  if(booking.company_id){
+    const {data:company}=await admin.from("companies").select("email").eq("id",booking.company_id).single();
+    return company?.email || null;
+  }
+  return booking.email || null;
+}
+
 const ALLOWED_STATUSES = [
   "pending",
   "confirmed",
@@ -69,7 +77,7 @@ export async function POST(req: NextRequest) {
         : confirmedEmail(current);
 
     const mailResult = await sendMattEmail({
-      to: current.email,
+      to: await recipientForBooking(admin,current),
       subject: template.subject,
       html: template.html
     });
@@ -171,7 +179,7 @@ export async function POST(req: NextRequest) {
 
     if (template) {
       const result = await sendMattEmail({
-        to: updated.email,
+        to: await recipientForBooking(admin,updated),
         subject: template.subject,
         html: template.html
       });

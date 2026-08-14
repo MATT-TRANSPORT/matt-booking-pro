@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
       license_number: b.licenseNumber || null,
       user_id: b.userId || null,
       notes: b.notes || null,
+      color: b.color || "#D6AD55",
       active: true,
       status: "available"
     }).select("*").single();
@@ -37,6 +38,7 @@ export async function POST(req: NextRequest) {
       license_number: b.licenseNumber || null,
       user_id: b.userId || null,
       notes: b.notes || null,
+      color: b.color || "#D6AD55",
       active: Boolean(b.active),
       status: b.active ? "available" : "inactive"
     }).eq("id", b.id).select("*").single();

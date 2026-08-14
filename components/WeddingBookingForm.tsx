@@ -1,12 +1,25 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function WeddingBookingForm(){
   const [form,setForm]=useState({
     customerName:"",startDate:"",startTime:"",
     restaurantName:"",restaurantAddress:"",
-    vehiclesCount:1,phone:"",email:"",notes:""
+    vehiclesCount:1,vehicleTypes:["bus"] as ("car"|"bus")[],phone:"",email:"",notes:""
   });
+  const [restaurantSuggestions,setRestaurantSuggestions]=useState<any[]>([]);
+
+  useEffect(()=>{
+    if(form.restaurantAddress.trim().length<3){setRestaurantSuggestions([]);return;}
+    const timer=setTimeout(async()=>{
+      try{
+        const r=await fetch(`/api/places?q=${encodeURIComponent(form.restaurantAddress)}`);
+        const d=await r.json();
+        setRestaurantSuggestions(d.suggestions??[]);
+      }catch{setRestaurantSuggestions([]);}
+    },350);
+    return()=>clearTimeout(timer);
+  },[form.restaurantAddress]);
   const [saving,setSaving]=useState(false);
   const [message,setMessage]=useState("");
   const [success,setSuccess]=useState<any>(null);
@@ -47,10 +60,37 @@ export default function WeddingBookingForm(){
       <label>Data rozpoczęcia rozwozów *<input type="date" value={form.startDate} onChange={e=>setForm({...form,startDate:e.target.value})}/></label>
       <label>Godzina rozpoczęcia rozwozów *<input type="time" value={form.startTime} onChange={e=>setForm({...form,startTime:e.target.value})}/></label>
       <label>Nazwa restauracji *<input value={form.restaurantName} onChange={e=>setForm({...form,restaurantName:e.target.value})}/></label>
-      <label>Adres restauracji *<input value={form.restaurantAddress} onChange={e=>setForm({...form,restaurantAddress:e.target.value})}/></label>
-      <label>Ilość samochodów *<input type="number" min={1} max={20} value={form.vehiclesCount} onChange={e=>setForm({...form,vehiclesCount:Number(e.target.value)})}/></label>
+      <label className="wedding-address-field">Adres restauracji *
+        <input autoComplete="off" value={form.restaurantAddress} onChange={e=>setForm({...form,restaurantAddress:e.target.value})}/>
+        {restaurantSuggestions.length>0&&<div className="address-suggestions">
+          {restaurantSuggestions.slice(0,5).map((s:any,i:number)=><button type="button" key={s.placeId??i} onClick={()=>{
+            setForm({...form,restaurantAddress:s.text??""});setRestaurantSuggestions([]);
+          }}>{s.text}</button>)}
+        </div>}
+      </label>
+      <label>Ilość pojazdów *
+        <input type="number" min={1} max={20} value={form.vehiclesCount} onChange={e=>{
+          const n=Math.max(1,Math.min(20,Number(e.target.value)||1));
+          const types=Array.from({length:n},(_,i)=>form.vehicleTypes[i]??"bus");
+          setForm({...form,vehiclesCount:n,vehicleTypes:types});
+        }}/>
+      </label>
       <label>Numer telefonu *<input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/></label>
       <label>Adres e-mail *<input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></label>
+    </div>
+    <div className="wedding-vehicle-types">
+      <h3>Pojazdy</h3>
+      {form.vehicleTypes.map((type,i)=><div className="wedding-vehicle-row" key={i}>
+        <strong>Pojazd {i+1}</strong>
+        <select value={type} onChange={e=>{
+          const vehicleTypes=[...form.vehicleTypes];
+          vehicleTypes[i]=e.target.value as "car"|"bus";
+          setForm({...form,vehicleTypes});
+        }}>
+          <option value="car">Samochód osobowy</option>
+          <option value="bus">Bus 9-osobowy</option>
+        </select>
+      </div>)}
     </div>
     <label style={{marginTop:14}}>Dodatkowe informacje (opcjonalnie)
       <textarea rows={4} value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})}/>

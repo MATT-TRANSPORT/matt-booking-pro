@@ -19,7 +19,7 @@ export default async function Page() {
     { data: vehicles }
   ] = await Promise.all([
     s.from("bookings")
-      .select("*,companies(name)")
+      .select("*,companies(name),drivers(full_name,color)")
       .gte("travel_date", dateFrom)
       .lte("travel_date", dateTo)
       .neq("status", "cancelled")

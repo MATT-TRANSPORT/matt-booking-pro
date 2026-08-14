@@ -16,6 +16,14 @@ export async function POST(req:NextRequest){
 
   if(error)return NextResponse.json({error:error.message},{status:500});
 
+  const vehicleTypes=Array.isArray(b.vehicleTypes)?b.vehicleTypes:[];
+  const slots=Array.from({length:Number(b.vehiclesCount||1)},(_,i)=>({
+    wedding_booking_id:data.id,
+    slot_no:i+1,
+    requested_vehicle_type:vehicleTypes[i]==="car"?"car":"bus"
+  }));
+  if(slots.length) await s.from("wedding_vehicle_assignments").insert(slots);
+
   const base=process.env.NEXT_PUBLIC_APP_URL||"https://matt-booking-pro.vercel.app";
   const adminUrl=`${base}/panel/wesela/${data.id}`;
 
