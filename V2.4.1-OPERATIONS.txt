@@ -1,0 +1,36 @@
+MATT BOOKING PRO v2.4.1 — OPERATIONS
+
+ZMIANY Z TESTÓW:
+1. WESELA
+- podpowiedzi Google Places dla adresu restauracji
+- dla każdego zamówionego pojazdu wybór: samochód osobowy / bus 9-osobowy
+- w panelu wesela dynamiczna liczba pól kierowca + samochód
+- po zapisaniu kompletnej obsady klient otrzymuje uroczysty, weselny e-mail
+- przy niekompletnej obsadzie e-mail nie jest wysyłany
+
+2. B2B
+- nowy pracownik: obowiązkowe tylko imię i nazwisko
+- telefon i e-mail pracownika są opcjonalne
+- maile operacyjne rezerwacji B2B kierowane są na e-mail firmy / administratora firmy
+- nie próbujemy wysyłać potwierdzenia przydziału na pusty e-mail pasażera
+
+3. PŁATNOŚĆ PRACOWNIKA
+- Dashboard pokazuje, że rezerwacja ma płatność indywidualną
+- pokazuje czy link płatności został już zapisany
+
+4. KOLORY KIEROWCÓW
+- kierowca ma edytowalny kolor w Panel -> Kierowcy
+- kolor/nazwa kierowcy widoczna przy rezerwacjach na Dashboardzie i w archiwum
+- przygotowana baza do spójnego użycia w Dyspozytorze
+
+WDROŻENIE:
+A. Wgraj kod i zrób deploy.
+B. Supabase -> SQL Editor:
+   uruchom supabase/migrations-v2.4.1-operations.sql
+C. Redeploy po migracji.
+D. Testy:
+   - wesele 2-3 pojazdy
+   - B2B bez telefonu pracownika
+   - przydział kierowcy B2B i e-mail na adres firmy
+   - payment link / Dashboard
+   - zmiana koloru kierowcy
