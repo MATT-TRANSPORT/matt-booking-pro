@@ -1,0 +1,8 @@
+MATT BOOKING PRO v2.4.2.1 BUILD HOTFIX
+
+Naprawiono błąd kompilacji Next.js:
+- dyrektywa "use client" została przeniesiona na początek DriversManager.tsx
+- sprawdzono automatycznie wszystkie pliki TS/TSX pod kątem tego samego błędu
+
+Nie wymaga nowej migracji SQL.
+Jeżeli migracja v2.4.2-stability.sql została już wykonana, nie uruchamiaj jej ponownie.

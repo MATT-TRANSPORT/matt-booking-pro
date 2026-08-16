@@ -1,5 +1,5 @@
-import PortalAccessButton from "@/components/PortalAccessButton";
 "use client";
+import PortalAccessButton from "@/components/PortalAccessButton";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
