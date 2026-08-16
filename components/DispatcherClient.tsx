@@ -122,7 +122,7 @@ function DispatchRow({
   const company = Array.isArray(b.companies) ? b.companies[0] : b.companies;
 
   return (
-    <tr>
+    <tr style={{borderLeft:`5px solid ${drivers.find((d:any)=>d.id===driverId)?.color||"transparent"}`}}>
       <td>
         <strong>{b.travel_date}</strong>
         <br />

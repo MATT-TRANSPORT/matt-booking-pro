@@ -1,0 +1,14 @@
+MATT BOOKING PRO v2.4.2 — STABILITY
+
+- telefon/e-mail pracownika B2B opcjonalne; obowiązkowe tylko imię i nazwisko
+- link płatności pracownika widoczny w Dashboardzie firmy + otwieranie/kopiowanie
+- kafel weselny znika po wejściu w krok 2 mobilnego transferu i wraca po cofnięciu
+- złote logo MATT TRANSPORT na booking
+- tworzenie/reset kont kierowców z panelu
+- tworzenie/reset kont administratorów firm z panelu i opcjonalnie przy tworzeniu firmy
+- bezpieczny link do ustawienia hasła; bez ręcznego UUID
+- wykrywanie konfliktu kierowcy/pojazdu w oknie 3 godzin
+- kolory kierowców w Dyspozytorze
+- Centrum Wymaga uwagi na Dashboardzie
+
+WDROŻENIE: uruchom supabase/migrations-v2.4.2-stability.sql, następnie deploy i redeploy.

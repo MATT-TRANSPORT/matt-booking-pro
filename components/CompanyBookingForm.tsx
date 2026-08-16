@@ -120,9 +120,9 @@ export default function CompanyBookingForm({
 
     if (
       passengerMode === "new" &&
-      (!newEmployee.firstName || !newEmployee.lastName || !newEmployee.phone)
+      (!newEmployee.firstName || !newEmployee.lastName)
     ) {
-      setMessage("Podaj imię, nazwisko i telefon nowego pracownika.");
+      setMessage("Podaj imię i nazwisko nowego pracownika.");
       return;
     }
 

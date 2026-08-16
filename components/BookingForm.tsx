@@ -77,7 +77,7 @@ export default function BookingForm() {
   const routeText = serviceType==="from_airport" ? `${airportLabel} → ${address||"—"}` : serviceType==="roundtrip" ? `${address||"—"} ↔ ${airportLabel}` : `${address||"—"} → ${airportLabel}`;
 
   function nip10(v:string){ return v.replace(/\D/g,"").slice(0,10); }
-  function go(n:number){ setStep(n); setTimeout(()=>window.scrollTo({top:0,behavior:"smooth"}),60); }
+  function go(n:number){setStep(n);if(typeof window!=="undefined"){window.dispatchEvent(new CustomEvent("matt:booking-step",{detail:{step:n}}));setTimeout(()=>window.scrollTo({top:0,behavior:"smooth"}),60);}}
 
   function valid(n:number){
     if(n===2) return !!address && !!distanceKm && (airport!=="other" || otherAirport.trim().length>=3);

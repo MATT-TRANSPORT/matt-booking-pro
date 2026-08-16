@@ -1,3 +1,4 @@
+import PortalAccessButton from "@/components/PortalAccessButton";
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -42,7 +43,7 @@ export default function DriversManager({drivers}:{drivers:any[]}) {
     <div className="card" style={{marginTop:18}}>
       <h2>Kierowcy</h2>
       <table className="table"><thead><tr><th>Kierowca</th><th>Telefon</th><th>E-mail</th><th>Status</th><th></th></tr></thead>
-      <tbody>{drivers.map((x:any)=><tr key={x.id}><td><span className="driver-color-dot" style={{background:x.color||"#D6AD55"}}/><strong>{x.full_name}</strong></td><td>{x.phone||"—"}</td><td>{x.email||"—"}</td><td>{x.active===false?"Nieaktywny":"Aktywny"}</td><td><button className="btn secondary company-small-btn" onClick={()=>edit(x)}>EDYTUJ</button></td></tr>)}</tbody></table>
+      <tbody>{drivers.map((x:any)=><tr key={x.id}><td><span className="driver-color-dot" style={{background:x.color||"#D6AD55"}}/><strong>{x.full_name}</strong></td><td>{x.phone||"—"}</td><td>{x.email||"—"}</td><td>{x.active===false?"Nieaktywny":"Aktywny"}</td><td><button className="btn secondary company-small-btn" onClick={()=>edit(x)}>EDYTUJ</button><PortalAccessButton type="driver" id={x.id} active={!!x.user_id}/></td></tr>)}</tbody></table>
     </div>
   </>;
 }
