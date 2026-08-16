@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import CompanyNav from "@/components/CompanyNav";
 import CompanyBookingActions from "@/components/CompanyBookingActions";
 import { companyClient } from "@/lib/company";
+import { statusPl } from "@/lib/status";
 
 export default async function Page({
   params
@@ -40,7 +41,7 @@ export default async function Page({
         <div className="card">
           <h2>Szczegóły przejazdu</h2>
           <div className="detail-list">
-            <div><span>Status</span><strong>{booking.status}</strong></div>
+            <div><span>Status</span><strong><span className={`status ${String(booking.status).toLowerCase()}`}>{statusPl(booking.status)}</span></strong></div>
             <div><span>Pasażer</span><strong>{booking.customer_name}</strong></div>
             <div><span>Data</span><strong>{booking.travel_date}</strong></div>
             <div><span>Godzina</span><strong>{booking.travel_time}</strong></div>

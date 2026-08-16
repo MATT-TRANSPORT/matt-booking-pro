@@ -675,3 +675,41 @@
 @media(max-width:800px){.wedding-assignment-row{grid-template-columns:1fr}.dashboard-feed-meta{align-items:flex-start}}
 
 .booking-brand-head{display:flex;align-items:center;gap:14px;margin:10px 0 18px;padding:10px 14px;border:1px solid var(--line);border-radius:16px;background:#0c0f14}.booking-brand-head img{width:86px;height:58px;object-fit:cover;border-radius:10px}.booking-brand-head strong,.booking-brand-head span{display:block}.booking-brand-head strong{color:var(--gold2);font-size:20px}.booking-brand-head span{color:var(--muted);font-size:11px;margin-top:3px}.company-payment-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.company-payment-actions a,.company-payment-actions button{border:1px solid var(--gold);background:transparent;color:var(--gold2);padding:5px 7px;border-radius:8px;font-size:10px;text-decoration:none;cursor:pointer}.payment-paid{color:#bde7cc}.payment-waiting{color:#f1d28b}.portal-access-box{display:flex;flex-direction:column;gap:5px;margin-top:10px}.portal-access-box small{color:var(--muted)}.password-setup-shell{max-width:520px}.password-setup-shell .card{margin-top:8vh}.access-login-links{display:flex;gap:12px;margin-top:14px}.access-login-links a{color:var(--gold2)}.portal-create-toggle{display:flex!important;gap:8px;align-items:center;margin-top:14px}.portal-create-toggle input{width:auto}.ops-alert-center{margin:14px 0 18px}.ops-alert-center>div:first-child{display:flex;justify-content:space-between;align-items:end}.ops-alert-center h2{margin:0}.ops-alert-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.ops-alert-grid a{padding:13px;border:1px solid var(--line);border-radius:12px;text-decoration:none;background:rgba(255,255,255,.02)}.ops-alert-grid strong,.ops-alert-grid span{display:block}.ops-alert-grid strong{font-size:23px;color:var(--gold2)}.ops-alert-grid span{color:var(--muted);font-size:11px;margin-top:3px}@media(max-width:760px){.ops-alert-grid{grid-template-columns:1fr 1fr}.booking-brand-head img{width:70px;height:48px}}
+
+
+/* v2.4.2.2 — company dashboard mobile/status fix */
+.company-bookings-table{width:100%;overflow-x:auto}
+.company-bookings-cards{display:none}
+.company-table{table-layout:fixed;min-width:940px}
+.company-table th:nth-child(1),.company-table td:nth-child(1){width:150px}
+.company-table th:nth-child(2),.company-table td:nth-child(2){width:120px}
+.company-table th:nth-child(3),.company-table td:nth-child(3){width:150px}
+.company-table th:nth-last-child(2),.company-table td:nth-last-child(2){width:190px}
+.company-table th:last-child,.company-table td:last-child{width:145px}
+.company-route-cell{overflow-wrap:anywhere;word-break:break-word}
+.company-table .status{white-space:normal;line-height:1.25;text-align:center}
+.company-booking-card{display:block;border:1px solid var(--line);border-radius:14px;padding:14px;background:rgba(255,255,255,.02);color:var(--text);text-decoration:none}
+.company-bookings-cards{gap:10px}
+.company-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding-bottom:11px;border-bottom:1px solid var(--line)}
+.company-card-head>a{color:var(--gold2)}
+.company-card-head .status{flex:0 0 auto;max-width:48%;text-align:center}
+.company-card-data{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:12px}
+.company-card-data>div{min-width:0}
+.company-card-data .wide{grid-column:1/-1}
+.company-card-data span,.company-card-data strong{display:block}
+.company-card-data span{font-size:10px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+.company-card-data strong{font-size:13px;overflow-wrap:anywhere}
+.company-card-open{display:block;margin-top:12px;padding-top:11px;border-top:1px solid var(--line);color:var(--gold2);font-size:11px;font-weight:800}
+.company-booking-card-link:hover,.company-booking-card:hover{border-color:rgba(213,174,93,.45)}
+@media(max-width:1100px){
+  .company-bookings-table{display:none}
+  .company-bookings-cards{display:grid}
+}
+@media(max-width:560px){
+  .company-card-data{grid-template-columns:1fr}
+  .company-card-data .wide{grid-column:auto}
+  .company-card-head{flex-direction:column}
+  .company-card-head .status{max-width:100%}
+  .company-section-head{align-items:stretch}
+  .company-section-head .btn{width:100%;text-align:center}
+}

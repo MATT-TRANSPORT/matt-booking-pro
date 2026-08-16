@@ -1,6 +1,21 @@
 import CompanyNav from "@/components/CompanyNav";
 import { companyClient } from "@/lib/company";
 
+function settlementStatusPl(value?:string|null){
+  const map:Record<string,string>={
+    draft:"Robocze",
+    pending:"Oczekuje",
+    open:"Otwarte",
+    issued:"Wystawiona",
+    paid:"Opłacona",
+    settled:"Rozliczone",
+    overdue:"Po terminie",
+    cancelled:"Anulowane"
+  };
+  if(!value)return "—";
+  return map[String(value).toLowerCase()]??value;
+}
+
 export default async function Page() {
   const { s, company } = await companyClient();
 
@@ -37,7 +52,7 @@ export default async function Page() {
                 <td>{String(x.period_month).slice(0,7)}</td>
                 <td>{Number(x.amount).toFixed(2)} zł</td>
                 <td>{x.invoice_number || "—"}</td>
-                <td>{x.status}</td>
+                <td>{settlementStatusPl(x.status)}</td>
                 <td>
                   {x.invoice_file_path ? (
                     <a className="btn secondary company-small-btn" href={`/api/company/settlements/${x.id}/download`}>
