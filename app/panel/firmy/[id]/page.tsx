@@ -1,3 +1,4 @@
+import PortalAccessButton from "@/components/PortalAccessButton";
 import CompanyTermsEditor from "@/components/CompanyTermsEditor";
 import { notFound } from "next/navigation";
 import PanelNav from "@/components/PanelNav";
@@ -55,8 +56,8 @@ export default async function Page({
             <div><span>Telefon</span><strong>{company.phone || "—"}</strong></div>
             <div><span>Kontakt</span><strong>{company.contact_person || "—"}</strong></div>
             <div><span>Termin płatności</span><strong>{company.payment_days} dni</strong></div>
-            <div><span>Rabat</span><strong>{company.discount_percent}%</strong></div>
-          </div>
+            <div><span>Rabat</span><strong>{company.discount_percent}%</strong></div><div><span>Dostęp B2B</span><strong>{(users?.length??0)>0?"Konto aktywne":"Brak konta"}</strong></div>
+          </div><PortalAccessButton type="company" id={company.id} active={(users?.length??0)>0}/>
         </div>
 
         <SettlementUpload companyId={company.id} />

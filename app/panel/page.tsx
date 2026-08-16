@@ -15,6 +15,11 @@ export default async function PanelPage(){
     s.from("wedding_bookings").select("*").order("created_at",{ascending:false}).limit(15)
   ]);
 
+  const upcoming=(bookings??[]).filter((b:any)=>!["completed","cancelled"].includes(b.status));
+  const alertUnassigned=upcoming.filter((b:any)=>!b.driver_id||!b.vehicle_id).length;
+  const alertPayment=upcoming.filter((b:any)=>b.payment_method==="employee_payment"&&!b.payment_link).length;
+  const alertChanged=upcoming.filter((b:any)=>b.status==="pending"&&b.customer_last_edited_at).length;
+
   const feed=[
     ...(bookings??[]).map((b:any)=>({kind:"airport",created_at:b.created_at,data:b})),
     ...(weddings??[]).map((b:any)=>({kind:"wedding",created_at:b.created_at,data:b}))
@@ -23,6 +28,7 @@ export default async function PanelPage(){
   return <main className="container">
     <span className="badge">panel.matt-transport.pl</span><h1>MATT Booking PRO</h1><PanelNav/>
     <div className="admin-quick-row"><EmailTestButton/><a className="btn secondary" href="/panel/rezerwacje">ARCHIWUM / WYSZUKIWARKA</a></div>
+    <div className="ops-alert-center card"><div><h2>Wymaga uwagi</h2><span>Najważniejsze sprawy operacyjne.</span></div><div className="ops-alert-grid"><a href="/panel/dyspozytor"><strong>{alertUnassigned}</strong><span>Bez pełnej obsady</span></a><a href="/panel/rezerwacje"><strong>{alertPayment}</strong><span>B2B bez linku płatności</span></a><a href="/panel/rezerwacje"><strong>{alertChanged}</strong><span>Zmiany klientów</span></a><a href="/panel/wesela"><strong>{(weddings??[]).filter((z:any)=>z.status==="pending").length}</strong><span>Wesela do obsługi</span></a></div></div>
     <div className="stats">
       <div className="card stat"><strong>{pending??0}</strong><p className="muted">Oczekujące transfery</p></div>
       <div className="card stat"><strong>{todayCount??0}</strong><p className="muted">Kursy dzisiaj</p></div>

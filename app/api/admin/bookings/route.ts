@@ -114,6 +114,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Konflikty operacyjne: ten sam kierowca lub pojazd w oknie 3 godzin.
+  if(driverId||vehicleId){const {data:sameDay}=await admin.from("bookings").select("id,booking_number,travel_time,driver_id,vehicle_id").eq("travel_date",current.travel_date).neq("id",id).not("status","in","(completed,cancelled)");const toMin=(v:string)=>{const [h,m]=String(v||"00:00").slice(0,5).split(":").map(Number);return h*60+m};const now=toMin(current.travel_time);const conflict=(sameDay??[]).find((z:any)=>Math.abs(toMin(z.travel_time)-now)<180&&((driverId&&z.driver_id===driverId)||(vehicleId&&z.vehicle_id===vehicleId)));if(conflict)return NextResponse.json({error:`Konflikt obsady: ${conflict.booking_number} ma już tego kierowcę lub pojazd o ${conflict.travel_time}.`,conflict},{status:409})}
+
   // Automatyczny status po przydzieleniu pełnej obsady.
   if (
     driverId &&
