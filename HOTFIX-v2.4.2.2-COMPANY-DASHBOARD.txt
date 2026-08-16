@@ -1,0 +1,13 @@
+MATT BOOKING PRO v2.4.2.2 — COMPANY DASHBOARD
+
+NAPRAWIONO:
+- wszystkie statusy rezerwacji w panelu firmy są wyświetlane po polsku
+- Dashboard firmy: status po polsku
+- Firma -> Rezerwacje: status po polsku
+- Szczegóły rezerwacji firmy: status po polsku
+- Rozliczenia: podstawowe statusy dokumentów po polsku
+- na urządzeniach mobilnych / tabletach szeroka tabela jest zastępowana kartami
+- kolumna Status ani sekcja Płatność nie wychodzą poza ekran
+- breakpoint dla kart firmowych: 1100 px
+
+Nie wymaga nowej migracji SQL.

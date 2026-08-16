@@ -8,6 +8,9 @@ export const STATUS_PL: Record<string,string> = {
   completed: "Zakończona",
   cancelled: "Anulowana"
 };
+
 export function statusPl(value?: string | null) {
-  return value ? (STATUS_PL[value] ?? value) : "—";
+  if (!value) return "—";
+  const normalized = String(value).trim().toLowerCase().replaceAll(" ", "_");
+  return STATUS_PL[normalized] ?? value;
 }
