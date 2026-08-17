@@ -1092,3 +1092,127 @@
   .flight-pickup-suggestion{grid-column:auto}
   .ops-alert-grid-six{grid-template-columns:1fr 1fr}
 }
+
+
+/* MATT Booking PRO v2.7 — Flight Automation */
+.flight-automation-status{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+  margin:10px 0 14px;
+  padding:11px 13px;
+  border-radius:12px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.02);
+}
+.flight-automation-status strong{
+  font-size:12px;
+  letter-spacing:.04em;
+}
+.flight-automation-status span{
+  color:var(--muted);
+  font-size:11px;
+}
+.flight-automation-status.ok{
+  border-color:rgba(79,189,125,.35);
+  background:rgba(79,189,125,.055);
+}
+.flight-automation-status.ok strong{color:#bcebd0}
+.flight-automation-status.warning{
+  border-color:rgba(231,154,67,.42);
+  background:rgba(231,154,67,.07);
+}
+.flight-automation-status.warning strong{color:#ffd2a0}
+.flight-automation-status.waiting strong{color:var(--gold2)}
+
+.flight-auto-alert{
+  display:flex!important;
+  flex-direction:column;
+  gap:3px;
+  width:max-content;
+  max-width:100%;
+  margin-top:7px;
+  padding:7px 9px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  line-height:1.25;
+}
+.flight-auto-alert strong{
+  font-size:10px;
+}
+.flight-auto-alert small{
+  font-size:10px;
+  color:inherit;
+  opacity:.82;
+}
+.flight-auto-alert.info{
+  color:#bcebd0;
+  border-color:rgba(79,189,125,.4);
+  background:rgba(79,189,125,.07);
+}
+.flight-auto-alert.warning{
+  color:#ffd2a0;
+  border-color:rgba(231,154,67,.48);
+  background:rgba(231,154,67,.08);
+}
+.flight-auto-alert.critical{
+  color:#ffd1d4;
+  border-color:rgba(223,105,105,.6);
+  background:rgba(223,105,105,.12);
+  box-shadow:0 0 0 1px rgba(223,105,105,.08);
+}
+.flight-auto-alert.acknowledged{
+  opacity:.55;
+}
+
+.flight-alert-list{
+  display:grid;
+  gap:9px;
+}
+.flight-alert-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding-bottom:8px;
+  border-bottom:1px solid var(--line);
+}
+.flight-alert-row .flight-auto-alert{
+  margin:0;
+  flex:1;
+  width:auto;
+}
+.flight-alert-ack{
+  flex:0 0 auto;
+  padding:7px 9px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:var(--panel2);
+  color:var(--gold2);
+  font-size:9px;
+  font-weight:800;
+}
+.flight-alert-detail-card{
+  margin-bottom:14px;
+  border-color:rgba(231,154,67,.35);
+}
+.driver-flight-alerts{
+  display:grid;
+  gap:6px;
+  margin:10px 0;
+}
+.driver-flight-alerts .flight-auto-alert{
+  width:100%;
+  margin:0;
+}
+@media(max-width:620px){
+  .flight-alert-row{
+    align-items:stretch;
+    flex-direction:column;
+  }
+  .flight-alert-ack{
+    width:100%;
+  }
+}

@@ -4,6 +4,8 @@ import DashboardQuickActions from "@/components/DashboardQuickActions";
 import FlightStatusBadge from "@/components/FlightStatusBadge";
 import FlightRefreshAllButton from "@/components/FlightRefreshAllButton";
 import { isFlightAlert } from "@/lib/flightDisplay";
+import FlightAlertBadge from "@/components/FlightAlertBadge";
+import FlightAutomationStatus from "@/components/FlightAutomationStatus";
 import { panelClient } from "@/lib/panel";
 import { statusPl } from "@/lib/status";
 import { isArchivedBooking, isOverdueBooking, statusStageClass, warsawToday } from "@/lib/bookingOps";
@@ -45,9 +47,42 @@ export default async function PanelPage() {
     flightRows.map((f: any) => [f.booking_id, f])
   );
 
+  let flightAlerts: any[] = [];
+
+  if (bookingIds.length) {
+    const { data } = await s
+      .from("booking_flight_alerts")
+      .select("*")
+      .in("booking_id", bookingIds)
+      .eq("active", true)
+      .order("updated_at", { ascending: false });
+
+    flightAlerts = data ?? [];
+  }
+
+  const alertByBooking = new Map<string, any>();
+
+  for (const alert of flightAlerts) {
+    const current = alertByBooking.get(alert.booking_id);
+    const rank = alert.severity === "critical" ? 3 : alert.severity === "warning" ? 2 : 1;
+    const currentRank = current?.severity === "critical" ? 3 : current?.severity === "warning" ? 2 : current ? 1 : 0;
+
+    if (!current || rank > currentRank) {
+      alertByBooking.set(alert.booking_id, alert);
+    }
+  }
+
+  const { data: lastRun } = await s
+    .from("flight_monitor_runs")
+    .select("*")
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   const enrichedBookings = allBookings.map((b: any) => ({
     ...b,
-    flight: flightByBooking.get(b.id) ?? null
+    flight: flightByBooking.get(b.id) ?? null,
+    flightAlert: alertByBooking.get(b.id) ?? null
   }));
 
   const activeBookings = enrichedBookings.filter((b: any) => !isArchivedBooking(b));
@@ -57,7 +92,12 @@ export default async function PanelPage() {
   const alertPayment = operational.filter((b: any) => b.payment_method === "employee_payment" && !b.payment_link).length;
   const alertChanged = operational.filter((b: any) => b.status === "pending" && b.customer_last_edited_at).length;
   const alertOverdue = operational.filter(isOverdueBooking).length;
-  const alertFlights = operational.filter((b: any) => isFlightAlert(b.flight)).length;
+  const alertFlights = flightAlerts.filter(
+    (a: any) =>
+      a.active &&
+      !a.acknowledged_at &&
+      ["warning","critical"].includes(a.severity)
+  ).length;
 
   const feed = [
     ...activeBookings.slice(0, 35).map((b: any) => ({
@@ -81,6 +121,8 @@ export default async function PanelPage() {
       <span className="badge">panel.matt-transport.pl</span>
       <h1>MATT Booking PRO</h1>
       <PanelNav />
+
+      <FlightAutomationStatus lastRun={lastRun} />
 
       <div className="admin-quick-row">
         <EmailTestButton />
@@ -183,6 +225,9 @@ export default async function PanelPage() {
                       flight={b.flight}
                       flightNumber={b.flight_number}
                     />
+                  )}
+                  {b.flightAlert && (
+                    <FlightAlertBadge alert={b.flightAlert} compact />
                   )}
                   {overdue && <span className="overdue-badge">⚠ TERMIN MINĄŁ — status niezamknięty</span>}
                   <DashboardQuickActions booking={b} />

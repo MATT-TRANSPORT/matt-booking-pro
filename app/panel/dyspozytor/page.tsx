@@ -2,6 +2,7 @@ import PanelNav from "@/components/PanelNav";
 import DispatcherClient from "@/components/DispatcherClient";
 import { panelClient } from "@/lib/panel";
 import FlightRefreshAllButton from "@/components/FlightRefreshAllButton";
+import FlightAutomationStatus from "@/components/FlightAutomationStatus";
 
 export default async function Page() {
   const { s } = await panelClient();
@@ -39,9 +40,42 @@ export default async function Page() {
     flightRows.map((f: any) => [f.booking_id, f])
   );
 
+  let alertRows: any[] = [];
+
+  if (bookingIds.length) {
+    const { data } = await s
+      .from("booking_flight_alerts")
+      .select("*")
+      .in("booking_id", bookingIds)
+      .eq("active", true)
+      .order("updated_at", { ascending: false });
+
+    alertRows = data ?? [];
+  }
+
+  const alertByBooking = new Map<string, any>();
+
+  for (const alert of alertRows) {
+    const current = alertByBooking.get(alert.booking_id);
+    const rank = alert.severity === "critical" ? 3 : alert.severity === "warning" ? 2 : 1;
+    const currentRank = current?.severity === "critical" ? 3 : current?.severity === "warning" ? 2 : current ? 1 : 0;
+
+    if (!current || rank > currentRank) {
+      alertByBooking.set(alert.booking_id, alert);
+    }
+  }
+
+  const { data: lastRun } = await s
+    .from("flight_monitor_runs")
+    .select("*")
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   const bookingsWithFlights = bookingRows.map((b: any) => ({
     ...b,
-    flight: flightByBooking.get(b.id) ?? null
+    flight: flightByBooking.get(b.id) ?? null,
+    flightAlert: alertByBooking.get(b.id) ?? null
   }));
 
   return (
@@ -52,6 +86,7 @@ export default async function Page() {
         Dzień, tydzień, kursy bez obsady i zaległe — w jednym miejscu.
       </p>
       <PanelNav />
+      <FlightAutomationStatus lastRun={lastRun} />
       <div className="dispatcher-flight-toolbar">
         <FlightRefreshAllButton />
         <span className="muted">

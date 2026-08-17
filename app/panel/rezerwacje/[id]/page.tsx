@@ -6,6 +6,7 @@ import { panelClient } from "@/lib/panel";
 import { statusPl } from "@/lib/status";
 import { isOverdueBooking, statusStageClass } from "@/lib/bookingOps";
 import FlightMonitorCard from "@/components/FlightMonitorCard";
+import FlightAlertList from "@/components/FlightAlertList";
 
 
 export default async function Page({
@@ -36,7 +37,8 @@ export default async function Page({
 
   const [
     { data: flights },
-    { data: flightHistory }
+    { data: flightHistory },
+    { data: flightAlerts }
   ] = await Promise.all([
     s.from("booking_flights")
       .select("*")
@@ -46,7 +48,13 @@ export default async function Page({
       .select("*")
       .eq("booking_id", id)
       .order("created_at", { ascending: false })
-      .limit(20)
+      .limit(20),
+    s.from("booking_flight_alerts")
+      .select("*")
+      .eq("booking_id", id)
+      .eq("active", true)
+      .order("severity", { ascending: true })
+      .order("updated_at", { ascending: false })
   ]);
 
   const primaryFlight =
@@ -72,6 +80,13 @@ export default async function Page({
 
       <h1>{booking.booking_number}</h1>
       <PanelNav />
+
+      {flightAlerts?.length ? (
+        <div className="card flight-alert-detail-card">
+          <h2>⚠ Alerty lotnicze</h2>
+          <FlightAlertList alerts={flightAlerts} />
+        </div>
+      ) : null}
 
       {booking.flight_number && (
         <FlightMonitorCard

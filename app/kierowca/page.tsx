@@ -40,9 +40,31 @@ export default async function Page() {
     flightRows.map((f: any) => [f.booking_id, f])
   );
 
+  let alertRows: any[] = [];
+
+  if (bookingIds.length) {
+    const { data } = await admin
+      .from("booking_flight_alerts")
+      .select("*")
+      .in("booking_id", bookingIds)
+      .eq("active", true)
+      .order("updated_at", { ascending: false });
+
+    alertRows = data ?? [];
+  }
+
+  const alertsByBooking = new Map<string, any[]>();
+
+  for (const alert of alertRows) {
+    const list = alertsByBooking.get(alert.booking_id) ?? [];
+    list.push(alert);
+    alertsByBooking.set(alert.booking_id, list);
+  }
+
   const bookingsWithFlights = bookingRows.map((b: any) => ({
     ...b,
-    flight: flightByBooking.get(b.id) ?? null
+    flight: flightByBooking.get(b.id) ?? null,
+    flightAlerts: alertsByBooking.get(b.id) ?? []
   }));
 
   return (

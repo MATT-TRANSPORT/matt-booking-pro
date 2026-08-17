@@ -4,6 +4,7 @@ import {
   flightNeedsRefresh,
   refreshBookingFlight
 } from "@/lib/flightServer";
+import { syncFlightAutomationAlerts } from "@/lib/flightAutomation";
 
 function plDate(offsetDays = 0) {
   const now = new Date();
@@ -97,11 +98,20 @@ export async function POST() {
     }
 
     try {
-      await refreshBookingFlight(
+      const flight = await refreshBookingFlight(
         session.admin,
         item.booking,
         item.leg
       );
+
+      await syncFlightAutomationAlerts(
+        session.admin,
+        item.booking,
+        flight,
+        cached,
+        item.leg
+      );
+
       refreshed += 1;
     } catch (error) {
       errors.push({

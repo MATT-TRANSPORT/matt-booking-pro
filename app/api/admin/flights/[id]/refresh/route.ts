@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { apiAdmin } from "@/lib/apiAdmin";
 import { refreshBookingFlight } from "@/lib/flightServer";
+import { syncFlightAutomationAlerts } from "@/lib/flightAutomation";
 
 export async function POST(
   req: NextRequest,
@@ -34,9 +35,24 @@ export async function POST(
   }
 
   try {
+    const { data: previous } = await session.admin
+      .from("booking_flights")
+      .select("*")
+      .eq("booking_id", booking.id)
+      .eq("leg", leg)
+      .maybeSingle();
+
     const flight = await refreshBookingFlight(
       session.admin,
       booking,
+      leg
+    );
+
+    await syncFlightAutomationAlerts(
+      session.admin,
+      booking,
+      flight,
+      previous,
       leg
     );
 
