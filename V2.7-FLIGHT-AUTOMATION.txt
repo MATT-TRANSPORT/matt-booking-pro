@@ -1,0 +1,52 @@
+MATT BOOKING PRO v2.7.0 — FLIGHT AUTOMATION
+
+WYMAGANE:
+1. AIRLABS_API_KEY — już z v2.6.
+2. SQL: supabase/migrations-v2.7-flight-automation.sql
+3. Vercel environment variable:
+   FLIGHT_MONITOR_CRON_SECRET = długi losowy sekret
+4. SQL cron template:
+   supabase/cron-v2.7-flight-automation-template.sql
+   Wstaw ten sam sekret w miejsce PASTE_THE_SAME_SECRET_HERE.
+
+AUTOMATYKA:
+- Supabase Cron uruchamia backend co 10 minut.
+- Backend nie odpytuje AirLabs bez potrzeby.
+- >24h do lotu: brak automatycznego odpytywania.
+- 6–24h: maks. co 180 min.
+- 2–6h: maks. co 60 min.
+- do 2h / tuż po planowanym czasie: maks. co 20 min.
+- en-route: maks. co 10 min.
+- landed/cancelled/diverted: monitoring zatrzymany.
+- maks. 6 zewnętrznych zapytań AirLabs na jeden przebieg cron.
+
+ALERTY:
+- opóźnienie >=20 min
+- krytyczne opóźnienie >=45 min
+- zmiana ETA >=10 min
+- lot odwołany
+- lot przekierowany
+- lot wylądował
+- brak dopasowania lotu do terminu
+- MOŻLIWY KONFLIKT PO ZMIANIE ETA:
+  dla odbioru z lotniska system liczy ETA + 25 min i sprawdza kolejny kurs tego samego kierowcy.
+
+WIDOCZNOŚĆ:
+- Dashboard
+- Plan kursów
+- szczegóły rezerwacji
+- panel kierowcy
+
+ALERTY W PANELU:
+- info / warning / critical
+- dyspozytor może oznaczyć alert jako "OK / PRZYJĄŁEM"
+- resolved alerts zostają w bazie, ale znikają z bieżących alarmów
+
+HISTORIA:
+- booking_flight_history dalej przechowuje zmiany statusu lotu
+- booking_flight_alerts przechowuje stan alarmów
+- flight_monitor_runs pokazuje każde wykonanie automatyki
+
+WAŻNE:
+Automatyka nadal NIE zmienia godziny rezerwacji.
+Pokazuje aktualne ETA, sugerowaną gotowość oraz ostrzega o konflikcie.
