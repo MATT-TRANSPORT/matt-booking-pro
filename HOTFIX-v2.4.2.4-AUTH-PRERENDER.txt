@@ -1,0 +1,29 @@
+MATT BOOKING PRO v2.4.2.4 — AUTH PRERENDER HOTFIX
+
+PROBLEM:
+Next.js build zatrzymywał się na:
+useSearchParams() should be wrapped in a suspense boundary at page "/ustaw-haslo"
+
+NAPRAWIONO:
+- usunięto useSearchParams() z /ustaw-haslo
+- parametr error jest odczytywany po stronie przeglądarki przez
+  URLSearchParams(window.location.search) wewnątrz useEffect()
+- nie wymaga Suspense
+- zachowano sprawdzanie aktywnej sesji Supabase
+- zachowano cały poprawiony przepływ:
+  e-mail -> Supabase -> /auth/callback -> /ustaw-haslo
+
+SQL:
+Brak nowej migracji.
+
+SUPABASE:
+Nadal obowiązuje konfiguracja URL:
+Site URL:
+https://panel.matt-transport.pl
+
+Redirect URLs:
+https://panel.matt-transport.pl/**
+https://booking.matt-transport.pl/**
+https://matt-booking-pro.vercel.app/**
+
+Po wdrożeniu wyślij NOWY link do ustawienia hasła.

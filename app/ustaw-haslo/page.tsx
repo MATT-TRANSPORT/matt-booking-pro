@@ -1,25 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function Page() {
-  const searchParams = useSearchParams();
   const [password, setPassword] = useState("");
   const [repeat, setRepeat] = useState("");
-  const [message, setMessage] = useState(
-    searchParams.get("error") || ""
-  );
+  const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlError = params.get("error");
+
+    if (urlError) {
+      setMessage(urlError);
+    }
+
     const supabase = createClient();
 
     supabase.auth.getUser().then(({ data, error }) => {
       if (error || !data.user) {
-        if (!searchParams.get("error")) {
+        if (!urlError) {
           setMessage(
             "Sesja z linku aktywacyjnego nie została utworzona. Poproś administratora o wysłanie nowego linku."
           );
@@ -30,7 +33,7 @@ export default function Page() {
 
       setReady(true);
     });
-  }, [searchParams]);
+  }, []);
 
   async function save() {
     if (!ready) return;
