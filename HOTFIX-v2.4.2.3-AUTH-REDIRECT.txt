@@ -1,0 +1,36 @@
+MATT BOOKING PRO v2.4.2.3 — AUTH REDIRECT HOTFIX
+
+PROBLEM:
+Link "Ustaw hasło" dla kierowcy / administratora firmy po kliknięciu
+przekierowywał do localhost.
+
+NAPRAWIONO W KODZIE:
+- link aktywacyjny używa faktycznego hosta panelu, z którego utworzono konto
+- dodano /auth/callback
+- callback wymienia kod Supabase na sesję i zapisuje ją w cookies
+- dopiero potem użytkownik trafia na /ustaw-haslo
+- strona ustawienia hasła sprawdza, czy sesja jest poprawna
+
+WAŻNE — JEDNORAZOWA KONFIGURACJA SUPABASE:
+Authentication -> URL Configuration
+
+Site URL:
+https://panel.matt-transport.pl
+
+Redirect URLs — dodaj:
+https://panel.matt-transport.pl/**
+https://booking.matt-transport.pl/**
+https://matt-booking-pro.vercel.app/**
+
+Możesz zostawić localhost tylko do testów lokalnych, ale NIE jako Site URL.
+
+SQL:
+Nie ma nowej migracji SQL.
+
+TEST:
+1. Deploy hotfix.
+2. Supabase -> Authentication -> URL Configuration — ustaw adresy powyżej.
+3. Panel -> Kierowcy -> Wyślij link / reset hasła.
+4. Otwórz NOWY e-mail. Stary link może nadal zawierać zły redirect.
+5. Link powinien przejść:
+   Supabase -> /auth/callback -> /ustaw-haslo.
