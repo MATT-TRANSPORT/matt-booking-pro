@@ -1,0 +1,58 @@
+MATT BOOKING PRO v2.6.0 — FLIGHT MONITOR / AirLabs
+
+WYMAGANE PRZED DEPLOY:
+1. Vercel:
+   AIRLABS_API_KEY = klucz z AirLabs
+2. Supabase SQL Editor:
+   uruchom supabase/migrations-v2.6-flight-monitor.sql
+
+CO ROBI v2.6:
+- monitoruje numer lotu wpisany w rezerwacji
+- obsługuje lot główny i lot powrotny
+- zapisuje cache danych AirLabs w Supabase
+- zapisuje historię zmian lotu
+- pokazuje:
+  * PLANOWO
+  * OPÓŹNIONY + X MIN
+  * W POWIETRZU
+  * WYLĄDOWAŁ
+  * ODWOŁANY / PRZEKIEROWANY, jeśli provider taki status zwróci
+- pokazuje aktualne ETA
+- pokazuje lotnisko wylotu/przylotu
+- terminal/gate/bagaż, jeśli AirLabs je udostępni
+- przy odbiorze z lotniska sugeruje gotowość kierowcy:
+  aktualne ETA + orientacyjne 25 min
+
+GDZIE WIDAĆ STATUS:
+- Dashboard administratora
+- Plan kursów / Dispatcher
+- szczegóły rezerwacji
+- Panel kierowcy
+
+OSZCZĘDZANIE FREE API:
+- przycisk "ODŚWIEŻ AKTYWNE LOTY"
+- bierze tylko kursy od wczoraj do +2 dni
+- cache 20 minut
+- maksymalnie 8 zewnętrznych zapytań na jedno zbiorcze odświeżenie
+- szczegóły rezerwacji pozwalają wymusić pojedyncze odświeżenie
+
+BEZPIECZEŃSTWO DOPASOWANIA:
+AirLabs Flight Information zwraca najbliższy pasujący lot dla numeru.
+System porównuje datę zwróconego lotu z terminem rezerwacji.
+Jeśli różnica jest większa niż 1 dzień, pokazuje:
+"BRAK DANYCH DLA TERMINU"
+zamiast udawać, że jest to właściwy status.
+
+WAŻNE:
+- v2.6 NIE zmienia automatycznie godziny rezerwacji.
+- ETA i "sugerowana gotowość" są informacją dla dyspozytora/kierowcy.
+- API key nigdy nie trafia do przeglądarki. AirLabs jest wywoływany tylko z backendu.
+
+TEST:
+1. Uruchom SQL.
+2. Deploy.
+3. Otwórz rezerwację z prawdziwym numerem lotu.
+4. Kliknij "ODŚWIEŻ LOT".
+5. Sprawdź Dashboard.
+6. Sprawdź Plan kursów.
+7. Zaloguj kierowcę przypisanego do kursu i sprawdź status lotu.

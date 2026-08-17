@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import FlightStatusBadge from "@/components/FlightStatusBadge";
+import { displayFlightTime, suggestedPickupTime } from "@/lib/flightDisplay";
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "Oczekuje",
@@ -202,6 +204,25 @@ function DriverTripCard({
         <span>Trasa</span>
         <strong>{route}</strong>
       </div>
+
+      {b.flight_number && (
+        <div className="driver-flight-box">
+          <FlightStatusBadge
+            flight={b.flight}
+            flightNumber={b.flight_number}
+          />
+          {b.flight?.match_ok !== false && b.flight?.arr_estimated && (
+            <div className="driver-flight-details">
+              <span>Aktualne ETA: <strong>{displayFlightTime(b.flight.arr_estimated)}</strong></span>
+              {b.service_type === "from_airport" && suggestedPickupTime(b.flight, 25) && (
+                <span>
+                  Sugerowana gotowość: <strong>{suggestedPickupTime(b.flight, 25)}</strong>
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="driver-info-grid">
         <div>
