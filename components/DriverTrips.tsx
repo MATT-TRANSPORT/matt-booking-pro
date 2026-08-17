@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import FlightStatusBadge from "@/components/FlightStatusBadge";
 import { displayFlightTime, suggestedPickupTime } from "@/lib/flightDisplay";
 import FlightAlertBadge from "@/components/FlightAlertBadge";
@@ -28,6 +29,7 @@ export default function DriverTrips({
   const [rows, setRows] = useState(bookings);
   const [filter, setFilter] = useState<"today" | "next" | "all">("today");
   const [savingId, setSavingId] = useState("");
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -68,6 +70,24 @@ export default function DriverTrips({
     router.refresh();
   }
 
+
+  async function logoutDriver() {
+    if (loggingOut) return;
+
+    setLoggingOut(true);
+
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+
+      // Hard redirect guarantees a clean session on mobile browsers.
+      window.location.href = "/kierowca/login";
+    } catch {
+      setLoggingOut(false);
+      alert("Nie udało się wylogować. Spróbuj ponownie.");
+    }
+  }
+
   return (
     <>
       <div className="driver-header-card card">
@@ -79,8 +99,18 @@ export default function DriverTrips({
           </p>
         </div>
 
-        <div className="driver-header-stats">
-          <div>
+        <div className="driver-header-side">
+          <button
+            type="button"
+            className="btn secondary driver-logout-btn"
+            onClick={logoutDriver}
+            disabled={loggingOut}
+          >
+            {loggingOut ? "WYLOGOWYWANIE..." : "WYLOGUJ SIĘ"}
+          </button>
+
+          <div className="driver-header-stats">
+            <div>
             <strong>
               {rows.filter((x) => x.travel_date === today).length}
             </strong>
@@ -93,6 +123,7 @@ export default function DriverTrips({
               ).length}
             </strong>
             <span>Aktywne</span>
+          </div>
           </div>
         </div>
       </div>

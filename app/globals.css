@@ -1216,3 +1216,59 @@
     width:100%;
   }
 }
+
+
+/* MATT Booking PRO v2.7.1 — Driver logout */
+.driver-top-actions{
+  display:flex;
+  justify-content:flex-end;
+  margin-bottom:10px;
+}
+.driver-logout-btn{
+  min-height:44px;
+  padding:10px 14px;
+  font-size:11px;
+}
+@media(max-width:620px){
+  .driver-top-actions{
+    position:sticky;
+    top:0;
+    z-index:30;
+    justify-content:flex-end;
+    padding:7px 0;
+    background:linear-gradient(
+      180deg,
+      rgba(9,11,16,.98) 70%,
+      rgba(9,11,16,0)
+    );
+  }
+  .driver-logout-btn{
+    min-height:46px;
+  }
+}
+
+
+/* MATT Booking PRO v2.7.1.1 — inline driver logout hotfix */
+.driver-header-side{
+  display:flex;
+  flex-direction:column;
+  gap:9px;
+  align-items:stretch;
+}
+.driver-header-side .driver-logout-btn{
+  min-height:42px;
+  width:100%;
+  font-size:11px;
+}
+@media(max-width:620px){
+  .driver-header-card{
+    align-items:stretch;
+    flex-direction:column;
+  }
+  .driver-header-side{
+    width:100%;
+  }
+  .driver-header-side .driver-logout-btn{
+    min-height:46px;
+  }
+}
