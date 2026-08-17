@@ -122,6 +122,45 @@ export default function BookingAdminActions({
     }
   }
 
+
+  async function duplicateBooking() {
+    if (saving) return;
+
+    const confirmed = window.confirm(
+      "Utworzyć kopię tej rezerwacji? Nowa rezerwacja będzie miała status Oczekuje i bez przypisanego kierowcy/pojazdu."
+    );
+
+    if (!confirmed) return;
+
+    setSaving(true);
+    setMessage("Tworzenie kopii rezerwacji...");
+
+    try {
+      const response = await fetch("/api/admin/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: bookingId,
+          action: "duplicate"
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setMessage(data.error ?? "Nie udało się utworzyć kopii.");
+        setSaving(false);
+        return;
+      }
+
+      router.push(`/panel/rezerwacje/${data.id}`);
+      router.refresh();
+    } catch {
+      setMessage("Nie udało się połączyć z panelem.");
+      setSaving(false);
+    }
+  }
+
   return (
     <div className="card admin-actions-card">
       <h2>Zarządzanie rezerwacją</h2>
@@ -133,7 +172,8 @@ export default function BookingAdminActions({
             <option value="pending">Oczekuje na potwierdzenie</option>
             <option value="confirmed">Potwierdzona</option>
             <option value="assigned">Kierowca przypisany</option>
-            <option value="in_progress">W trakcie</option>
+            <option value="in_progress">W drodze / w realizacji</option>
+            <option value="arrived">Kierowca na miejscu</option>
             <option value="picked_up">Klient odebrany</option>
             <option value="completed">Zakończona</option>
             <option value="cancelled">Anulowana</option>
@@ -195,6 +235,15 @@ export default function BookingAdminActions({
         disabled={saving}
       >
         WYŚLIJ POTWIERDZENIE PONOWNIE
+      </button>
+
+      <button
+        className="btn secondary admin-duplicate-btn"
+        style={{ marginTop: 10, width: "100%" }}
+        onClick={duplicateBooking}
+        disabled={saving}
+      >
+        DUPLIKUJ REZERWACJĘ
       </button>
 
       {message && (
