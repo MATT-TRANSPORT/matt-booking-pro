@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import FlightStatusBadge from "@/components/FlightStatusBadge";
 import { displayFlightTime, suggestedPickupTime } from "@/lib/flightDisplay";
+import FlightAlertBadge from "@/components/FlightAlertBadge";
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "Oczekuje",
@@ -204,6 +205,17 @@ function DriverTripCard({
         <span>Trasa</span>
         <strong>{route}</strong>
       </div>
+
+      {b.flightAlerts?.length > 0 && (
+        <div className="driver-flight-alerts">
+          {b.flightAlerts.map((alert: any) => (
+            <FlightAlertBadge
+              key={alert.id}
+              alert={alert}
+            />
+          ))}
+        </div>
+      )}
 
       {b.flight_number && (
         <div className="driver-flight-box">

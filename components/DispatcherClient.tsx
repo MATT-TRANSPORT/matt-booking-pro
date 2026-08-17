@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { addDays, isOverdueBooking, statusStageClass, warsawToday } from "@/lib/bookingOps";
 import { statusPl } from "@/lib/status";
 import FlightStatusBadge from "@/components/FlightStatusBadge";
+import FlightAlertBadge from "@/components/FlightAlertBadge";
 
 export default function DispatcherClient({
   bookings,
@@ -258,6 +259,9 @@ function DispatchRow({
             compact
           />
         )}
+        {b.flightAlert && (
+          <FlightAlertBadge alert={b.flightAlert} compact />
+        )}
         <small>{b.customer_name}{b.phone ? ` · ${b.phone}` : ""}</small>
       </td>
 
@@ -340,6 +344,9 @@ function DispatchCard({
           flight={b.flight}
           flightNumber={b.flight_number}
         />
+      )}
+      {b.flightAlert && (
+        <FlightAlertBadge alert={b.flightAlert} />
       )}
 
       <DriverBadge b={b} drivers={drivers} />
