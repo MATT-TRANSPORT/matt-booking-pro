@@ -1,17 +1,142 @@
 import PanelNav from "@/components/PanelNav";
-import {panelClient} from "@/lib/panel";
-import {statusPl} from "@/lib/status";
+import { panelClient } from "@/lib/panel";
+import { statusPl } from "@/lib/status";
+import { isArchivedBooking, isOverdueBooking, statusStageClass } from "@/lib/bookingOps";
 
-export default async function Page({searchParams}:{searchParams:Promise<{q?:string}>}){
-  const {q=""}=await searchParams; const {s}=await panelClient();
-  let query=s.from("bookings").select("*,drivers(full_name,color)").order("created_at",{ascending:false}).limit(300);
-  if(q.trim()) query=query.or(`booking_number.ilike.%${q}%,customer_name.ilike.%${q}%,phone.ilike.%${q}%,email.ilike.%${q}%`);
-  const {data}=await query;
-  return <main className="container"><h1>Archiwum rezerwacji</h1><PanelNav/>
-    <form className="archive-search"><input name="q" defaultValue={q} placeholder="Numer, nazwisko, telefon lub e-mail"/><button className="btn">SZUKAJ</button></form>
-    <div className="desktop-table card"><table className="table"><thead><tr><th>Numer</th><th>Termin</th><th>Klient</th><th>Cena</th><th>Status</th></tr></thead><tbody>
-      {(data??[]).map((b:any)=><tr key={b.id}><td><a className="booking-number-link" href={`/panel/rezerwacje/${b.id}`}>{b.booking_number}</a></td><td>{b.travel_date}<br/>{b.travel_time}</td><td>{b.customer_name}<br/>{b.phone}</td><td>{Number(b.total_price).toFixed(2)} zł</td><td>{b.driver_id&&<span className="driver-color-badge" style={{borderColor:(Array.isArray(b.drivers)?b.drivers[0]:b.drivers)?.color||"#D6AD55"}}><i style={{background:(Array.isArray(b.drivers)?b.drivers[0]:b.drivers)?.color||"#D6AD55"}}/>{(Array.isArray(b.drivers)?b.drivers[0]:b.drivers)?.full_name}</span>}<br/>{statusPl(b.status)}</td></tr>)}
-    </tbody></table></div>
-    <div className="mobile-card-list">{(data??[]).map((b:any)=><a className="mobile-data-card" href={`/panel/rezerwacje/${b.id}`} key={b.id}><strong>{b.booking_number}</strong><span>{b.customer_name}</span><span>{b.travel_date} {b.travel_time}</span><span>{statusPl(b.status)} · {Number(b.total_price).toFixed(2)} zł</span></a>)}</div>
-  </main>
+export default async function Page({
+  searchParams
+}: {
+  searchParams: Promise<{ q?: string; view?: string }>;
+}) {
+  const { q = "", view = "active" } = await searchParams;
+  const { s } = await panelClient();
+
+  let query = s
+    .from("bookings")
+    .select("*,drivers(full_name,color)")
+    .order("travel_date", { ascending: false })
+    .order("travel_time", { ascending: false })
+    .limit(500);
+
+  if (q.trim()) {
+    query = query.or(
+      `booking_number.ilike.%${q}%,customer_name.ilike.%${q}%,phone.ilike.%${q}%,email.ilike.%${q}%`
+    );
+  }
+
+  const { data } = await query;
+  const all = data ?? [];
+
+  const rows = all.filter((b: any) => {
+    if (view === "archive") return isArchivedBooking(b);
+    if (view === "all") return true;
+    return !isArchivedBooking(b);
+  });
+
+  return (
+    <main className="container">
+      <h1>Rezerwacje</h1>
+      <PanelNav />
+
+      <div className="booking-view-tabs">
+        <a className={view === "active" ? "active" : ""} href={`/panel/rezerwacje?view=active&q=${encodeURIComponent(q)}`}>
+          AKTYWNE
+        </a>
+        <a className={view === "archive" ? "active" : ""} href={`/panel/rezerwacje?view=archive&q=${encodeURIComponent(q)}`}>
+          ARCHIWUM
+        </a>
+        <a className={view === "all" ? "active" : ""} href={`/panel/rezerwacje?view=all&q=${encodeURIComponent(q)}`}>
+          WSZYSTKIE
+        </a>
+      </div>
+
+      <form className="archive-search">
+        <input type="hidden" name="view" value={view} />
+        <input
+          name="q"
+          defaultValue={q}
+          placeholder="Numer, nazwisko, telefon lub e-mail"
+        />
+        <button className="btn">SZUKAJ</button>
+      </form>
+
+      <div className="desktop-table card">
+        <table className="table booking-archive-table">
+          <thead>
+            <tr>
+              <th>Numer</th>
+              <th>Termin</th>
+              <th>Klient</th>
+              <th>Kierowca</th>
+              <th>Cena</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((b: any) => {
+              const driver = Array.isArray(b.drivers) ? b.drivers[0] : b.drivers;
+              const overdue = isOverdueBooking(b);
+              return (
+                <tr key={b.id} className={`${statusStageClass(b.status)} ${overdue ? "booking-overdue" : ""}`}>
+                  <td>
+                    <a className="booking-number-link" href={`/panel/rezerwacje/${b.id}`}>
+                      {b.booking_number}
+                    </a>
+                    {overdue && <div className="overdue-badge">⚠ TERMIN MINĄŁ</div>}
+                  </td>
+                  <td>{b.travel_date}<br />{String(b.travel_time).slice(0,5)}</td>
+                  <td>{b.customer_name}<br />{b.phone || "—"}</td>
+                  <td>
+                    {driver ? (
+                      <span className="driver-color-badge" style={{ borderColor: driver.color || "#D6AD55" }}>
+                        <i style={{ background: driver.color || "#D6AD55" }} />
+                        {driver.full_name}
+                      </span>
+                    ) : "—"}
+                  </td>
+                  <td>{Number(b.total_price).toFixed(2)} zł</td>
+                  <td><span className={`status ${b.status}`}>{statusPl(b.status)}</span></td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mobile-card-list booking-mobile-list">
+        {rows.map((b: any) => {
+          const overdue = isOverdueBooking(b);
+          const driver = Array.isArray(b.drivers) ? b.drivers[0] : b.drivers;
+          return (
+            <a
+              className={`mobile-data-card booking-stage-card ${statusStageClass(b.status)} ${overdue ? "booking-overdue" : ""}`}
+              href={`/panel/rezerwacje/${b.id}`}
+              key={b.id}
+            >
+              <div className="mobile-booking-head">
+                <strong>{b.booking_number}</strong>
+                <span className={`status ${b.status}`}>{statusPl(b.status)}</span>
+              </div>
+              {overdue && <span className="overdue-badge">⚠ TERMIN MINĄŁ — wymaga zamknięcia</span>}
+              <span>{b.customer_name}</span>
+              <span>{b.travel_date} {String(b.travel_time).slice(0,5)}</span>
+              {driver && (
+                <span className="driver-color-badge" style={{ borderColor: driver.color || "#D6AD55" }}>
+                  <i style={{ background: driver.color || "#D6AD55" }} />
+                  {driver.full_name}
+                </span>
+              )}
+              <span>{Number(b.total_price).toFixed(2)} zł</span>
+            </a>
+          );
+        })}
+      </div>
+
+      {!rows.length && (
+        <div className="card empty-state">
+          <strong>Brak rezerwacji w tym widoku.</strong>
+        </div>
+      )}
+    </main>
+  );
 }

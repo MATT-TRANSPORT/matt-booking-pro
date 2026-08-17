@@ -5,14 +5,6 @@ import { panelClient } from "@/lib/panel";
 export default async function Page() {
   const { s } = await panelClient();
 
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 7);
-
-  const dateFrom = start.toISOString().slice(0, 10);
-  const dateTo = end.toISOString().slice(0, 10);
-
   const [
     { data: bookings },
     { data: drivers },
@@ -20,19 +12,21 @@ export default async function Page() {
   ] = await Promise.all([
     s.from("bookings")
       .select("*,companies(name),drivers(full_name,color)")
-      .gte("travel_date", dateFrom)
-      .lte("travel_date", dateTo)
-      .neq("status", "cancelled")
+      .not("status", "in", "(completed,cancelled)")
       .order("travel_date")
-      .order("travel_time"),
-    s.from("drivers").select("*").eq("status", "available").order("full_name"),
-    s.from("vehicles").select("*").eq("status", "available").order("name")
+      .order("travel_time")
+      .limit(500),
+    s.from("drivers").select("*").eq("active", true).order("full_name"),
+    s.from("vehicles").select("*").eq("active", true).order("name")
   ]);
 
   return (
     <main className="container">
-      <span className="badge">OPERATIONS</span>
-      <h1>Plan kursów · 7 dni</h1>
+      <span className="badge">MATT DISPATCHER</span>
+      <h1>Plan kursów</h1>
+      <p className="muted">
+        Dzień, tydzień, kursy bez obsady i zaległe — w jednym miejscu.
+      </p>
       <PanelNav />
       <DispatcherClient
         bookings={bookings ?? []}

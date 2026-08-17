@@ -3,16 +3,9 @@ import { notFound } from "next/navigation";
 import PanelNav from "@/components/PanelNav";
 import BookingAdminActions from "@/components/BookingAdminActions";
 import { panelClient } from "@/lib/panel";
+import { statusPl } from "@/lib/status";
+import { isOverdueBooking, statusStageClass } from "@/lib/bookingOps";
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: "Oczekuje na potwierdzenie",
-  confirmed: "Potwierdzona",
-  assigned: "Kierowca przypisany",
-  in_progress: "W trakcie",
-  picked_up: "Klient odebrany",
-  completed: "Zakończona",
-  cancelled: "Anulowana"
-};
 
 export default async function Page({
   params
@@ -47,6 +40,8 @@ export default async function Page({
       ? `${booking.pickup_address} ↔ ${booking.airport_label}`
       : `${booking.pickup_address} → ${booking.airport_label}`;
 
+  const overdue = isOverdueBooking(booking);
+
   return (
     <main className="container">
       <a href="/panel/rezerwacje" className="back-link">
@@ -57,13 +52,13 @@ export default async function Page({
       <PanelNav />
 
       <div className="reservation-detail-grid">
-        <div className="card">
+        <div className={`card booking-detail-main booking-stage-card ${statusStageClass(booking.status)} ${overdue ? "booking-overdue" : ""}`}>
           <div className="reservation-title-row">
             <div>
               <span className="muted">Status</span>
               <div>
                 <span className={`status ${booking.status}`}>
-                  {STATUS_LABELS[booking.status] ?? booking.status}
+                  {statusPl(booking.status)}
                 </span>
               </div>
             </div>
@@ -73,6 +68,12 @@ export default async function Page({
               <strong>{Number(booking.total_price).toFixed(2)} zł</strong>
             </div>
           </div>
+
+          {overdue && (
+            <div className="overdue-badge overdue-detail">
+              ⚠ TERMIN MINĄŁ — rezerwacja nie ma statusu Zakończona/Anulowana
+            </div>
+          )}
 
           <h2>Przejazd</h2>
           <div className="detail-list">
@@ -130,7 +131,7 @@ export default async function Page({
             {!history?.length ? (
               <p className="muted">Brak zapisanej historii zmian.</p>
             ) : (
-              <div className="history-list">
+              <div className="history-list history-timeline">
                 {history.map((item: any) => (
                   <div key={item.id}>
                     <strong>{item.event}</strong>

@@ -1,0 +1,55 @@
+MATT BOOKING PRO v2.5.0 — DISPATCHER
+
+BAZA:
+- zawiera działający finalny mechanizm tworzenia/resetu kont przez token_hash + verifyOtp
+- zawiera wcześniejsze poprawki B2B, mobile, wesela, kolory kierowców i płatności
+
+NOWE — PLAN KURSÓW:
+- zakresy DZISIAJ / JUTRO / 7 DNI / TERMIN MINĄŁ
+- filtry: wszystkie / bez obsady / B2B / indywidualne
+- chronologiczny plan
+- osobny mobilny widok kart
+- status rezerwacji oznaczony kolorem lewej krawędzi
+- kolor kierowcy pozostaje osobnym badge
+- szybkie akcje: otwórz / telefon / mapa
+- zapis obsady z istniejącą kontrolą konfliktów
+
+NOWE — STATUSY / ALERTY:
+- żółty: oczekuje
+- niebieski: potwierdzona
+- fioletowy: kierowca przypisany
+- pomarańczowy: w realizacji / na miejscu / odebrany
+- zielony: zakończona
+- czerwono-szary: anulowana
+- TERMIN MINĄŁ jest osobnym czerwonym alertem
+- zaległa rezerwacja nie znika, dopóki nie zostanie zakończona/anulowana
+
+NOWE — ARCHIWUM:
+- Panel -> Rezerwacje ma widoki AKTYWNE / ARCHIWUM / WSZYSTKIE
+- do Archiwum trafiają automatycznie rezerwacje z terminem w przeszłości i statusem completed/cancelled
+- rezerwacje po terminie z otwartym statusem pozostają aktywne jako alert
+
+NOWE — DASHBOARD:
+- rozbudowane "Wymaga uwagi"
+- alert "Termin minął"
+- statusowe kolory kart
+- szybkie akcje OTWÓRZ / ZADZWOŃ / NAWIGUJ / POTWIERDŹ / ZAKOŃCZ
+- stare zakończone kursy nie zaśmiecają aktywnego feedu
+
+NOWE — REZERWACJA:
+- historia zmian jako oś czasu
+- DUPLIKUJ REZERWACJĘ dla administratora
+- kopia dostaje nowy numer, nowy token klienta, status pending i brak obsady
+- nie kopiuje linku płatności
+
+MIGRACJA SQL:
+v2.5 nie wymaga nowej migracji SQL.
+
+TEST ODBIORCZY:
+1. Plan kursów -> DZISIAJ / JUTRO / 7 DNI.
+2. Przypisz kierowcę i pojazd.
+3. Spróbuj konfliktu obsady.
+4. Sprawdź zaległą otwartą rezerwację.
+5. Zakończ ją i następnego dnia sprawdź Archiwum.
+6. Zduplikuj rezerwację i sprawdź nowy numer/token.
+7. Sprawdź Dashboard na telefonie.

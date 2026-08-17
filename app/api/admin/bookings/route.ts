@@ -21,6 +21,7 @@ const ALLOWED_STATUSES = [
   "confirmed",
   "assigned",
   "in_progress",
+  "arrived",
   "picked_up",
   "completed",
   "cancelled"
@@ -70,6 +71,55 @@ export async function POST(req: NextRequest) {
     );
   }
 
+
+  if (action === "duplicate") {
+    const copy: any = { ...current };
+
+    delete copy.id;
+    delete copy.booking_number;
+    delete copy.created_at;
+    delete copy.updated_at;
+    delete copy.customer_access_token;
+
+    copy.driver_id = null;
+    copy.vehicle_id = null;
+    copy.status = "pending";
+    copy.customer_access_token = crypto.randomUUID();
+    copy.booking_source = "admin_duplicate";
+    copy.invoice_number = null;
+    copy.invoice_status = "not_invoiced";
+
+    if ("payment_link" in copy) copy.payment_link = null;
+    if ("payment_status" in copy) copy.payment_status = "pending";
+    if ("customer_last_edited_at" in copy) copy.customer_last_edited_at = null;
+
+    const { data: duplicated, error: duplicateError } = await admin
+      .from("bookings")
+      .insert(copy)
+      .select("*")
+      .single();
+
+    if (duplicateError) {
+      return NextResponse.json(
+        { error: duplicateError.message },
+        { status: 500 }
+      );
+    }
+
+    await admin.from("booking_history").insert({
+      booking_id: duplicated.id,
+      event: `Utworzono jako kopię rezerwacji ${current.booking_number}`,
+      created_by: user.id
+    });
+
+    return NextResponse.json({
+      ok: true,
+      duplicated: true,
+      id: duplicated.id,
+      booking_number: duplicated.booking_number
+    });
+  }
+
   if (action === "resend_confirmation") {
     const template =
       current.status === "assigned"
@@ -115,7 +165,61 @@ export async function POST(req: NextRequest) {
   }
 
   // Konflikty operacyjne: ten sam kierowca lub pojazd w oknie 3 godzin.
-  if(driverId||vehicleId){const {data:sameDay}=await admin.from("bookings").select("id,booking_number,travel_time,driver_id,vehicle_id").eq("travel_date",current.travel_date).neq("id",id).not("status","in","(completed,cancelled)");const toMin=(v:string)=>{const [h,m]=String(v||"00:00").slice(0,5).split(":").map(Number);return h*60+m};const now=toMin(current.travel_time);const conflict=(sameDay??[]).find((z:any)=>Math.abs(toMin(z.travel_time)-now)<180&&((driverId&&z.driver_id===driverId)||(vehicleId&&z.vehicle_id===vehicleId)));if(conflict)return NextResponse.json({error:`Konflikt obsady: ${conflict.booking_number} ma już tego kierowcę lub pojazd o ${conflict.travel_time}.`,conflict},{status:409})}
+  if (driverId || vehicleId) {
+    const { data: sameDay } = await admin
+      .from("bookings")
+      .select("id,booking_number,travel_time,driver_id,vehicle_id")
+      .eq("travel_date", current.travel_date)
+      .neq("id", id)
+      .not("status", "in", "(completed,cancelled)");
+
+    const toMinutes = (value: string) => {
+      const [h, m] = String(value || "00:00")
+        .slice(0, 5)
+        .split(":")
+        .map(Number);
+      return h * 60 + m;
+    };
+
+    const currentMinutes = toMinutes(current.travel_time);
+
+    const conflict = (sameDay ?? []).find((row: any) => {
+      const close =
+        Math.abs(toMinutes(row.travel_time) - currentMinutes) < 180;
+
+      return (
+        close &&
+        ((driverId && row.driver_id === driverId) ||
+          (vehicleId && row.vehicle_id === vehicleId))
+      );
+    });
+
+    if (conflict) {
+      const driverConflict =
+        driverId && conflict.driver_id === driverId;
+      const vehicleConflict =
+        vehicleId && conflict.vehicle_id === vehicleId;
+
+      const what =
+        driverConflict && vehicleConflict
+          ? "kierowca i pojazd"
+          : driverConflict
+          ? "kierowca"
+          : "pojazd";
+
+      return NextResponse.json(
+        {
+          error:
+            `Konflikt: ten ${what} jest już przypisany do ` +
+            `${conflict.booking_number} o ${String(conflict.travel_time).slice(0,5)}. ` +
+            `Sprawdź Plan kursów.`,
+          conflict,
+          conflict_type: what
+        },
+        { status: 409 }
+      );
+    }
+  }
 
   // Automatyczny status po przydzieleniu pełnej obsady.
   if (
