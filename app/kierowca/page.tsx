@@ -22,11 +22,34 @@ export default async function Page() {
     .order("travel_date")
     .order("travel_time");
 
+  const bookingRows = bookings ?? [];
+  const bookingIds = bookingRows.map((b: any) => b.id);
+  let flightRows: any[] = [];
+
+  if (bookingIds.length) {
+    const { data } = await admin
+      .from("booking_flights")
+      .select("*")
+      .in("booking_id", bookingIds)
+      .eq("leg", "primary");
+
+    flightRows = data ?? [];
+  }
+
+  const flightByBooking = new Map(
+    flightRows.map((f: any) => [f.booking_id, f])
+  );
+
+  const bookingsWithFlights = bookingRows.map((b: any) => ({
+    ...b,
+    flight: flightByBooking.get(b.id) ?? null
+  }));
+
   return (
     <main className="container driver-app-shell">
       <DriverTrips
         driver={driver}
-        bookings={bookings ?? []}
+        bookings={bookingsWithFlights}
       />
     </main>
   );

@@ -909,3 +909,186 @@
   .ops-alert-grid-five{grid-template-columns:1fr 1fr}
   .dispatcher-card-selects{grid-template-columns:1fr}
 }
+
+
+/* MATT Booking PRO v2.6 — Flight Monitor */
+.flight-refresh-all{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.flight-refresh-all small{
+  color:var(--muted);
+  max-width:260px;
+}
+.dispatcher-flight-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+  margin:0 0 12px;
+}
+.flight-chip{
+  width:max-content;
+  max-width:100%;
+  display:flex!important;
+  align-items:center;
+  gap:7px;
+  flex-wrap:wrap;
+  margin-top:7px;
+  padding:6px 9px;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.025);
+  font-size:10px!important;
+  line-height:1.2;
+}
+.flight-chip strong{color:var(--text)}
+.flight-chip span{color:inherit!important}
+.flight-chip small{color:var(--muted)}
+.flight-chip.scheduled{
+  border-color:rgba(79,189,125,.38);
+  background:rgba(79,189,125,.07);
+  color:#bcebd0;
+}
+.flight-chip.airborne{
+  border-color:rgba(93,160,230,.45);
+  background:rgba(93,160,230,.08);
+  color:#c9e4ff;
+}
+.flight-chip.delay{
+  border-color:rgba(231,154,67,.5);
+  background:rgba(231,154,67,.09);
+  color:#ffd2a0;
+}
+.flight-chip.danger{
+  border-color:rgba(223,105,105,.55);
+  background:rgba(223,105,105,.10);
+  color:#ffd1d4;
+}
+.flight-chip.landed{
+  border-color:rgba(79,189,125,.55);
+  background:rgba(79,189,125,.12);
+  color:#aee9c5;
+}
+.flight-chip.unknown{
+  color:var(--muted);
+}
+
+.flight-monitor-card{
+  margin-top:14px;
+  border-left:5px solid var(--line);
+}
+.flight-monitor-card.scheduled{border-left-color:var(--ok)}
+.flight-monitor-card.airborne{border-left-color:var(--blue)}
+.flight-monitor-card.delay{border-left-color:#e79a43}
+.flight-monitor-card.danger{border-left-color:var(--bad)}
+.flight-monitor-card.landed{border-left-color:#4fbd7d}
+.flight-monitor-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+}
+.flight-monitor-head h2{margin:10px 0 0}
+.flight-big-status{
+  padding:9px 12px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  font-size:11px;
+  font-weight:900;
+  white-space:nowrap;
+}
+.flight-big-status.scheduled{color:#bcebd0;border-color:rgba(79,189,125,.5)}
+.flight-big-status.airborne{color:#c9e4ff;border-color:rgba(93,160,230,.5)}
+.flight-big-status.delay{color:#ffd2a0;border-color:rgba(231,154,67,.55)}
+.flight-big-status.danger{color:#ffd1d4;border-color:rgba(223,105,105,.55)}
+.flight-big-status.landed{color:#aee9c5;border-color:rgba(79,189,125,.55)}
+.flight-big-status.unknown{color:var(--muted)}
+.flight-data-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:9px;
+  margin:16px 0;
+}
+.flight-data-grid>div{
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:rgba(255,255,255,.02);
+}
+.flight-data-grid span,
+.flight-data-grid strong,
+.flight-data-grid small{display:block}
+.flight-data-grid span{
+  color:var(--muted);
+  font-size:11px;
+  margin-bottom:5px;
+}
+.flight-data-grid strong{color:var(--gold2)}
+.flight-data-grid small{
+  margin-top:5px;
+  color:var(--muted);
+  font-size:10px;
+}
+.flight-pickup-suggestion{
+  grid-column:1/-1;
+  border-color:rgba(213,174,93,.45)!important;
+  background:rgba(213,174,93,.06)!important;
+}
+.flight-pickup-suggestion strong{font-size:18px}
+.flight-match-warning{
+  margin:14px 0;
+  padding:12px;
+  border:1px solid rgba(231,154,67,.5);
+  background:rgba(231,154,67,.08);
+  border-radius:12px;
+  color:#ffd2a0;
+  line-height:1.45;
+}
+.flight-monitor-footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.flight-monitor-footer span{
+  color:var(--muted);
+  font-size:11px;
+}
+.driver-flight-box{
+  margin:10px 0;
+  padding:10px;
+  border:1px solid rgba(93,160,230,.28);
+  border-radius:12px;
+  background:rgba(93,160,230,.045);
+}
+.driver-flight-box .flight-chip{margin-top:0}
+.driver-flight-details{
+  display:grid;
+  gap:4px;
+  margin-top:8px;
+  color:var(--muted);
+  font-size:11px;
+}
+.driver-flight-details strong{color:var(--gold2)}
+.flight-history strong{line-height:1.4}
+
+.ops-alert-grid-six{grid-template-columns:repeat(6,1fr)}
+
+@media(max-width:1100px){
+  .ops-alert-grid-six{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:760px){
+  .flight-data-grid{grid-template-columns:1fr 1fr}
+  .flight-monitor-head{flex-direction:column}
+  .flight-big-status{white-space:normal}
+}
+@media(max-width:560px){
+  .flight-data-grid{grid-template-columns:1fr}
+  .flight-pickup-suggestion{grid-column:auto}
+  .ops-alert-grid-six{grid-template-columns:1fr 1fr}
+}

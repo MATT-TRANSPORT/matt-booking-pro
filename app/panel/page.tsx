@@ -1,6 +1,9 @@
 import PanelNav from "@/components/PanelNav";
 import EmailTestButton from "@/components/EmailTestButton";
 import DashboardQuickActions from "@/components/DashboardQuickActions";
+import FlightStatusBadge from "@/components/FlightStatusBadge";
+import FlightRefreshAllButton from "@/components/FlightRefreshAllButton";
+import { isFlightAlert } from "@/lib/flightDisplay";
 import { panelClient } from "@/lib/panel";
 import { statusPl } from "@/lib/status";
 import { isArchivedBooking, isOverdueBooking, statusStageClass, warsawToday } from "@/lib/bookingOps";
@@ -24,13 +27,37 @@ export default async function PanelPage() {
   ]);
 
   const allBookings = bookings ?? [];
-  const activeBookings = allBookings.filter((b: any) => !isArchivedBooking(b));
+
+  const bookingIds = allBookings.map((b: any) => b.id);
+  let flightRows: any[] = [];
+
+  if (bookingIds.length) {
+    const { data } = await s
+      .from("booking_flights")
+      .select("*")
+      .in("booking_id", bookingIds)
+      .eq("leg", "primary");
+
+    flightRows = data ?? [];
+  }
+
+  const flightByBooking = new Map(
+    flightRows.map((f: any) => [f.booking_id, f])
+  );
+
+  const enrichedBookings = allBookings.map((b: any) => ({
+    ...b,
+    flight: flightByBooking.get(b.id) ?? null
+  }));
+
+  const activeBookings = enrichedBookings.filter((b: any) => !isArchivedBooking(b));
   const operational = activeBookings.filter((b: any) => !["completed", "cancelled"].includes(b.status));
 
   const alertUnassigned = operational.filter((b: any) => !b.driver_id || !b.vehicle_id).length;
   const alertPayment = operational.filter((b: any) => b.payment_method === "employee_payment" && !b.payment_link).length;
   const alertChanged = operational.filter((b: any) => b.status === "pending" && b.customer_last_edited_at).length;
   const alertOverdue = operational.filter(isOverdueBooking).length;
+  const alertFlights = operational.filter((b: any) => isFlightAlert(b.flight)).length;
 
   const feed = [
     ...activeBookings.slice(0, 35).map((b: any) => ({
@@ -57,6 +84,7 @@ export default async function PanelPage() {
 
       <div className="admin-quick-row">
         <EmailTestButton />
+        <FlightRefreshAllButton />
         <a className="btn secondary" href="/panel/rezerwacje?view=archive">ARCHIWUM</a>
         <a className="btn secondary" href="/panel/dyspozytor">PLAN KURSÓW</a>
       </div>
@@ -67,10 +95,14 @@ export default async function PanelPage() {
           <span>Problemy, które mogą wymagać działania dyspozytora.</span>
         </div>
 
-        <div className="ops-alert-grid ops-alert-grid-five">
+        <div className="ops-alert-grid ops-alert-grid-six">
           <a className={alertOverdue ? "alert-danger" : ""} href="/panel/dyspozytor">
             <strong>{alertOverdue}</strong>
             <span>Termin minął</span>
+          </a>
+          <a className={alertFlights ? "alert-danger" : ""} href="/panel/dyspozytor">
+            <strong>{alertFlights}</strong>
+            <span>Loty z alertem</span>
           </a>
           <a href="/panel/dyspozytor">
             <strong>{alertUnassigned}</strong>
@@ -146,6 +178,12 @@ export default async function PanelPage() {
                     <strong>{b.booking_number} · {b.customer_name}</strong>
                   </a>
                   <span>{b.travel_date} {String(b.travel_time).slice(0,5)} · {b.pickup_address} → {b.airport_label}</span>
+                  {b.flight_number && (
+                    <FlightStatusBadge
+                      flight={b.flight}
+                      flightNumber={b.flight_number}
+                    />
+                  )}
                   {overdue && <span className="overdue-badge">⚠ TERMIN MINĄŁ — status niezamknięty</span>}
                   <DashboardQuickActions booking={b} />
                 </div>

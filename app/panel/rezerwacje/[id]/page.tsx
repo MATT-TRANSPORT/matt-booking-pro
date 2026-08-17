@@ -5,6 +5,7 @@ import BookingAdminActions from "@/components/BookingAdminActions";
 import { panelClient } from "@/lib/panel";
 import { statusPl } from "@/lib/status";
 import { isOverdueBooking, statusStageClass } from "@/lib/bookingOps";
+import FlightMonitorCard from "@/components/FlightMonitorCard";
 
 
 export default async function Page({
@@ -33,6 +34,27 @@ export default async function Page({
 
   if (!booking) notFound();
 
+  const [
+    { data: flights },
+    { data: flightHistory }
+  ] = await Promise.all([
+    s.from("booking_flights")
+      .select("*")
+      .eq("booking_id", id)
+      .order("leg"),
+    s.from("booking_flight_history")
+      .select("*")
+      .eq("booking_id", id)
+      .order("created_at", { ascending: false })
+      .limit(20)
+  ]);
+
+  const primaryFlight =
+    (flights ?? []).find((f: any) => f.leg === "primary") ?? null;
+
+  const returnFlight =
+    (flights ?? []).find((f: any) => f.leg === "return") ?? null;
+
   const route =
     booking.service_type === "from_airport"
       ? `${booking.airport_label} → ${booking.pickup_address}`
@@ -51,7 +73,29 @@ export default async function Page({
       <h1>{booking.booking_number}</h1>
       <PanelNav />
 
-      <div className="reservation-detail-grid">
+      {booking.flight_number && (
+        <FlightMonitorCard
+          bookingId={booking.id}
+          leg="primary"
+          flightNumber={booking.flight_number}
+          flight={primaryFlight}
+          pickupFromAirport={booking.service_type === "from_airport"}
+        />
+      )}
+
+      {booking.return_flight_number && (
+        <div style={{ marginTop: 14 }}>
+          <FlightMonitorCard
+            bookingId={booking.id}
+            leg="return"
+            flightNumber={booking.return_flight_number}
+            flight={returnFlight}
+            pickupFromAirport
+          />
+        </div>
+      )}
+
+      <div className="reservation-detail-grid" style={{ marginTop: 18 }}>
         <div className={`card booking-detail-main booking-stage-card ${statusStageClass(booking.status)} ${overdue ? "booking-overdue" : ""}`}>
           <div className="reservation-title-row">
             <div>
@@ -133,6 +177,24 @@ export default async function Page({
             ) : (
               <div className="history-list history-timeline">
                 {history.map((item: any) => (
+                  <div key={item.id}>
+                    <strong>{item.event}</strong>
+                    <span>
+                      {new Date(item.created_at).toLocaleString("pl-PL")}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="card" style={{ marginTop: 16 }}>
+            <h2>Historia lotu</h2>
+            {!flightHistory?.length ? (
+              <p className="muted">Brak zapisanych zmian statusu lotu.</p>
+            ) : (
+              <div className="history-list history-timeline flight-history">
+                {flightHistory.map((item: any) => (
                   <div key={item.id}>
                     <strong>{item.event}</strong>
                     <span>
