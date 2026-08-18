@@ -164,6 +164,19 @@ export default async function Page({
             <div><span>Cena bazowa</span><strong>{Number(booking.base_price).toFixed(2)} zł</strong></div>
             <div><span>Dopłata za km</span><strong>{Number(booking.extra_price).toFixed(2)} zł</strong></div>
             <div><span>VAT</span><strong>{Number(booking.vat_price).toFixed(2)} zł</strong></div>
+            <div>
+              <span>Sposób płatności</span>
+              <strong>
+                {booking.company_id
+                  ? (booking.payment_method === "employee_payment" ? "Płatność pracownika online" : "Przelew firmowy")
+                  : (booking.payment_method === "online" || booking.online_payment_requested)
+                  ? "Płatność online"
+                  : booking.payment_method === "bank_transfer"
+                  ? "Przelew tradycyjny"
+                  : "Gotówka u kierowcy"}
+              </strong>
+            </div>
+            <div><span>Status płatności</span><strong>{booking.payment_status === "paid" ? "✓ Opłacono" : booking.payment_status === "failed" ? "Nieudana" : booking.payment_status === "refunded" ? "Zwrot" : booking.payment_status === "review" ? "Do weryfikacji" : "Oczekuje"}</strong></div>
             <div className="detail-total"><span>Razem</span><strong>{Number(booking.total_price).toFixed(2)} zł</strong></div>
           </div>
 

@@ -89,7 +89,7 @@ export default async function PanelPage() {
   const operational = activeBookings.filter((b: any) => !["completed", "cancelled"].includes(b.status));
 
   const alertUnassigned = operational.filter((b: any) => !b.driver_id || !b.vehicle_id).length;
-  const alertPayment = operational.filter((b: any) => b.payment_method === "employee_payment" && !b.payment_link).length;
+  const alertPayment = operational.filter((b: any) => b.payment_status === "review").length;
   const alertChanged = operational.filter((b: any) => b.status === "pending" && b.customer_last_edited_at).length;
   const alertOverdue = operational.filter(isOverdueBooking).length;
   const alertFlights = flightAlerts.filter(
@@ -241,9 +241,30 @@ export default async function PanelPage() {
                     </span>
                   )}
 
-                  {b.payment_method === "employee_payment" && (
-                    <span className={`payment-dashboard-badge ${b.payment_link ? "ready" : "waiting"}`}>
-                      {b.payment_link ? "PŁATNOŚĆ · LINK GOTOWY" : "PŁATNOŚĆ · BRAK LINKU"}
+                  {((!b.company_id && (b.payment_method === "online" || b.online_payment_requested)) ||
+                    (b.company_id && b.payment_method === "employee_payment")) && (
+                    <span
+                      className={`payment-dashboard-badge ${
+                        b.payment_status === "paid"
+                          ? "paid"
+                          : b.payment_status === "review"
+                          ? "review"
+                          : b.payment_status === "refunded"
+                          ? "refunded"
+                          : b.payment_status === "failed"
+                          ? "failed"
+                          : "waiting"
+                      }`}
+                    >
+                      {b.payment_status === "paid"
+                        ? "PŁATNOŚĆ · ✓ OPŁACONO"
+                        : b.payment_status === "review"
+                        ? "PŁATNOŚĆ · ⚠ WERYFIKACJA"
+                        : b.payment_status === "refunded"
+                        ? "PŁATNOŚĆ · ↩ ZWROT"
+                        : b.payment_status === "failed"
+                        ? "PŁATNOŚĆ · NIEUDANA"
+                        : "PŁATNOŚĆ · OCZEKUJE"}
                     </span>
                   )}
 

@@ -75,6 +75,13 @@ export async function POST(req: NextRequest) {
   const vehicleType =
     body.vehicleType === "bus" ? "bus" : "car";
 
+  const requestedPaymentMethod = String(body.paymentMethod || "");
+  const paymentMethod = ["cash", "bank_transfer", "online"].includes(requestedPaymentMethod)
+    ? requestedPaymentMethod
+    : body.onlinePaymentRequested
+    ? "online"
+    : "cash";
+
   const supabase = createAdminClient();
 
   const { data, error } = await supabase
@@ -105,6 +112,9 @@ export async function POST(req: NextRequest) {
       vat_price: quote.vatPrice,
       total_price: quote.totalPrice,
       status: "pending",
+      payment_method: paymentMethod,
+      online_payment_requested: paymentMethod === "online",
+      payment_status: "pending",
       notes: body.notes || null
     })
     .select("*")

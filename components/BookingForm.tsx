@@ -28,6 +28,8 @@ export default function BookingForm() {
   const [phone,setPhone] = useState("");
   const [email,setEmail] = useState("");
   const [invoice,setInvoice] = useState(false);
+  const [paymentMethod,setPaymentMethod] = useState<"cash"|"bank_transfer"|"online">("cash");
+  const onlinePaymentRequested = paymentMethod === "online";
   const [nip,setNip] = useState("");
   const [notes,setNotes] = useState("");
   const [message,setMessage] = useState("");
@@ -75,6 +77,11 @@ export default function BookingForm() {
 
   const airportLabel = airport==="other" ? (otherAirport||"Inne lotnisko") : PRICES[airport as keyof typeof PRICES].label;
   const routeText = serviceType==="from_airport" ? `${airportLabel} → ${address||"—"}` : serviceType==="roundtrip" ? `${address||"—"} ↔ ${airportLabel}` : `${address||"—"} → ${airportLabel}`;
+  const paymentMethodText = paymentMethod === "online"
+    ? "Płatność online po potwierdzeniu"
+    : paymentMethod === "bank_transfer"
+    ? "Przelew tradycyjny"
+    : "Gotówka u kierowcy";
 
   function nip10(v:string){ return v.replace(/\D/g,"").slice(0,10); }
   function go(n:number){setStep(n);if(typeof window!=="undefined"){window.dispatchEvent(new CustomEvent("matt:booking-step",{detail:{step:n}}));setTimeout(()=>window.scrollTo({top:0,behavior:"smooth"}),60);}}
@@ -94,7 +101,7 @@ export default function BookingForm() {
     const r=await fetch("/api/bookings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
       serviceType,address,airport,vehicleType:vehicle,passengers,distanceKm,travelDate,travelTime,
       returnDate,returnTime,flightNumber:flight,returnFlightNumber:returnFlight,
-      customerName:name,phone,email,invoiceRequired:invoice,companyNip:invoice?nip10(nip):null,notes:notes||null
+      customerName:name,phone,email,invoiceRequired:invoice,companyNip:invoice?nip10(nip):null,paymentMethod,onlinePaymentRequested,notes:notes||null
     })});
     const d=await r.json();
     if(!r.ok){ setMessage(d.error??"Błąd rezerwacji."); setSaving(false); return; }
@@ -108,7 +115,7 @@ export default function BookingForm() {
       <span className="badge">MATT TRANSPORT</span>
       <h1>Dziękujemy! Rezerwacja przyjęta</h1><div className="pending-confirmation-badge">🕐 Oczekuje na potwierdzenie</div><div className="client-next-step"><strong>Co dalej?</strong><p>Twoje zgłoszenie zostało przyjęte. Potwierdzimy rezerwację najszybciej jak to możliwe.</p><p>Oczekuj wiadomości e-mail lub kontaktu z MATT TRANSPORT.</p></div>
       <div className="success-number"><span>Numer rezerwacji</span><strong>{success.booking_number}</strong></div>
-      <div className="success-details"><div><span>Trasa</span><strong>{routeText}</strong></div><div><span>Kwota</span><strong>{Number(success.total_price).toFixed(2)} zł</strong></div></div>
+      <div className="success-details"><div><span>Trasa</span><strong>{routeText}</strong></div><div><span>Kwota</span><strong>{Number(success.total_price).toFixed(2)} zł</strong></div><div><span>Płatność</span><strong>{paymentMethodText}</strong></div></div>
       <div className="success-actions"><a className="btn" href="/booking">NOWA REZERWACJA</a></div>
     </div>;
   }
@@ -189,6 +196,23 @@ export default function BookingForm() {
           {invoice&&<label>NIP<input inputMode="numeric" maxLength={10} value={nip} onChange={e=>setNip(nip10(e.target.value))}/></label>}
         </div>
         <label style={{marginTop:14}}>Uwagi do rezerwacji<textarea rows={4} value={notes} onChange={e=>setNotes(e.target.value)}/></label>
+        <div className="payment-method-section">
+          <h3>Sposób płatności</h3>
+          <div className="payment-method-grid">
+            <label className={`payment-method-choice ${paymentMethod==="cash"?"selected":""}`}>
+              <input type="radio" name="payment-method-mobile" value="cash" checked={paymentMethod==="cash"} onChange={()=>setPaymentMethod("cash")}/>
+              <span><strong>💵 Gotówka</strong><small>Płatność kierowcy przy realizacji przejazdu.</small></span>
+            </label>
+            <label className={`payment-method-choice ${paymentMethod==="bank_transfer"?"selected":""}`}>
+              <input type="radio" name="payment-method-mobile" value="bank_transfer" checked={paymentMethod==="bank_transfer"} onChange={()=>setPaymentMethod("bank_transfer")}/>
+              <span><strong>🏦 Przelew tradycyjny</strong><small>Dane do przelewu ustalimy / przekażemy po potwierdzeniu rezerwacji.</small></span>
+            </label>
+            <label className={`payment-method-choice ${paymentMethod==="online"?"selected":""}`}>
+              <input type="radio" name="payment-method-mobile" value="online" checked={paymentMethod==="online"} onChange={()=>setPaymentMethod("online")}/>
+              <span><strong>💳 Płatność online</strong><small>Po potwierdzeniu rezerwacji pojawi się bezpieczny przycisk płatności online.</small></span>
+            </label>
+          </div>
+        </div>
         <div className="wizard-nav"><button className="btn secondary" onClick={()=>go(4)}>WSTECZ</button><button className="btn" disabled={!valid(5)} onClick={()=>go(6)}>PODSUMOWANIE</button></div>
       </section>}
 
@@ -199,6 +223,7 @@ export default function BookingForm() {
           <div><span>Termin</span><strong>{travelDate} {travelTime}</strong></div>
           <div><span>Pojazd</span><strong>{vehicle==="car"?"Samochód osobowy":"Bus do 8 osób"}</strong></div>
           <div><span>Pasażerowie</span><strong>{passengers}</strong></div>
+          <div><span>Płatność</span><strong>{paymentMethodText}</strong></div>
           <div className="total"><span>Razem</span><strong>{quote.total.toFixed(2)} zł</strong></div>
         </div>
         {message&&<div className="booking-error">{message}</div>}
@@ -242,6 +267,23 @@ export default function BookingForm() {
         {invoice&&<label>NIP<input inputMode="numeric" maxLength={10} value={nip} onChange={e=>setNip(nip10(e.target.value))}/></label>}
       </div>
       <label style={{marginTop:16}}>Uwagi do rezerwacji<textarea rows={4} value={notes} onChange={e=>setNotes(e.target.value)}/></label>
+      <div className="payment-method-section">
+        <h3>Sposób płatności</h3>
+        <div className="payment-method-grid">
+          <label className={`payment-method-choice ${paymentMethod==="cash"?"selected":""}`}>
+            <input type="radio" name="payment-method-desktop" value="cash" checked={paymentMethod==="cash"} onChange={()=>setPaymentMethod("cash")}/>
+            <span><strong>💵 Gotówka</strong><small>Płatność kierowcy przy realizacji przejazdu.</small></span>
+          </label>
+          <label className={`payment-method-choice ${paymentMethod==="bank_transfer"?"selected":""}`}>
+            <input type="radio" name="payment-method-desktop" value="bank_transfer" checked={paymentMethod==="bank_transfer"} onChange={()=>setPaymentMethod("bank_transfer")}/>
+            <span><strong>🏦 Przelew tradycyjny</strong><small>Dane do przelewu ustalimy / przekażemy po potwierdzeniu rezerwacji.</small></span>
+          </label>
+          <label className={`payment-method-choice ${paymentMethod==="online"?"selected":""}`}>
+            <input type="radio" name="payment-method-desktop" value="online" checked={paymentMethod==="online"} onChange={()=>setPaymentMethod("online")}/>
+            <span><strong>💳 Płatność online</strong><small>Po potwierdzeniu rezerwacji pojawi się bezpieczny przycisk płatności online.</small></span>
+          </label>
+        </div>
+      </div>
     </div>
     <aside className="card summary">
       <h3>Podsumowanie</h3>
@@ -253,6 +295,7 @@ export default function BookingForm() {
         <div className="row"><span>Cena bazowa</span><strong>{quote.base.toFixed(2)} zł</strong></div>
         <div className="row"><span>Dopłata</span><strong>{quote.extra.toFixed(2)} zł</strong></div>
         <div className="row"><span>VAT</span><strong>{quote.vat.toFixed(2)} zł</strong></div>
+        <div className="row"><span>Płatność</span><strong>{paymentMethodText}</strong></div>
         <div className="row total"><span>Razem</span><strong>{quote.total.toFixed(2)} zł</strong></div>
         <button className="btn" style={{width:"100%",marginTop:16}} disabled={saving} onClick={submit}>{saving?"ZAPISYWANIE...":"ZAREZERWUJ"}</button>
       </>}

@@ -1,0 +1,20 @@
+MATT Booking PRO v2.8.2.2 — PAYMENT METHODS + ONLINE PAY BUTTON HOTFIX
+
+Zmiany:
+- Formularz B2C ma trzy widoczne sposoby płatności:
+  1. Gotówka u kierowcy
+  2. Przelew tradycyjny
+  3. Płatność online po potwierdzeniu
+- Wybrana metoda zapisuje się w bookings.payment_method.
+- Dla "online" system ustawia również online_payment_requested=true dla zgodności z v2.8.2.1.
+- Portal klienta i maile rozpoznają online zarówno po payment_method='online', jak i po starszym online_payment_requested=true.
+- Po statusie confirmed/assigned portal pokazuje przycisk OPŁAĆ REZERWACJĘ ONLINE.
+- Mail potwierdzający/maill po przypisaniu kierowcy pokazuje ten sam przycisk dla rezerwacji online.
+- Panel administratora pokazuje konkretny sposób płatności.
+- Dashboard nie pokazuje statusu "oczekuje na płatność" dla gotówki/przelewu tradycyjnego.
+
+SQL:
+Brak nowej migracji. Używana jest istniejąca kolumna bookings.payment_method oraz online_payment_requested.
+
+Test zalecany na NOWEJ rezerwacji po wdrożeniu hotfixa:
+formularz -> wybierz Płatność online -> rezerwacja -> potwierdź -> otwórz link klienta -> OPŁAĆ REZERWACJĘ ONLINE.

@@ -1341,3 +1341,181 @@
     min-height:44px;
   }
 }
+
+
+/* MATT Booking PRO v2.8.1 — Branding & Payments */
+.admin-payment-status{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:10px 0 14px;
+  padding:12px 13px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:rgba(255,255,255,.02);
+}
+.admin-payment-status span{
+  color:var(--muted);
+  font-size:11px;
+}
+.admin-payment-status strong{
+  font-size:11px;
+  text-align:right;
+}
+.admin-payment-status.paid{
+  border-color:rgba(79,189,125,.48);
+  background:rgba(79,189,125,.08);
+}
+.admin-payment-status.paid strong{
+  color:#bcebd0;
+}
+.admin-payment-status.pending strong{
+  color:#ffd2a0;
+}
+.payment-mark-paid,
+.payment-mark-pending{
+  width:100%;
+  margin-top:9px;
+}
+.payment-mark-paid{
+  border-color:rgba(79,189,125,.44)!important;
+  color:#bcebd0!important;
+}
+.payment-dashboard-badge.paid{
+  color:#bcebd0;
+  border-color:rgba(79,189,125,.48);
+  background:rgba(79,189,125,.09);
+}
+.payment-paid{
+  color:#bcebd0;
+  font-weight:800;
+}
+
+
+/* MATT Booking PRO v2.8.2 — Online Payments */
+.online-payment-card{
+  margin-top:16px;
+  padding:16px;
+  border:1px solid rgba(213,174,93,.34);
+  border-radius:14px;
+  background:rgba(213,174,93,.05);
+}
+.online-payment-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+}
+.online-payment-head h3{
+  margin:7px 0 0;
+  font-size:16px;
+}
+.online-payment-head>strong{
+  color:var(--gold2);
+  font-size:18px;
+  white-space:nowrap;
+}
+.online-pay-button{
+  width:100%;
+  min-height:48px;
+  margin:8px 0;
+}
+.online-payment-card small{
+  display:block;
+  color:var(--muted);
+  line-height:1.5;
+}
+.online-payment-success,
+.online-payment-warning,
+.online-payment-info,
+.online-payment-message,
+.payment-review-admin{
+  margin-top:10px;
+  padding:11px 12px;
+  border-radius:10px;
+  font-size:12px;
+  line-height:1.55;
+}
+.online-payment-success{
+  background:rgba(79,189,125,.12);
+  color:#bcebd0;
+}
+.online-payment-warning,
+.payment-review-admin{
+  background:rgba(232,178,66,.11);
+  color:#ffe0a0;
+}
+.online-payment-info{
+  background:rgba(255,255,255,.04);
+  color:var(--muted);
+}
+.online-payment-message{
+  background:rgba(255,255,255,.05);
+  color:#fff;
+}
+.admin-payment-status.failed strong,
+.payment-dashboard-badge.failed{
+  color:#ffb7b7;
+}
+.admin-payment-status.refunded strong,
+.payment-dashboard-badge.refunded,
+.payment-refunded{
+  color:#c7cbd3;
+}
+.admin-payment-status.review strong,
+.payment-dashboard-badge.review,
+.payment-review{
+  color:#ffe0a0;
+}
+.admin-payment-online-link{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin:12px 0;
+}
+.manual-payment-link-details{
+  margin-top:14px;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:10px;
+}
+.manual-payment-link-details summary{
+  cursor:pointer;
+  font-weight:800;
+}
+.manual-payment-link-details input{
+  margin:10px 0 8px;
+}
+@media(max-width:700px){
+  .online-payment-head{
+    flex-direction:column;
+  }
+  .admin-payment-online-link .btn{
+    flex:1 1 100%;
+  }
+}
+
+
+/* v2.8.2.1 — payment opt-in */
+.online-payment-choice{
+  display:flex;align-items:flex-start;gap:12px;margin-top:16px;padding:15px 16px;
+  border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.02);cursor:pointer;
+}
+.online-payment-choice.selected{
+  border-color:rgba(213,174,93,.60);background:rgba(213,174,93,.08);
+}
+.online-payment-choice input{
+  width:20px;height:20px;min-width:20px;margin-top:2px;accent-color:#d5ae5d;
+}
+.online-payment-choice span{display:flex;flex-direction:column;gap:5px;}
+.online-payment-choice strong{font-size:14px;line-height:1.35;}
+.online-payment-choice small{color:var(--muted);line-height:1.45;}
+@media(max-width:700px){
+  .online-payment-choice{padding:14px;}
+}
+
+
+/* v2.8.2.2 — B2C payment method selector */
+.payment-method-section{margin-top:16px}.payment-method-section h3{margin:0 0 10px}.payment-method-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.payment-method-choice{display:flex;gap:10px;align-items:flex-start;padding:14px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.02);cursor:pointer}.payment-method-choice.selected{border-color:#d5ae5d;background:rgba(213,174,93,.08)}.payment-method-choice input{margin-top:3px;accent-color:#d5ae5d}.payment-method-choice span{display:flex;flex-direction:column;gap:5px}.payment-method-choice strong{font-size:13px}.payment-method-choice small{color:var(--muted);font-size:11px;line-height:1.4}@media(max-width:900px){.payment-method-grid{grid-template-columns:1fr}.payment-method-choice{min-height:70px}}

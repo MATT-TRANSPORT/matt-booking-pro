@@ -26,10 +26,15 @@ type BookingMail = {
   driver_phone?: string | null;
   vehicle_name?: string | null;
   vehicle_registration?: string | null;
+  company_id?: string | null;
+  payment_method?: string | null;
+  payment_status?: string | null;
+  payment_link?: string | null;
+  online_payment_requested?: boolean | null;
 };
 
 function appBaseUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL || "https://matt-booking-pro.vercel.app";
+  return process.env.NEXT_PUBLIC_APP_URL || "https://panel.matt-transport.pl";
 }
 
 function clientUrl(b: BookingMail) {
@@ -42,6 +47,24 @@ function adminUrl(b: BookingMail) {
   return b.id
     ? `${appBaseUrl()}/panel/rezerwacje/${b.id}`
     : null;
+}
+
+function paymentPreferenceText(b: BookingMail) {
+  if (b.company_id) {
+    return b.payment_method === "employee_payment"
+      ? "Płatność pracownika online"
+      : "Przelew firmowy";
+  }
+
+  if (b.payment_method === "online" || b.online_payment_requested) {
+    return "Płatność online po potwierdzeniu";
+  }
+
+  if (b.payment_method === "bank_transfer") {
+    return "Przelew tradycyjny";
+  }
+
+  return "Gotówka u kierowcy";
 }
 
 function routeText(b: BookingMail) {
@@ -70,6 +93,47 @@ function shell(title: string, content: string) {
       </div>
     </div>
   </div>`;
+}
+
+
+function paymentButton(b: BookingMail) {
+  const eligible =
+    b.company_id
+      ? b.payment_method === "employee_payment"
+      : b.payment_method === "online" || Boolean(b.online_payment_requested);
+
+  if (!eligible) return "";
+
+  if (b.payment_status === "paid") {
+    return `
+      <div style="margin-top:18px;padding:16px;border-radius:12px;background:#1b3a2a;color:#c2efd2;font-weight:800">
+        ✓ Płatność została zaksięgowana.
+      </div>`;
+  }
+
+  if (b.payment_status === "review") {
+    return `
+      <div style="margin-top:18px;padding:16px;border-radius:12px;background:#493915;color:#ffe5a3">
+        ⚠ Płatność wymaga weryfikacji przez MATT TRANSPORT.
+      </div>`;
+  }
+
+  const url =
+    b.payment_link ||
+    (b.customer_access_token
+      ? `${appBaseUrl()}/rezerwacja/${b.customer_access_token}?pay=1`
+      : null);
+
+  if (!url) return "";
+
+  return `
+    <div style="margin-top:20px;padding:18px;border-radius:14px;background:#10141b;border:1px solid #4f4733">
+      <div style="font-weight:800;color:#f1d28b;margin-bottom:8px">Płatność online</div>
+      <div style="color:#aab1bc;margin-bottom:14px">Kwota do zapłaty: <strong style="color:#fff">${Number(b.total_price).toFixed(2)} zł</strong></div>
+      <a href="${url}" style="display:inline-block;background:#d5ae5d;color:#111;padding:14px 20px;border-radius:11px;text-decoration:none;font-weight:900">
+        OPŁAĆ REZERWACJĘ ONLINE
+      </a>
+    </div>`;
 }
 
 function customerPortalButton(b: BookingMail) {
@@ -113,6 +177,7 @@ function details(b: BookingMail, forAdmin = false) {
       <div><span style="color:#aab1bc">Pojazd:</span> <strong>${esc(vehicle)}</strong></div>
       <div><span style="color:#aab1bc">Lot:</span> <strong>${esc(b.flight_number || "—")}</strong></div>
       <div><span style="color:#aab1bc">Kwota:</span> <strong style="color:#f1d28b">${Number(b.total_price).toFixed(2)} zł</strong></div>
+      <div><span style="color:#aab1bc">Płatność:</span> <strong>${esc(paymentPreferenceText(b))}</strong></div>
     </div>`;
 }
 
@@ -146,6 +211,7 @@ export function confirmedEmail(b: BookingMail) {
       <div style="margin-top:18px;padding:16px;border-radius:12px;background:#1b3a2a;color:#c2efd2">
         Kurs został przyjęty do realizacji.
       </div>
+      ${paymentButton(b)}
       ${customerPortalButton(b)}`
     )
   };
@@ -166,6 +232,7 @@ export function assignedEmail(b: BookingMail) {
         <div><span style="color:#aab1bc">Pojazd:</span> <strong>${esc(b.vehicle_name || "—")}</strong></div>
         <div><span style="color:#aab1bc">Rejestracja:</span> <strong>${esc(b.vehicle_registration || "—")}</strong></div>
       </div>
+      ${paymentButton(b)}
       ${customerPortalButton(b)}`
     )
   };
@@ -181,6 +248,40 @@ export function completedEmail(b: BookingMail) {
         i zapraszamy przy kolejnej podróży.
       </p>
       ${details(b)}`
+    )
+  };
+}
+
+
+export function paymentReceivedEmail(b: BookingMail) {
+  return {
+    subject: `Płatność zaksięgowana – ${b.booking_number}`,
+    html: shell(
+      "Płatność została zaksięgowana",
+      `<p style="color:#aab1bc;line-height:1.7">
+        Dziękujemy. Otrzymaliśmy płatność za rezerwację.
+      </p>
+      ${details(b)}
+      <div style="margin-top:18px;padding:16px;border-radius:12px;background:#1b3a2a;color:#c2efd2;font-weight:800">
+        ✓ OPŁACONO · ${Number(b.total_price).toFixed(2)} zł
+      </div>
+      ${customerPortalButton(b)}`
+    )
+  };
+}
+
+export function paymentRefundedEmail(b: BookingMail) {
+  return {
+    subject: `Zwrot płatności – ${b.booking_number}`,
+    html: shell(
+      "Zwrot płatności",
+      `<p style="color:#aab1bc;line-height:1.7">
+        W systemie zarejestrowaliśmy zwrot płatności dla tej rezerwacji.
+      </p>
+      ${details(b)}
+      <div style="margin-top:18px;padding:16px;border-radius:12px;background:#3d3425;color:#ffe0a3">
+        ↩ Status płatności: ZWROT
+      </div>`
     )
   };
 }

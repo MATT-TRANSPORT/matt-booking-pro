@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import OnlinePaymentCard from "@/components/OnlinePaymentCard";
 
 const STATUS: Record<string,string> = {
   pending:"Oczekuje na potwierdzenie",
@@ -64,7 +65,7 @@ export default function ClientBookingPortal({ token }: { token:string }) {
   if(!data||!form) return <main className="container client-portal-shell"><div className="card"><h1>Ładowanie rezerwacji…</h1></div></main>;
 
   const b=data.booking;
-  const editable=data.editable && !["in_progress","arrived","picked_up","completed","cancelled"].includes(b.status);
+  const editable=data.editable && b.payment_status !== "paid" && !["in_progress","arrived","picked_up","completed","cancelled"].includes(b.status);
   const driver=Array.isArray(b.drivers)?b.drivers[0]:b.drivers;
   const vehicle=Array.isArray(b.vehicles)?b.vehicles[0]:b.vehicles;
 
@@ -137,6 +138,14 @@ export default function ClientBookingPortal({ token }: { token:string }) {
         <div><span>Lotnisko</span><strong>{b.airport_label}</strong></div>
         <div><span>Kwota</span><strong>{Number(b.total_price).toFixed(2)} zł</strong></div>
         <div><span>Status</span><strong>{STATUS[b.status]||b.status}</strong></div>
+        <div><span>Płatność</span><strong>{b.company_id
+          ? (b.payment_method === "employee_payment" ? "Płatność pracownika online" : "Przelew firmowy")
+          : (b.payment_method === "online" || b.online_payment_requested)
+          ? "Płatność online po potwierdzeniu"
+          : b.payment_method === "bank_transfer"
+          ? "Przelew tradycyjny"
+          : "Gotówka u kierowcy"}</strong></div>
+        <OnlinePaymentCard booking={b} />
         {vehicle&&<div><span>Pojazd</span><strong>{vehicle.name} · {vehicle.registration}</strong></div>}
         {driver&&<div><span>Kierowca</span><strong>{driver.full_name}</strong></div>}
         {driver?.phone&&<a className="btn secondary" href={`tel:${driver.phone}`}>📞 ZADZWOŃ DO KIEROWCY</a>}
