@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMattEmail } from "@/lib/email";
 import { PRICES } from "@/lib/pricing";
+import { expireCheckoutSession } from "@/lib/stripeServer";
 
 const EDITABLE_STATUSES = ["pending", "confirmed", "assigned"];
 
@@ -48,6 +49,16 @@ export async function PATCH(
     return NextResponse.json({ error: "Rezerwacja nie istnieje lub link wygasł." }, { status: 404 });
   }
 
+  if (booking.payment_status === "paid") {
+    return NextResponse.json(
+      {
+        error:
+          "Opłaconej rezerwacji nie można samodzielnie zmieniać. Skontaktuj się z MATT TRANSPORT: +48 691 242 691."
+      },
+      { status: 409 }
+    );
+  }
+
   if (!EDITABLE_STATUSES.includes(booking.status)) {
     return NextResponse.json(
       { error: "Ta rezerwacja jest już w realizacji i nie może być samodzielnie edytowana." },
@@ -85,8 +96,21 @@ export async function PATCH(
   const subtotal = base + extra;
   const vat = invoiceRequired ? subtotal * 0.08 : 0;
   const total = subtotal + vat;
+  const priceChanged =
+    Math.round(Number(booking.total_price || 0) * 100) !==
+    Math.round(total * 100);
+  const requiresReconfirmation =
+    routeChanged || dateChanged || priceChanged;
 
-  const newStatus = routeChanged || dateChanged ? "pending" : booking.status;
+  if (requiresReconfirmation) {
+    await expireCheckoutSession(
+      booking.payment_checkout_session_id
+    );
+  }
+
+  const newStatus = requiresReconfirmation
+    ? "pending"
+    : booking.status;
 
   const update = {
     pickup_address: String(body.pickupAddress ?? booking.pickup_address).trim(),
@@ -103,6 +127,18 @@ export async function PATCH(
     notes: String(body.notes ?? "").trim() || null,
     total_price: total,
     status: newStatus,
+    ...(requiresReconfirmation
+      ? {
+          payment_status: "pending",
+          payment_provider: null,
+          payment_checkout_session_id: null,
+          payment_intent_id: null,
+          payment_amount_cents: null,
+          payment_paid_at: null,
+          payment_last_error: null,
+          payment_review_reason: null
+        }
+      : {}),
     customer_last_edited_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   };
@@ -120,8 +156,8 @@ export async function PATCH(
 
   await admin.from("booking_history").insert({
     booking_id: booking.id,
-    event: routeChanged || dateChanged
-      ? "Klient zmienił rezerwację — wymaga ponownego potwierdzenia."
+    event: requiresReconfirmation
+      ? "Klient zmienił rezerwację — wymaga ponownego potwierdzenia i nowej płatności."
       : "Klient zaktualizował dane rezerwacji.",
     created_by: null
   });
@@ -138,7 +174,7 @@ export async function PATCH(
           <h2 style="color:#f1d28b">MATT TRANSPORT</h2>
           <h1>Klient zmienił rezerwację</h1>
           <p>Numer: <strong>${booking.booking_number}</strong></p>
-          <p>${routeChanged || dateChanged ? "Zmiana trasy lub terminu wymaga ponownego potwierdzenia." : "Zaktualizowano dane rezerwacji."}</p>
+          <p>${requiresReconfirmation ? "Zmiana danych lub ceny wymaga ponownego potwierdzenia. Poprzednia sesja płatności została unieważniona." : "Zaktualizowano dane rezerwacji."}</p>
           <p><a href="${adminUrl}" style="display:inline-block;background:#d5ae5d;color:#111;padding:13px 18px;border-radius:10px;text-decoration:none;font-weight:bold">OTWÓRZ REZERWACJĘ W PANELU</a></p>
         </div>
       </div>
@@ -147,6 +183,6 @@ export async function PATCH(
 
   return NextResponse.json({
     booking: updated,
-    requiresReconfirmation: routeChanged || dateChanged
+    requiresReconfirmation
   });
 }

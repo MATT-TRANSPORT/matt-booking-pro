@@ -114,12 +114,29 @@ export default function OnlinePaymentCard({
         { method: "POST" }
       );
 
-      const data = await response.json();
+      const contentType =
+        response.headers.get("content-type") || "";
+
+      const raw = await response.text();
+
+      let data: any = {};
+
+      if (contentType.includes("application/json")) {
+        try {
+          data = raw ? JSON.parse(raw) : {};
+        } catch {
+          data = {};
+        }
+      }
 
       if (!response.ok || !data.url) {
+        const fallback =
+          response.status === 404
+            ? "Endpoint płatności nie jest dostępny w aktualnym wdrożeniu. Wymagany jest backend Stripe Checkout."
+            : `Nie udało się rozpocząć płatności (HTTP ${response.status}).`;
+
         throw new Error(
-          data.error ||
-            "Nie udało się rozpocząć płatności."
+          data.error || fallback
         );
       }
 
