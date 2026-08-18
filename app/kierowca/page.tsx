@@ -1,4 +1,5 @@
 import DriverTrips from "@/components/DriverTrips";
+import DriverAppControls from "@/components/DriverAppControls";
 import { driverClient } from "@/lib/driver";
 
 export default async function Page() {
@@ -69,6 +70,7 @@ export default async function Page() {
 
   return (
     <main className="container driver-app-shell">
+      <DriverAppControls />
       <DriverTrips
         driver={driver}
         bookings={bookingsWithFlights}

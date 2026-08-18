@@ -1272,3 +1272,72 @@
     min-height:46px;
   }
 }
+
+
+/* MATT Booking PRO v2.8 — Driver PWA & Push */
+.driver-app-controls{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:12px;
+  border-color:rgba(213,174,93,.30);
+}
+.driver-app-controls>div:first-child{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+}
+.driver-app-controls>div:first-child strong{
+  font-size:16px;
+}
+.driver-app-controls>div:first-child small{
+  color:var(--muted);
+}
+.driver-app-control-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+  gap:7px;
+}
+.driver-app-control-actions .btn{
+  padding:9px 11px;
+  font-size:10px;
+}
+.pwa-installed-badge{
+  padding:8px 10px;
+  border:1px solid rgba(79,189,125,.45);
+  border-radius:9px;
+  background:rgba(79,189,125,.08);
+  color:#bcebd0;
+  font-size:10px;
+  font-weight:900;
+}
+.push-on{
+  border-color:rgba(79,189,125,.42)!important;
+  color:#bcebd0!important;
+}
+.push-warning{
+  max-width:260px;
+  color:#ffd2a0;
+  font-size:10px;
+}
+.driver-app-control-message{
+  flex-basis:100%;
+  padding-top:5px;
+  color:var(--gold2);
+}
+@media(max-width:700px){
+  .driver-app-controls{
+    align-items:stretch;
+    flex-direction:column;
+  }
+  .driver-app-control-actions{
+    justify-content:stretch;
+  }
+  .driver-app-control-actions .btn{
+    flex:1 1 145px;
+    min-height:44px;
+  }
+}

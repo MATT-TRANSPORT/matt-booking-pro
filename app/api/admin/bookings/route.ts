@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMattEmail } from "@/lib/email";
+import { sendDriverPush } from "@/lib/pushServer";
 import {
   confirmedEmail,
   assignedEmail,
@@ -263,6 +264,44 @@ export async function POST(req: NextRequest) {
     }`,
     created_by: user.id
   });
+
+  if (
+    updated.driver_id &&
+    (
+      current.driver_id !== updated.driver_id ||
+      resourcesChanged
+    )
+  ) {
+    const routeText =
+      updated.service_type === "from_airport"
+        ? `${updated.airport_label} → ${updated.pickup_address}`
+        : `${updated.pickup_address} → ${updated.airport_label}`;
+
+    await sendDriverPush(
+      admin,
+      updated.driver_id,
+      {
+        title:
+          current.driver_id !== updated.driver_id
+            ? "🚐 NOWY KURS MATT"
+            : "⚠ ZMIANA W TWOIM KURSIE",
+        body:
+          `${updated.travel_date} ${String(updated.travel_time).slice(0,5)} · ` +
+          `${updated.customer_name} · ${routeText}`,
+        url: "/kierowca",
+        tag: `booking-${updated.id}`,
+        bookingId: updated.id,
+        eventKey:
+          `assignment:${updated.id}:` +
+          `${updated.driver_id}:` +
+          `${updated.vehicle_id || "no-vehicle"}:` +
+          `${updated.travel_date}:` +
+          `${String(updated.travel_time).slice(0,5)}`
+      }
+    ).catch((error) => {
+      console.error("Driver push:", error);
+    });
+  }
 
   let emailSent = false;
   let emailError: string | null = null;

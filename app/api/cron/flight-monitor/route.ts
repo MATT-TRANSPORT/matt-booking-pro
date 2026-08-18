@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { refreshBookingFlight } from "@/lib/flightServer";
+import { sendFlightAlertPush } from "@/lib/pushServer";
 import {
   shouldAutoRefresh,
   syncFlightAutomationAlerts
@@ -151,6 +152,32 @@ export async function POST(req: NextRequest) {
         previous,
         item.leg
       );
+
+      if (item.booking.driver_id) {
+        const { data: activeAlerts } = await admin
+          .from("booking_flight_alerts")
+          .select("*")
+          .eq("booking_id", item.booking.id)
+          .eq("leg", item.leg)
+          .eq("active", true)
+          .order("updated_at", { ascending: false });
+
+        for (const alert of activeAlerts ?? []) {
+          if (
+            alert.severity === "critical" ||
+            alert.severity === "warning" ||
+            alert.alert_type === "landed"
+          ) {
+            await sendFlightAlertPush(
+              admin,
+              item.booking,
+              alert
+            ).catch((pushError) => {
+              console.error("Flight push:", pushError);
+            });
+          }
+        }
+      }
 
       await admin
         .from("booking_flights")
