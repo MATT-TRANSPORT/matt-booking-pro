@@ -16,6 +16,7 @@ export default function DriverLogoutButton() {
 
       await supabase.auth.signOut();
 
+      // Hard redirect clears the driver UI state and starts a fresh login flow.
       window.location.href = "/kierowca/login";
     } catch {
       setBusy(false);
