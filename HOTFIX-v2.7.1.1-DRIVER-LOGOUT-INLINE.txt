@@ -1,0 +1,26 @@
+MATT BOOKING PRO v2.7.1.1 — DRIVER LOGOUT INLINE HOTFIX
+
+NAPRAWIA:
+Vercel build:
+Cannot find module '@/components/DriverLogoutButton'
+
+PRZYCZYNA:
+Nowy plik DriverLogoutButton.tsx nie znalazł się w repozytorium podczas podmiany.
+
+ROZWIĄZANIE:
+- usunięto import DriverLogoutButton
+- funkcja wylogowania jest teraz bezpośrednio w istniejącym DriverTrips.tsx
+- brak nowego komponentu do dodawania
+- Supabase auth.signOut() pozostaje
+- po wylogowaniu: /kierowca/login
+
+DO PODMIANY TYLKO:
+1. app/kierowca/page.tsx
+2. components/DriverTrips.tsx
+3. app/globals.css
+
+SQL:
+BRAK.
+
+Flight Automation:
+BEZ ZMIAN.

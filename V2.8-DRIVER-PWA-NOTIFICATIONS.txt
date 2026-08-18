@@ -1,0 +1,51 @@
+MATT BOOKING PRO v2.8.0 — DRIVER PWA & PUSH NOTIFICATIONS
+
+NOWE:
+- panel kierowcy może zostać zainstalowany na telefonie jako PWA
+- manifest + ikony + service worker
+- Web Push dla kierowców
+- każdy telefon kierowcy ma własną subskrypcję
+- kierowca sam włącza/wyłącza powiadomienia
+- przycisk TEST POWIADOMIENIA
+- PUSH po przypisaniu/zmianie kursu
+- PUSH z Flight Automation:
+  * opóźnienie
+  * krytyczny alert
+  * wylądował
+  * konflikt po ETA
+- kliknięcie powiadomienia otwiera panel kierowcy
+
+WYMAGANE:
+1. SQL:
+   supabase/migrations-v2.8-driver-pwa-push.sql
+
+2. Vercel Environment Variables:
+   NEXT_PUBLIC_VAPID_PUBLIC_KEY
+   VAPID_PRIVATE_KEY
+   VAPID_SUBJECT
+
+VAPID_SUBJECT:
+mailto:kontakt@matt-transport.pl
+
+GENEROWANIE VAPID:
+Po pobraniu projektu lokalnie można użyć:
+npx web-push generate-vapid-keys
+
+Public Key -> NEXT_PUBLIC_VAPID_PUBLIC_KEY
+Private Key -> VAPID_PRIVATE_KEY
+
+UWAGA:
+- publiczny klucz VAPID może być NEXT_PUBLIC
+- prywatnego VAPID_PRIVATE_KEY nigdy nie umieszczaj w kodzie ani w NEXT_PUBLIC
+- po dodaniu env zrób ponowny deploy Vercel
+
+TEST:
+1. Uruchom SQL.
+2. Dodaj 3 env w Vercel.
+3. Deploy.
+4. Otwórz panel kierowcy na telefonie.
+5. Kliknij ZAINSTALUJ.
+6. Kliknij WŁĄCZ POWIADOMIENIA i zaakceptuj zgodę.
+7. Kliknij TEST POWIADOMIENIA.
+8. Przypisz temu kierowcy nową rezerwację w panelu administratora.
+9. Sprawdź push na telefonie.

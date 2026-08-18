@@ -1,0 +1,20 @@
+MATT BOOKING PRO v2.7.1 — DRIVER LOGOUT
+
+NOWE:
+- przycisk WYLOGUJ SIĘ w panelu kierowcy
+- wylogowanie kończy sesję Supabase
+- po wylogowaniu użytkownik trafia do /kierowca/login
+- można ponownie zalogować się tym samym kontem
+- przycisk jest wygodny na telefonie i pozostaje łatwo dostępny
+
+BRAK:
+- nowych migracji SQL
+- zmian w Flight Automation
+- zmian w AirLabs
+- zmian w kontach kierowców
+
+TEST:
+1. Zaloguj się jako kierowca.
+2. Kliknij WYLOGUJ SIĘ.
+3. Powinien otworzyć się ekran logowania kierowcy.
+4. Zaloguj się ponownie tym samym e-mailem i hasłem.
