@@ -1,0 +1,21 @@
+MATT Booking PRO v2.9.0.1 — GOOGLE PRIVATE KEY FORMAT HOTFIX
+
+Naprawia:
+error:1E08010C:DECODER routines::unsupported
+
+Przyczyna:
+GOOGLE_CALENDAR_PRIVATE_KEY w Vercel może być wklejony jako:
+- wieloliniowy PEM,
+- wartość JSON z literalnymi \n,
+- wartość razem z cudzysłowami.
+
+Hotfix normalizuje wszystkie te warianty i waliduje klucz przez node:crypto createPrivateKey.
+
+Po wdrożeniu:
+1. Redeploy.
+2. Otwórz rezerwację.
+3. Kliknij Google Calendar -> SYNCHRONIZUJ TERAZ.
+4. Jeśli nadal jest błąd, komunikat będzie już jednoznaczny.
+
+SQL: brak.
+Nowe ENV: brak.

@@ -1,4 +1,5 @@
 import {
+  createPrivateKey,
   createSign
 } from "node:crypto";
 
@@ -45,25 +46,79 @@ function base64url(value: string | Buffer) {
     .replace(/\//g, "_");
 }
 
+function normalizePrivateKey(
+  value: string
+) {
+  let key = String(value || "").trim();
+
+  // Częsty przypadek: do Vercel wklejono
+  // wartość dokładnie z JSON-a razem z cudzysłowami.
+  if (
+    key.startsWith('"') &&
+    key.endsWith('"')
+  ) {
+    try {
+      key = JSON.parse(key);
+    } catch {
+      key = key.slice(1, -1);
+    }
+  } else if (
+    key.startsWith("'") &&
+    key.endsWith("'")
+  ) {
+    key = key.slice(1, -1);
+  }
+
+  // Obsługa zarówno prawdziwych nowych linii,
+  // jak i znaków \n skopiowanych z JSON-a.
+  key = key
+    .replace(/\\r\\n/g, "\n")
+    .replace(/\\n/g, "\n")
+    .replace(/\\r/g, "\n")
+    .replace(/\r\n/g, "\n")
+    .trim();
+
+  if (
+    !key.includes(
+      "-----BEGIN PRIVATE KEY-----"
+    ) ||
+    !key.includes(
+      "-----END PRIVATE KEY-----"
+    )
+  ) {
+    throw new Error(
+      "GOOGLE_CALENDAR_PRIVATE_KEY ma nieprawidłowy format. Wklej wartość pola private_key z pliku JSON, razem z BEGIN/END PRIVATE KEY."
+    );
+  }
+
+  return key;
+}
+
 function calendarConfig() {
   const email =
     process.env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL;
 
-  const privateKey =
-    process.env.GOOGLE_CALENDAR_PRIVATE_KEY
-      ?.replace(/\\n/g, "\n");
+  const rawPrivateKey =
+    process.env.GOOGLE_CALENDAR_PRIVATE_KEY;
 
   const calendarId =
     process.env.GOOGLE_CALENDAR_ID;
 
-  if (!email || !privateKey || !calendarId) {
+  if (
+    !email ||
+    !rawPrivateKey ||
+    !calendarId
+  ) {
     return null;
   }
 
+  const privateKey =
+    normalizePrivateKey(rawPrivateKey);
+
   return {
-    email,
+    email: email.trim(),
     privateKey,
-    calendarId
+    calendarId: calendarId.trim()
   };
 }
 
@@ -102,8 +157,22 @@ async function getAccessToken() {
   signer.update(signingInput);
   signer.end();
 
+  let privateKeyObject;
+
+  try {
+    privateKeyObject =
+      createPrivateKey({
+        key: config.privateKey,
+        format: "pem"
+      });
+  } catch {
+    throw new Error(
+      "Nie można odczytać GOOGLE_CALENDAR_PRIVATE_KEY. Sprawdź wartość private_key z pliku JSON w Vercel."
+    );
+  }
+
   const signature = base64url(
-    signer.sign(config.privateKey)
+    signer.sign(privateKeyObject)
   );
 
   const assertion =
