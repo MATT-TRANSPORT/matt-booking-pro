@@ -23,6 +23,17 @@ type NotifyOptions = {
   force?: boolean;
 };
 
+export type CustomerNotificationResult = {
+  sent: boolean;
+  skipped: boolean;
+  reason?: string;
+  error?: string;
+  duplicate?: boolean;
+  channel?: "push";
+  sent_count?: number;
+  failed_count?: number;
+};
+
 function appBaseUrl() {
   return (
     process.env.NEXT_PUBLIC_APP_URL ||
@@ -209,7 +220,7 @@ export async function sendBookingNotification(
   admin: any,
   bookingInput: any,
   options: NotifyOptions
-) {
+): Promise<CustomerNotificationResult> {
   if (!bookingInput || bookingInput.company_id) {
     return { sent: false, skipped: true, reason: "b2b_or_missing" };
   }

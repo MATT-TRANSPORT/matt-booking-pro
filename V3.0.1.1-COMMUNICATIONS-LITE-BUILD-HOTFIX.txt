@@ -1,0 +1,14 @@
+MATT Booking PRO v3.0.1.1 — COMMUNICATIONS LITE BUILD HOTFIX
+
+Naprawa błędu Vercel TypeScript:
+Property 'error' does not exist on type ...
+app/api/admin/customer-notifications/route.ts
+
+Zmiany:
+- dodano jawny typ CustomerNotificationResult dla sendBookingNotification()
+- pola error/reason/channel/counts są jawnie opcjonalne
+- uporządkowano zapis komunikatu błędu do booking_history
+
+SQL: brak.
+ENV: brak zmian.
+Logika Communications Lite bez zmian.
