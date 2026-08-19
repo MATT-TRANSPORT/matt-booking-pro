@@ -1,0 +1,14 @@
+MATT Booking PRO v2.8.2.4 — EMAIL LOGO + RESERVATION UI HOTFIX
+
+1. E-MAIL:
+- złote statyczne logo MATT jest osadzane jako inline CID attachment przez Resend
+- logo nie zależy już od bezpośredniego wyświetlania zewnętrznego URL przez klienta poczty
+- rozwiązanie działa centralnie w lib/email.ts, więc obejmuje wszystkie maile korzystające z sendMattEmail
+
+2. PANEL / SZCZEGÓŁY REZERWACJI:
+- usunięto sticky z karty "Zarządzanie rezerwacją"
+- karta nie przykrywa już "Historii zmian" podczas przewijania
+- dodano bezpieczne zawijanie długich wpisów historii
+
+SQL: brak.
+ENV: brak nowych zmiennych.
