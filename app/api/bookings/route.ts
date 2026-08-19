@@ -76,9 +76,7 @@ export async function POST(req: NextRequest) {
   const vehicleType =
     body.vehicleType === "bus" ? "bus" : "car";
 
-  const notificationChannel = ["email", "sms", "whatsapp"].includes(String(body.notificationChannel || ""))
-    ? String(body.notificationChannel)
-    : "email";
+  const notificationChannel = "email";
 
   const requestedPaymentMethod = String(body.paymentMethod || "");
   const paymentMethod = ["cash", "bank_transfer", "online"].includes(requestedPaymentMethod)

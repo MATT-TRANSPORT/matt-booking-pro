@@ -9,6 +9,7 @@ import FlightMonitorCard from "@/components/FlightMonitorCard";
 import FlightAlertList from "@/components/FlightAlertList";
 import GoogleCalendarSyncCard from "@/components/GoogleCalendarSyncCard";
 import CustomerCommunicationCard from "@/components/CustomerCommunicationCard";
+import { quickWhatsAppUrl } from "@/lib/customerNotifications";
 
 
 export default async function Page({
@@ -26,7 +27,7 @@ export default async function Page({
     { data: history }
   ] = await Promise.all([
     s.from("bookings").select("*").eq("id", id).single(),
-    s.from("drivers").select("id,full_name").order("full_name"),
+    s.from("drivers").select("id,full_name,phone").order("full_name"),
     s.from("vehicles").select("id,name,registration").order("name"),
     s.from("booking_history")
       .select("*")
@@ -37,12 +38,19 @@ export default async function Page({
 
   if (!booking) notFound();
 
-  const { data: customerMessages } = await s
-    .from("customer_message_log")
-    .select("*")
-    .eq("booking_id", id)
-    .order("created_at", { ascending: false })
-    .limit(10);
+  const [{ data: customerPushLogs }, { count: activeCustomerPush }] = await Promise.all([
+    s
+      .from("customer_push_notification_log")
+      .select("*")
+      .eq("booking_id", id)
+      .order("created_at", { ascending: false })
+      .limit(10),
+    s
+      .from("customer_push_subscriptions")
+      .select("id", { count: "exact", head: true })
+      .eq("booking_id", id)
+      .eq("active", true)
+  ]);
 
   const [
     { data: flights },
@@ -209,7 +217,7 @@ export default async function Page({
 
           <GoogleCalendarSyncCard booking={booking} />
 
-          <CustomerCommunicationCard booking={booking} messages={customerMessages ?? []} />
+          <CustomerCommunicationCard booking={booking} pushLogs={customerPushLogs ?? []} activeSubscriptions={activeCustomerPush ?? 0} whatsappUrl={quickWhatsAppUrl({ ...booking, _driver: (drivers ?? []).find((d: any) => d.id === booking.driver_id) ?? null, _vehicle: (vehicles ?? []).find((v: any) => v.id === booking.vehicle_id) ?? null })} />
 
           <div className="card" style={{ marginTop: 16 }}>
             <h2>Historia zmian</h2>

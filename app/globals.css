@@ -1750,3 +1750,48 @@
     align-items:flex-start;
   }
 }
+
+
+/* MATT Booking PRO v3.0.1 — COMMUNICATIONS LITE */
+.customer-push-controls{
+  margin-top:18px;
+  padding:16px;
+  border:1px solid rgba(213,174,93,.28);
+  border-radius:12px;
+  background:rgba(213,174,93,.04);
+}
+.customer-push-controls h3{margin:0 0 7px}
+.customer-push-actions,.communication-lite-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:9px;
+  margin-top:10px;
+}
+.customer-push-controls .driver-app-control-message{
+  display:block;
+  margin-top:10px;
+}
+.communication-channel.push{
+  color:#bcebd0;
+  border-color:rgba(79,189,125,.42);
+  background:rgba(79,189,125,.08);
+}
+.communication-channel.email{
+  color:#ddd;
+  background:rgba(255,255,255,.03);
+}
+.whatsapp-quick-btn{
+  background:#153d28;
+  border-color:rgba(79,189,125,.46);
+  color:#d9f6e4;
+}
+.communication-lite-note{
+  display:block;
+  margin-top:9px;
+  color:var(--muted);
+  line-height:1.45;
+}
+@media(max-width:800px){
+  .customer-push-actions,.communication-lite-actions{flex-direction:column}
+  .customer-push-actions .btn,.communication-lite-actions .btn{width:100%}
+}

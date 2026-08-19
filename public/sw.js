@@ -1,4 +1,4 @@
-const CACHE_NAME = "matt-driver-v2-8";
+const CACHE_NAME = "matt-push-v3-0-1";
 const OFFLINE_URL = "/kierowca";
 
 self.addEventListener("install", (event) => {
@@ -35,12 +35,12 @@ self.addEventListener("push", (event) => {
     data = event.data ? event.data.json() : {};
   } catch {
     data = {
-      title: "MATT DRIVER",
+      title: "MATT TRANSPORT",
       body: event.data ? event.data.text() : "Masz nowe powiadomienie."
     };
   }
 
-  const title = data.title || "MATT DRIVER";
+  const title = data.title || "MATT TRANSPORT";
   const options = {
     body: data.body || "Masz nowe powiadomienie.",
     icon: "/pwa/icon-192.png",
@@ -49,7 +49,7 @@ self.addEventListener("push", (event) => {
     renotify: Boolean(data.renotify),
     vibrate: [180, 80, 180],
     data: {
-      url: data.url || "/kierowca"
+      url: data.url || "/"
     }
   };
 
@@ -62,7 +62,7 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
   const url =
-    event.notification?.data?.url || "/kierowca";
+    event.notification?.data?.url || "/";
 
   event.waitUntil(
     clients.matchAll({

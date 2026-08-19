@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import OnlinePaymentCard from "@/components/OnlinePaymentCard";
+import CustomerPushControls from "@/components/CustomerPushControls";
 
 const STATUS: Record<string,string> = {
   pending:"Oczekuje na potwierdzenie",
@@ -39,8 +40,7 @@ export default function ClientBookingPortal({ token }: { token:string }) {
           vehicleType:b.vehicle_type||"car",
           invoiceRequired:!!b.invoice_required,
           companyNip:b.company_nip||"",
-          notes:b.notes||"",
-          notificationChannel:b.customer_notification_channel||"email"
+          notes:b.notes||""
         });
       });
   },[token]);
@@ -127,18 +127,7 @@ export default function ClientBookingPortal({ token }: { token:string }) {
         </div>
 
 
-
-        <div className="client-notification-settings">
-          <h3>Powiadomienia o przejeździe</h3>
-          <label>Kanał powiadomień
-            <select value={form.notificationChannel} onChange={e=>setForm({...form,notificationChannel:e.target.value})}>
-              <option value="email">E-mail</option>
-              <option value="sms">SMS</option>
-              <option value="whatsapp">WhatsApp + awaryjny SMS</option>
-            </select>
-          </label>
-          <small>SMS/WhatsApp dotyczą wyłącznie informacji operacyjnych o tej rezerwacji. Możesz w każdej chwili wrócić do opcji E-mail.</small>
-        </div>
+        <CustomerPushControls token={token} />
 
         {editable&&<div className="client-edit-warning">
           {paidBooking

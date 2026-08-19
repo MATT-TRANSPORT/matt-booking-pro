@@ -98,11 +98,22 @@ export async function POST(req: NextRequest) {
     .gte("travel_date", from)
     .lte("travel_date", to)
     .in("status", ["confirmed", "assigned"])
-    .in("customer_notification_channel", ["sms", "whatsapp"])
     .is("company_id", null)
     .order("travel_date")
     .order("travel_time")
     .limit(100);
+
+  const candidateIds = (bookings ?? []).map((b: any) => b.id);
+  let activeBookingIds = new Set<string>();
+
+  if (candidateIds.length) {
+    const { data: activeSubs } = await admin
+      .from("customer_push_subscriptions")
+      .select("booking_id")
+      .in("booking_id", candidateIds)
+      .eq("active", true);
+    activeBookingIds = new Set((activeSubs ?? []).map((s: any) => String(s.booking_id)));
+  }
 
   let checked = 0;
   let sent = 0;
@@ -110,6 +121,10 @@ export async function POST(req: NextRequest) {
   let errors = 0;
 
   for (const booking of bookings ?? []) {
+    if (!activeBookingIds.has(String(booking.id))) {
+      skipped += 1;
+      continue;
+    }
     checked += 1;
     const until = minutesUntilBooking(booking);
 

@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
   await session.admin.from("booking_history").insert({
     booking_id: booking.id,
     event: result.sent
-      ? `Ręcznie wysłano powiadomienie klienta (${result.channel || "SMS/WhatsApp"})`
+      ? `Ręcznie wysłano Web Push do klienta`
       : `Próba ręcznego powiadomienia klienta: ${result.error || result.reason || "pominięto"}`,
     created_by: session.user.id
   });

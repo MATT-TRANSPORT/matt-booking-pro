@@ -1,0 +1,22 @@
+MATT Booking PRO v3.0.1 — COMMUNICATIONS LITE
+
+TWILIO: NIE UŻYWAMY. Nie dodawaj TWILIO_* do Vercel.
+
+Kanały:
+- e-mail: jak dotychczas
+- Web Push klienta: bezpłatny, wykorzystuje istniejące VAPID z v2.8
+- Quick WhatsApp: panel otwiera wa.me z gotową wiadomością; wysłanie jest ręczne
+
+Wymagane ENV: brak nowych. Używamy istniejących:
+NEXT_PUBLIC_VAPID_PUBLIC_KEY
+VAPID_PRIVATE_KEY
+VAPID_SUBJECT
+
+Wdrożenie:
+1. Uruchom MATT_V3_0_1_COMMUNICATIONS_LITE_SQL.sql
+2. Wgraj hotfix i redeploy
+3. Otwórz link klienta -> WŁĄCZ POWIADOMIENIA -> TEST
+4. W panelu rezerwacji sprawdź kartę COMMUNICATIONS LITE i Quick WhatsApp
+5. Cron 2h jest opcjonalny; jeśli stary v3.0 cron już był uruchomiony, nie zmieniaj go.
+
+Stare tabele/kolumny Twilio po SQL v3.0 mogą zostać. Kod v3.0.1 ich nie używa.
