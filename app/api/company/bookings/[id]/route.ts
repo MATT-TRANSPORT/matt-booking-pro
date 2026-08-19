@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PRICES } from "@/lib/pricing";
 import { sendMattEmail } from "@/lib/email";
+import { expireCheckoutSession } from "@/lib/stripeServer";
+import { syncBookingCalendar } from "@/lib/googleCalendar";
 
 const EDITABLE_STATUSES = ["pending", "confirmed", "assigned"];
 
@@ -83,7 +85,17 @@ export async function POST(
       invoice_number: null,
       invoice_status: "not_invoiced",
       ordered_by_user_id: user.id,
-      booking_source: "b2b_repeat"
+      booking_source: "b2b_repeat",
+      payment_status: "pending",
+      payment_link: null,
+      payment_provider: null,
+      payment_checkout_session_id: null,
+      payment_intent_id: null,
+      payment_amount_cents: null,
+      payment_paid_at: null,
+      payment_refunded_at: null,
+      payment_last_error: null,
+      payment_review_reason: null
     };
 
     const { data, error } = await admin
@@ -107,6 +119,16 @@ export async function POST(
 
   if (body.action !== "update") {
     return NextResponse.json({ error: "Nieznana operacja." }, { status: 400 });
+  }
+
+  if (current.payment_status === "paid") {
+    return NextResponse.json(
+      {
+        error:
+          "Opłaconej rezerwacji nie można edytować w portalu firmy. Skontaktuj się z MATT TRANSPORT."
+      },
+      { status: 409 }
+    );
   }
 
   if (!EDITABLE_STATUSES.includes(current.status)) {
@@ -142,7 +164,31 @@ export async function POST(
   compare("lot", current.flight_number, body.flightNumber);
   compare("liczba pasażerów", current.passengers, body.passengers);
   compare("pojazd", current.vehicle_type, vehicle);
-  compare("kwota", current.total_price, total);
+  if (
+    Math.round(Number(current.total_price || 0) * 100) !==
+    Math.round(total * 100)
+  ) {
+    changes.push(
+      `kwota: ${current.total_price ?? "—"} → ${total.toFixed(2)}`
+    );
+  }
+
+  const materialChange =
+    String(current.pickup_address ?? "") !== String(body.address ?? "") ||
+    String(current.travel_date ?? "") !== String(body.travelDate ?? "") ||
+    String(current.travel_time ?? "") !== String(body.travelTime ?? "") ||
+    String(current.airport_key ?? "") !== String(body.airport ?? "") ||
+    String(current.service_type ?? "") !== String(serviceType ?? "") ||
+    String(current.vehicle_type ?? "") !== String(vehicle ?? "") ||
+    Number(current.passengers || 0) !== Number(body.passengers || 0) ||
+    Math.round(Number(current.total_price || 0) * 100) !==
+      Math.round(total * 100);
+
+  if (materialChange) {
+    await expireCheckoutSession(
+      current.payment_checkout_session_id
+    );
+  }
 
   const { data, error } = await admin
     .from("bookings")
@@ -161,7 +207,23 @@ export async function POST(
       base_price: base,
       extra_price: extra,
       total_price: total,
-      status: current.status === "assigned" ? "confirmed" : current.status,
+      status: materialChange
+        ? "pending"
+        : current.status === "assigned"
+        ? "confirmed"
+        : current.status,
+      ...(materialChange
+        ? {
+            payment_status: "pending",
+            payment_provider: null,
+            payment_checkout_session_id: null,
+            payment_intent_id: null,
+            payment_amount_cents: null,
+            payment_paid_at: null,
+            payment_last_error: null,
+            payment_review_reason: null
+          }
+        : {}),
       updated_at: new Date().toISOString()
     })
     .eq("id", id)
@@ -177,6 +239,12 @@ export async function POST(
     event: `Edycja przez firmę: ${changes.join("; ") || "zapisano dane"}`,
     created_by: user.id
   });
+
+
+  await syncBookingCalendar(
+    admin,
+    data
+  );
 
   const {data:companyForMail}=await admin.from("companies").select("email").eq("id",membership.company_id).single();
   if (companyForMail?.email && changes.length) {

@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMattEmail } from "@/lib/email";
 import { PRICES } from "@/lib/pricing";
 import { expireCheckoutSession } from "@/lib/stripeServer";
+import { syncBookingCalendar } from "@/lib/googleCalendar";
 
 const EDITABLE_STATUSES = ["pending", "confirmed", "assigned"];
 
@@ -161,6 +162,12 @@ export async function PATCH(
       : "Klient zaktualizował dane rezerwacji.",
     created_by: null
   });
+
+
+  await syncBookingCalendar(
+    admin,
+    updated
+  );
 
   const panelBase = process.env.NEXT_PUBLIC_APP_URL || "https://matt-booking-pro.vercel.app";
   const adminUrl = `${panelBase}/panel/rezerwacje/${booking.id}`;

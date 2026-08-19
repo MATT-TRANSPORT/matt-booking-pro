@@ -1534,3 +1534,58 @@
   overflow-wrap:anywhere;
   word-break:break-word;
 }
+
+
+/* MATT Booking PRO v2.9 — Google Calendar */
+.google-calendar-sync-card{
+  border-color:rgba(93,151,255,.28);
+}
+.google-calendar-title{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+.google-calendar-title h2{
+  margin:7px 0 0;
+}
+.calendar-sync-state{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:7px 9px;
+  border-radius:9px;
+  border:1px solid var(--line);
+  font-size:10px;
+  font-weight:900;
+  white-space:nowrap;
+}
+.calendar-sync-state.ok{
+  color:#bcebd0;
+  background:rgba(79,189,125,.08);
+  border-color:rgba(79,189,125,.42);
+}
+.calendar-sync-state.waiting{
+  color:#ffe1a3;
+  background:rgba(213,174,93,.07);
+  border-color:rgba(213,174,93,.35);
+}
+.calendar-sync-state.error{
+  color:#ffb9b9;
+  background:rgba(220,74,74,.08);
+  border-color:rgba(220,74,74,.38);
+}
+.calendar-last-sync{
+  font-size:11px;
+  color:var(--muted);
+}
+.calendar-sync-error{
+  margin:10px 0;
+  padding:10px 11px;
+  border-radius:10px;
+  background:rgba(220,74,74,.08);
+  border:1px solid rgba(220,74,74,.35);
+  color:#ffb9b9;
+  font-size:11px;
+  overflow-wrap:anywhere;
+}

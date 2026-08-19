@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMattEmail } from "@/lib/email";
+import { syncBookingCalendar } from "@/lib/googleCalendar";
 
 const ALLOWED = [
   "assigned",
@@ -99,6 +100,12 @@ export async function POST(
     event: `Kierowca ${driver.full_name}: ${labels[status] ?? status}`,
     created_by: user.id
   });
+
+
+  await syncBookingCalendar(
+    admin,
+    updated
+  );
 
   // Powiadomienie klienta tylko dla kluczowych statusów.
   if (booking.email && ["in_progress", "arrived", "completed"].includes(status)) {

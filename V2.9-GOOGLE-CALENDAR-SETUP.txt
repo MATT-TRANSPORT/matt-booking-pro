@@ -1,0 +1,78 @@
+MATT BOOKING PRO v2.9.0 — GOOGLE CALENDAR SYNC
+
+DZIAŁANIE
+- po pełnym przypisaniu kierowcy + pojazdu tworzy wydarzenie w Google Calendar
+- zmiana kierowcy / pojazdu / statusu aktualizuje wydarzenie
+- edycja terminu przez klienta lub firmę aktualizuje wydarzenie
+- anulowanie albo usunięcie pełnej obsady usuwa wydarzenie z kalendarza
+- roundtrip tworzy osobne wydarzenie dla kursu powrotnego, jeśli jest data + godzina powrotu
+- każda rezerwacja ma deterministyczne ID wydarzenia, więc synchronizacja nie tworzy duplikatów
+- w panelu szczegółów rezerwacji jest karta GOOGLE CALENDAR + ręczny przycisk SYNCHRONIZUJ TERAZ
+- domyślne przypomnienie Google Calendar: 60 min przed kursem
+- domyślny czas wydarzenia: 180 minut (można zmienić env)
+
+WYMAGANY SQL
+supabase/migrations-v2.9-google-calendar.sql
+
+GOOGLE CLOUD — KONFIGURACJA
+1. Google Cloud Console -> utwórz/wybierz projekt MATT Booking PRO.
+2. APIs & Services -> Library -> włącz Google Calendar API.
+3. IAM & Admin -> Service Accounts -> Create service account, np.:
+   matt-booking-calendar
+4. Utwórz klucz JSON dla service account.
+5. Z pliku JSON potrzebujesz tylko:
+   client_email
+   private_key
+
+GOOGLE CALENDAR
+1. Utwórz osobny kalendarz, np.:
+   MATT TRANSPORT – KURSY
+2. Ustawienia tego kalendarza -> Udostępnij określonym osobom.
+3. Dodaj adres client_email service account.
+4. Nadaj uprawnienie:
+   Wprowadzanie zmian w wydarzeniach / Make changes to events.
+5. Skopiuj ID kalendarza z:
+   Ustawienia i udostępnianie -> Integracja kalendarza -> Identyfikator kalendarza.
+
+VERCEL ENVIRONMENT VARIABLES
+GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL
+= client_email z JSON
+
+GOOGLE_CALENDAR_PRIVATE_KEY
+= private_key z JSON
+Można wkleić dokładnie wartość z JSON wraz z:
+-----BEGIN PRIVATE KEY-----
+...
+-----END PRIVATE KEY-----
+Kod obsługuje również zapisane jako \n znaki nowej linii.
+
+GOOGLE_CALENDAR_ID
+= identyfikator kalendarza MATT TRANSPORT – KURSY
+
+OPCJONALNE:
+GOOGLE_CALENDAR_TIME_ZONE
+= Europe/Warsaw
+
+GOOGLE_CALENDAR_EVENT_DURATION_MINUTES
+= 180
+
+Po dodaniu env wykonaj REDEPLOY Vercel.
+
+TEST
+1. Uruchom SQL.
+2. Skonfiguruj Google Cloud + service account.
+3. Udostępnij kalendarz service account.
+4. Dodaj env do Vercel i redeploy.
+5. Otwórz istniejącą rezerwację.
+6. Przypisz kierowcę + pojazd i kliknij ZAPISZ.
+7. Sprawdź kalendarz MATT TRANSPORT – KURSY.
+8. Zmień godzinę/status i sprawdź, czy to samo wydarzenie się aktualizuje.
+9. Anuluj testową rezerwację i sprawdź, czy wydarzenie zniknie.
+
+BEZPIECZEŃSTWO
+- prywatnego klucza Google nigdy nie dodawaj do repozytorium
+- klucz ma być tylko w Vercel Environment Variables
+- nie wysyłaj prywatnego klucza na czacie
+
+UWAGA
+Pełny lokalny next build nie był wykonywany w środowisku przygotowania paczki.

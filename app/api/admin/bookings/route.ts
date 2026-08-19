@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMattEmail } from "@/lib/email";
 import { sendDriverPush } from "@/lib/pushServer";
+import { syncBookingCalendar } from "@/lib/googleCalendar";
 import {
   confirmedEmail,
   assignedEmail,
@@ -92,7 +93,19 @@ export async function POST(req: NextRequest) {
 
     if ("payment_link" in copy) copy.payment_link = null;
     if ("payment_status" in copy) copy.payment_status = "pending";
+    if ("payment_provider" in copy) copy.payment_provider = null;
+    if ("payment_checkout_session_id" in copy) copy.payment_checkout_session_id = null;
+    if ("payment_intent_id" in copy) copy.payment_intent_id = null;
+    if ("payment_amount_cents" in copy) copy.payment_amount_cents = null;
+    if ("payment_paid_at" in copy) copy.payment_paid_at = null;
+    if ("payment_refunded_at" in copy) copy.payment_refunded_at = null;
+    if ("payment_last_error" in copy) copy.payment_last_error = null;
+    if ("payment_review_reason" in copy) copy.payment_review_reason = null;
     if ("customer_last_edited_at" in copy) copy.customer_last_edited_at = null;
+    if ("google_calendar_event_id" in copy) copy.google_calendar_event_id = null;
+    if ("google_calendar_return_event_id" in copy) copy.google_calendar_return_event_id = null;
+    if ("google_calendar_synced_at" in copy) copy.google_calendar_synced_at = null;
+    if ("google_calendar_sync_error" in copy) copy.google_calendar_sync_error = null;
 
     const { data: duplicated, error: duplicateError } = await admin
       .from("bookings")
@@ -231,12 +244,13 @@ export async function POST(req: NextRequest) {
     nextStatus = "assigned";
   }
 
-  const updateData = {
+  const updateData: any = {
     driver_id: driverId || null,
     vehicle_id: vehicleId || null,
     status: nextStatus,
     updated_at: new Date().toISOString()
   };
+
 
   const { data: updated, error } = await admin
     .from("bookings")
@@ -264,6 +278,27 @@ export async function POST(req: NextRequest) {
     }`,
     created_by: user.id
   });
+
+
+  const calendarResult =
+    await syncBookingCalendar(
+      admin,
+      updated
+    );
+
+  if (
+    calendarResult.configured &&
+    calendarResult.synced
+  ) {
+    await admin.from("booking_history").insert({
+      booking_id: id,
+      event:
+        calendarResult.deleted
+          ? "Google Calendar: usunięto wydarzenie"
+          : "Google Calendar: zsynchronizowano kurs",
+      created_by: user.id
+    });
+  }
 
   if (
     updated.driver_id &&

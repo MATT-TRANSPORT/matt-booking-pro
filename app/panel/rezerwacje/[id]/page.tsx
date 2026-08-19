@@ -7,6 +7,7 @@ import { statusPl } from "@/lib/status";
 import { isOverdueBooking, statusStageClass } from "@/lib/bookingOps";
 import FlightMonitorCard from "@/components/FlightMonitorCard";
 import FlightAlertList from "@/components/FlightAlertList";
+import GoogleCalendarSyncCard from "@/components/GoogleCalendarSyncCard";
 
 
 export default async function Page({
@@ -197,6 +198,8 @@ export default async function Page({
             drivers={drivers ?? []}
             vehicles={vehicles ?? []}
           />
+
+          <GoogleCalendarSyncCard booking={booking} />
 
           <div className="card" style={{ marginTop: 16 }}>
             <h2>Historia zmian</h2>
