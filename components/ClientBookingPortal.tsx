@@ -65,7 +65,8 @@ export default function ClientBookingPortal({ token }: { token:string }) {
   if(!data||!form) return <main className="container client-portal-shell"><div className="card"><h1>Ładowanie rezerwacji…</h1></div></main>;
 
   const b=data.booking;
-  const editable=data.editable && b.payment_status !== "paid" && !["in_progress","arrived","picked_up","completed","cancelled"].includes(b.status);
+  const editable=data.editable && !["in_progress","arrived","picked_up","completed","cancelled"].includes(b.status);
+  const paidBooking = b.payment_status === "paid";
   const driver=Array.isArray(b.drivers)?b.drivers[0]:b.drivers;
   const vehicle=Array.isArray(b.vehicles)?b.vehicles[0]:b.vehicles;
 
@@ -125,7 +126,9 @@ export default function ClientBookingPortal({ token }: { token:string }) {
         </div>
 
         {editable&&<div className="client-edit-warning">
-          Zmiana adresu, daty lub godziny powoduje ponowne sprawdzenie rezerwacji przez MATT TRANSPORT.
+          {paidBooking
+            ? "Rezerwacja jest już opłacona. Możesz ją edytować, ale zmiana adresu, daty, godziny lub ceny wymaga ponownego sprawdzenia przez MATT TRANSPORT. Jeśli zmieni się kwota, płatność zostanie oznaczona jako DO WERYFIKACJI — nie płać ponownie."
+            : "Zmiana adresu, daty lub godziny powoduje ponowne sprawdzenie rezerwacji przez MATT TRANSPORT."}
         </div>}
 
         {message&&<div className={message.startsWith("Zmiany")?"client-success-message":"booking-error"}>{message}</div>}

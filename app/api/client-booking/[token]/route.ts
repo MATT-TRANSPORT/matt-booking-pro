@@ -50,16 +50,6 @@ export async function PATCH(
     return NextResponse.json({ error: "Rezerwacja nie istnieje lub link wygasł." }, { status: 404 });
   }
 
-  if (booking.payment_status === "paid") {
-    return NextResponse.json(
-      {
-        error:
-          "Opłaconej rezerwacji nie można samodzielnie zmieniać. Skontaktuj się z MATT TRANSPORT: +48 691 242 691."
-      },
-      { status: 409 }
-    );
-  }
-
   if (!EDITABLE_STATUSES.includes(booking.status)) {
     return NextResponse.json(
       { error: "Ta rezerwacja jest już w realizacji i nie może być samodzielnie edytowana." },
@@ -68,6 +58,9 @@ export async function PATCH(
   }
 
   const body = await req.json();
+
+  const wasPaid =
+    booking.payment_status === "paid";
 
   const passengers = Math.max(1, Math.min(8, Number(body.passengers ?? booking.passengers)));
   const vehicleType = passengers > 3 ? "bus" : String(body.vehicleType ?? booking.vehicle_type);
@@ -103,7 +96,10 @@ export async function PATCH(
   const requiresReconfirmation =
     routeChanged || dateChanged || priceChanged;
 
-  if (requiresReconfirmation) {
+  if (
+    requiresReconfirmation &&
+    !wasPaid
+  ) {
     await expireCheckoutSession(
       booking.payment_checkout_session_id
     );
@@ -129,16 +125,39 @@ export async function PATCH(
     total_price: total,
     status: newStatus,
     ...(requiresReconfirmation
-      ? {
-          payment_status: "pending",
-          payment_provider: null,
-          payment_checkout_session_id: null,
-          payment_intent_id: null,
-          payment_amount_cents: null,
-          payment_paid_at: null,
-          payment_last_error: null,
-          payment_review_reason: null
-        }
+      ? wasPaid
+        ? priceChanged
+          ? {
+              payment_status: "review",
+              payment_review_reason:
+                `Klient zmienił opłaconą rezerwację. ` +
+                `Kwota zapłacona: ${(
+                  Number(
+                    booking.payment_amount_cents ??
+                    Math.round(
+                      Number(booking.total_price || 0) * 100
+                    )
+                  ) / 100
+                ).toFixed(2)} zł. ` +
+                `Nowa kwota rezerwacji: ${total.toFixed(2)} zł. ` +
+                `Sprawdź dopłatę lub zwrot.`,
+              payment_last_error: null
+            }
+          : {
+              payment_status: "paid",
+              payment_review_reason: null,
+              payment_last_error: null
+            }
+        : {
+            payment_status: "pending",
+            payment_provider: null,
+            payment_checkout_session_id: null,
+            payment_intent_id: null,
+            payment_amount_cents: null,
+            payment_paid_at: null,
+            payment_last_error: null,
+            payment_review_reason: null
+          }
       : {}),
     customer_last_edited_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
@@ -157,9 +176,14 @@ export async function PATCH(
 
   await admin.from("booking_history").insert({
     booking_id: booking.id,
-    event: requiresReconfirmation
-      ? "Klient zmienił rezerwację — wymaga ponownego potwierdzenia i nowej płatności."
-      : "Klient zaktualizował dane rezerwacji.",
+    event:
+      requiresReconfirmation && wasPaid && priceChanged
+        ? `Klient zmienił OPŁACONĄ rezerwację — wymaga ponownego potwierdzenia. Płatność do weryfikacji: było ${Number(booking.total_price || 0).toFixed(2)} zł, nowa kwota ${total.toFixed(2)} zł.`
+        : requiresReconfirmation && wasPaid
+        ? "Klient zmienił OPŁACONĄ rezerwację — wymaga ponownego potwierdzenia. Płatność pozostaje zaksięgowana."
+        : requiresReconfirmation
+        ? "Klient zmienił rezerwację — wymaga ponownego potwierdzenia i nowej płatności."
+        : "Klient zaktualizował dane rezerwacji.",
     created_by: null
   });
 
@@ -181,7 +205,15 @@ export async function PATCH(
           <h2 style="color:#f1d28b">MATT TRANSPORT</h2>
           <h1>Klient zmienił rezerwację</h1>
           <p>Numer: <strong>${booking.booking_number}</strong></p>
-          <p>${requiresReconfirmation ? "Zmiana danych lub ceny wymaga ponownego potwierdzenia. Poprzednia sesja płatności została unieważniona." : "Zaktualizowano dane rezerwacji."}</p>
+          <p>${
+            requiresReconfirmation && wasPaid && priceChanged
+              ? `Klient zmienił opłaconą rezerwację. Nowa kwota: ${total.toFixed(2)} zł. Płatność została oznaczona jako DO WERYFIKACJI — sprawdź ewentualną dopłatę lub zwrot.`
+              : requiresReconfirmation && wasPaid
+              ? "Klient zmienił opłaconą rezerwację. Wymaga ponownego potwierdzenia, ale płatność pozostaje zaksięgowana."
+              : requiresReconfirmation
+              ? "Zmiana danych lub ceny wymaga ponownego potwierdzenia. Poprzednia sesja płatności została unieważniona."
+              : "Zaktualizowano dane rezerwacji."
+          }</p>
           <p><a href="${adminUrl}" style="display:inline-block;background:#d5ae5d;color:#111;padding:13px 18px;border-radius:10px;text-decoration:none;font-weight:bold">OTWÓRZ REZERWACJĘ W PANELU</a></p>
         </div>
       </div>

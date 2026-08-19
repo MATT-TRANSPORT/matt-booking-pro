@@ -1,0 +1,22 @@
+MATT Booking PRO v2.9.0.2 — CLIENT EDIT PAID BOOKING HOTFIX
+
+NAPRAWA:
+Portal klienta nie blokuje już wszystkich pól tylko dlatego, że rezerwacja ma payment_status=paid.
+
+ZASADY:
+- edycja nadal jest dostępna tylko dla statusów: pending / confirmed / assigned
+- po rozpoczęciu realizacji (in_progress / arrived / picked_up / completed / cancelled) portal pozostaje zablokowany
+- numer lotu, uwagi itp. można zmienić bez naruszania płatności
+- zmiana adresu / daty / godziny wymaga ponownego potwierdzenia MATT
+- dla już OPŁACONEJ rezerwacji nie kasujemy Stripe payment_intent / checkout / payment_paid_at
+- jeśli po zmianie zmienia się cena:
+  payment_status -> review
+  panel pokazuje DO WERYFIKACJI
+  klient dostaje informację, żeby NIE płacił ponownie
+  historia zapisuje starą i nową kwotę
+- jeśli zmiana nie zmienia ceny, payment_status pozostaje paid
+- MATT dostaje e-mail o zmianie opłaconej rezerwacji
+- Google Calendar nadal synchronizuje nowe dane
+
+SQL: brak.
+ENV: brak nowych zmiennych.
