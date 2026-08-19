@@ -30,6 +30,7 @@ export default function BookingForm() {
   const [invoice,setInvoice] = useState(false);
   const [paymentMethod,setPaymentMethod] = useState<"cash"|"bank_transfer"|"online">("cash");
   const onlinePaymentRequested = paymentMethod === "online";
+  const [notificationChannel,setNotificationChannel] = useState<"email"|"sms"|"whatsapp">("email");
   const [nip,setNip] = useState("");
   const [notes,setNotes] = useState("");
   const [message,setMessage] = useState("");
@@ -82,6 +83,11 @@ export default function BookingForm() {
     : paymentMethod === "bank_transfer"
     ? "Przelew tradycyjny"
     : "Gotówka u kierowcy";
+  const notificationChannelText = notificationChannel === "whatsapp"
+    ? "WhatsApp + awaryjny SMS"
+    : notificationChannel === "sms"
+    ? "SMS"
+    : "E-mail";
 
   function nip10(v:string){ return v.replace(/\D/g,"").slice(0,10); }
   function go(n:number){setStep(n);if(typeof window!=="undefined"){window.dispatchEvent(new CustomEvent("matt:booking-step",{detail:{step:n}}));setTimeout(()=>window.scrollTo({top:0,behavior:"smooth"}),60);}}
@@ -101,7 +107,7 @@ export default function BookingForm() {
     const r=await fetch("/api/bookings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
       serviceType,address,airport,vehicleType:vehicle,passengers,distanceKm,travelDate,travelTime,
       returnDate,returnTime,flightNumber:flight,returnFlightNumber:returnFlight,
-      customerName:name,phone,email,invoiceRequired:invoice,companyNip:invoice?nip10(nip):null,paymentMethod,onlinePaymentRequested,notes:notes||null
+      customerName:name,phone,email,invoiceRequired:invoice,companyNip:invoice?nip10(nip):null,paymentMethod,onlinePaymentRequested,notificationChannel,notes:notes||null
     })});
     const d=await r.json();
     if(!r.ok){ setMessage(d.error??"Błąd rezerwacji."); setSaving(false); return; }
@@ -115,7 +121,7 @@ export default function BookingForm() {
       <span className="badge">MATT TRANSPORT</span>
       <h1>Dziękujemy! Rezerwacja przyjęta</h1><div className="pending-confirmation-badge">🕐 Oczekuje na potwierdzenie</div><div className="client-next-step"><strong>Co dalej?</strong><p>Twoje zgłoszenie zostało przyjęte. Potwierdzimy rezerwację najszybciej jak to możliwe.</p><p>Oczekuj wiadomości e-mail lub kontaktu z MATT TRANSPORT.</p></div>
       <div className="success-number"><span>Numer rezerwacji</span><strong>{success.booking_number}</strong></div>
-      <div className="success-details"><div><span>Trasa</span><strong>{routeText}</strong></div><div><span>Kwota</span><strong>{Number(success.total_price).toFixed(2)} zł</strong></div><div><span>Płatność</span><strong>{paymentMethodText}</strong></div></div>
+      <div className="success-details"><div><span>Trasa</span><strong>{routeText}</strong></div><div><span>Kwota</span><strong>{Number(success.total_price).toFixed(2)} zł</strong></div><div><span>Płatność</span><strong>{paymentMethodText}</strong></div><div><span>Powiadomienia</span><strong>{notificationChannelText}</strong></div></div>
       <div className="success-actions"><a className="btn" href="/booking">NOWA REZERWACJA</a></div>
     </div>;
   }
@@ -213,6 +219,25 @@ export default function BookingForm() {
             </label>
           </div>
         </div>
+
+        <div className="notification-method-section">
+          <h3>Powiadomienia o przejeździe</h3>
+          <div className="notification-method-grid">
+            <label className={`notification-method-choice ${notificationChannel==="email"?"selected":""}`}>
+              <input type="radio" name="notification-mobile" value="email" checked={notificationChannel==="email"} onChange={()=>setNotificationChannel("email")}/>
+              <span><strong>✉️ E-mail</strong><small>Standardowe potwierdzenia e-mail.</small></span>
+            </label>
+            <label className={`notification-method-choice ${notificationChannel==="sms"?"selected":""}`}>
+              <input type="radio" name="notification-mobile" value="sms" checked={notificationChannel==="sms"} onChange={()=>setNotificationChannel("sms")}/>
+              <span><strong>💬 SMS</strong><small>Potwierdzenie, kierowca, przypomnienie i status przejazdu.</small></span>
+            </label>
+            <label className={`notification-method-choice ${notificationChannel==="whatsapp"?"selected":""}`}>
+              <input type="radio" name="notification-mobile" value="whatsapp" checked={notificationChannel==="whatsapp"} onChange={()=>setNotificationChannel("whatsapp")}/>
+              <span><strong>🟢 WhatsApp</strong><small>Powiadomienia WhatsApp; przy problemie system użyje SMS.</small></span>
+            </label>
+          </div>
+          <p className="notification-consent-note">Wybór SMS lub WhatsApp dotyczy wyłącznie informacji operacyjnych o tej rezerwacji, bez treści marketingowych.</p>
+        </div>
         <div className="wizard-nav"><button className="btn secondary" onClick={()=>go(4)}>WSTECZ</button><button className="btn" disabled={!valid(5)} onClick={()=>go(6)}>PODSUMOWANIE</button></div>
       </section>}
 
@@ -284,6 +309,26 @@ export default function BookingForm() {
           </label>
         </div>
       </div>
+
+      <div className="notification-method-section">
+        <h3>Powiadomienia o przejeździe</h3>
+        <div className="notification-method-grid">
+          <label className={`notification-method-choice ${notificationChannel==="email"?"selected":""}`}>
+            <input type="radio" name="notification-desktop" value="email" checked={notificationChannel==="email"} onChange={()=>setNotificationChannel("email")}/>
+            <span><strong>✉️ E-mail</strong><small>Standardowe potwierdzenia e-mail.</small></span>
+          </label>
+          <label className={`notification-method-choice ${notificationChannel==="sms"?"selected":""}`}>
+            <input type="radio" name="notification-desktop" value="sms" checked={notificationChannel==="sms"} onChange={()=>setNotificationChannel("sms")}/>
+            <span><strong>💬 SMS</strong><small>Potwierdzenie, kierowca, przypomnienie i status przejazdu.</small></span>
+          </label>
+          <label className={`notification-method-choice ${notificationChannel==="whatsapp"?"selected":""}`}>
+            <input type="radio" name="notification-desktop" value="whatsapp" checked={notificationChannel==="whatsapp"} onChange={()=>setNotificationChannel("whatsapp")}/>
+            <span><strong>🟢 WhatsApp</strong><small>Powiadomienia WhatsApp; przy problemie system użyje SMS.</small></span>
+          </label>
+        </div>
+        <p className="notification-consent-note">Wybór SMS lub WhatsApp dotyczy wyłącznie informacji operacyjnych o tej rezerwacji, bez treści marketingowych.</p>
+      </div>
+
     </div>
     <aside className="card summary">
       <h3>Podsumowanie</h3>
@@ -296,6 +341,7 @@ export default function BookingForm() {
         <div className="row"><span>Dopłata</span><strong>{quote.extra.toFixed(2)} zł</strong></div>
         <div className="row"><span>VAT</span><strong>{quote.vat.toFixed(2)} zł</strong></div>
         <div className="row"><span>Płatność</span><strong>{paymentMethodText}</strong></div>
+        <div className="row"><span>Powiadomienia</span><strong>{notificationChannelText}</strong></div>
         <div className="row total"><span>Razem</span><strong>{quote.total.toFixed(2)} zł</strong></div>
         <button className="btn" style={{width:"100%",marginTop:16}} disabled={saving} onClick={submit}>{saving?"ZAPISYWANIE...":"ZAREZERWUJ"}</button>
       </>}

@@ -8,6 +8,7 @@ import { isOverdueBooking, statusStageClass } from "@/lib/bookingOps";
 import FlightMonitorCard from "@/components/FlightMonitorCard";
 import FlightAlertList from "@/components/FlightAlertList";
 import GoogleCalendarSyncCard from "@/components/GoogleCalendarSyncCard";
+import CustomerCommunicationCard from "@/components/CustomerCommunicationCard";
 
 
 export default async function Page({
@@ -35,6 +36,13 @@ export default async function Page({
   ]);
 
   if (!booking) notFound();
+
+  const { data: customerMessages } = await s
+    .from("customer_message_log")
+    .select("*")
+    .eq("booking_id", id)
+    .order("created_at", { ascending: false })
+    .limit(10);
 
   const [
     { data: flights },
@@ -200,6 +208,8 @@ export default async function Page({
           />
 
           <GoogleCalendarSyncCard booking={booking} />
+
+          <CustomerCommunicationCard booking={booking} messages={customerMessages ?? []} />
 
           <div className="card" style={{ marginTop: 16 }}>
             <h2>Historia zmian</h2>

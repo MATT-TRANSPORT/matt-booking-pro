@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PRICES, calculateQuote } from "@/lib/pricing";
 import { sendMattEmail } from "@/lib/email";
+import { sendBookingNotification } from "@/lib/customerNotifications";
 import {
   receivedEmail,
   adminNewBookingEmail
@@ -75,6 +76,10 @@ export async function POST(req: NextRequest) {
   const vehicleType =
     body.vehicleType === "bus" ? "bus" : "car";
 
+  const notificationChannel = ["email", "sms", "whatsapp"].includes(String(body.notificationChannel || ""))
+    ? String(body.notificationChannel)
+    : "email";
+
   const requestedPaymentMethod = String(body.paymentMethod || "");
   const paymentMethod = ["cash", "bank_transfer", "online"].includes(requestedPaymentMethod)
     ? requestedPaymentMethod
@@ -115,6 +120,9 @@ export async function POST(req: NextRequest) {
       payment_method: paymentMethod,
       online_payment_requested: paymentMethod === "online",
       payment_status: "pending",
+      customer_notification_channel: notificationChannel,
+      customer_notification_opt_in_at: notificationChannel === "email" ? null : new Date().toISOString(),
+      customer_notification_opt_out_at: null,
       notes: body.notes || null
     })
     .select("*")
@@ -173,10 +181,28 @@ export async function POST(req: NextRequest) {
         : "Nieznany błąd wysyłki e-mail.";
   }
 
+
+  let notificationResult: any = null;
+
+  try {
+    notificationResult = await sendBookingNotification(
+      supabase,
+      data,
+      {
+        kind: "received",
+        eventKey: `received:${data.id}`
+      }
+    );
+  } catch (notificationError) {
+    console.error("Powiadomienie po rezerwacji:", notificationError);
+  }
+
   return NextResponse.json({
     ...data,
     email_sent: customerEmailSent,
     admin_email_sent: adminEmailSent,
-    email_warning: emailWarning
+    email_warning: emailWarning,
+    customer_notification_sent: Boolean(notificationResult?.sent),
+    customer_notification_channel: notificationChannel
   });
 }

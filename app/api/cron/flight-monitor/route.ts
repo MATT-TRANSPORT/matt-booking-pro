@@ -3,6 +3,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { refreshBookingFlight } from "@/lib/flightServer";
 import { sendFlightAlertPush } from "@/lib/pushServer";
 import {
+  sendBookingNotification,
+  shouldCustomerReceiveFlightAlert
+} from "@/lib/customerNotifications";
+import {
   shouldAutoRefresh,
   syncFlightAutomationAlerts
 } from "@/lib/flightAutomation";
@@ -176,6 +180,45 @@ export async function POST(req: NextRequest) {
               console.error("Flight push:", pushError);
             });
           }
+        }
+      }
+
+
+      if (
+        shouldCustomerReceiveFlightAlert(
+          item.booking,
+          item.leg
+        )
+      ) {
+        const { data: customerAlerts } = await admin
+          .from("booking_flight_alerts")
+          .select("*")
+          .eq("booking_id", item.booking.id)
+          .eq("leg", item.leg)
+          .eq("active", true)
+          .in("alert_type", ["delay", "cancelled", "diverted"])
+          .order("updated_at", { ascending: false });
+
+        for (const alert of customerAlerts ?? []) {
+          const kind =
+            alert.alert_type === "cancelled"
+              ? "flight_cancelled"
+              : alert.alert_type === "diverted"
+              ? "flight_diverted"
+              : "flight_delay";
+
+          await sendBookingNotification(
+            admin,
+            item.booking,
+            {
+              kind,
+              eventKey: `flight-customer:${alert.id}:${alert.updated_at}`,
+              alert,
+              flight
+            }
+          ).catch((notificationError) => {
+            console.error("Customer flight notification:", notificationError);
+          });
         }
       }
 

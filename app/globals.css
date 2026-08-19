@@ -1589,3 +1589,164 @@
   font-size:11px;
   overflow-wrap:anywhere;
 }
+
+
+/* MATT Booking PRO v3.0 — SMS / WhatsApp */
+.notification-method-section{
+  margin-top:18px;
+  padding-top:16px;
+  border-top:1px solid var(--line);
+}
+.notification-method-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+}
+.notification-method-choice{
+  display:flex;
+  align-items:flex-start;
+  gap:9px;
+  padding:13px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:rgba(255,255,255,.02);
+  cursor:pointer;
+}
+.notification-method-choice.selected{
+  border-color:rgba(213,174,93,.62);
+  background:rgba(213,174,93,.08);
+}
+.notification-method-choice input{
+  width:auto;
+  margin-top:3px;
+}
+.notification-method-choice span{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.notification-method-choice small,
+.notification-consent-note,
+.client-notification-settings small{
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.45;
+}
+.notification-consent-note{
+  margin:9px 0 0;
+}
+.client-notification-settings{
+  margin-top:16px;
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:rgba(255,255,255,.02);
+}
+.client-notification-settings h3{
+  margin-top:0;
+}
+.customer-communication-card{
+  border-color:rgba(93,151,255,.28);
+}
+.customer-communication-title{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:10px;
+}
+.customer-communication-title h2{
+  margin:7px 0 0;
+}
+.communication-channel{
+  padding:7px 9px;
+  border-radius:9px;
+  border:1px solid var(--line);
+  font-size:10px;
+  font-weight:900;
+  text-align:center;
+}
+.communication-channel.sms{
+  color:#cfe3ff;
+  border-color:rgba(93,151,255,.42);
+  background:rgba(93,151,255,.08);
+}
+.communication-channel.whatsapp{
+  color:#bcebd0;
+  border-color:rgba(79,189,125,.42);
+  background:rgba(79,189,125,.08);
+}
+.communication-fallback-note{
+  padding:10px;
+  border-radius:10px;
+  background:rgba(79,189,125,.06);
+  border:1px solid rgba(79,189,125,.22);
+  color:#cdebd9;
+  font-size:11px;
+}
+.customer-message-log{
+  margin-top:16px;
+  border-top:1px solid var(--line);
+  padding-top:12px;
+}
+.customer-message-log-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:8px 12px;
+  padding:10px 0;
+  border-bottom:1px solid var(--line);
+}
+.customer-message-log-row>div:first-child{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  min-width:0;
+}
+.customer-message-log-row>div:first-child span{
+  color:var(--muted);
+  font-size:10px;
+  overflow-wrap:anywhere;
+}
+.customer-message-log-row>div:nth-child(2){
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:4px;
+}
+.customer-message-log-row small{
+  color:var(--muted);
+  font-size:9px;
+}
+.message-delivery-status{
+  font-size:9px;
+  font-weight:900;
+  padding:5px 7px;
+  border-radius:7px;
+  border:1px solid var(--line);
+}
+.message-delivery-status.delivered,
+.message-delivery-status.read{
+  color:#bcebd0;
+  border-color:rgba(79,189,125,.4);
+}
+.message-delivery-status.failed,
+.message-delivery-status.undelivered,
+.message-delivery-error{
+  color:#ffb9b9!important;
+}
+.message-delivery-error{
+  grid-column:1/-1;
+}
+@media(max-width:800px){
+  .notification-method-grid{
+    grid-template-columns:1fr;
+  }
+  .customer-communication-title{
+    flex-direction:column;
+  }
+  .customer-message-log-row{
+    grid-template-columns:1fr;
+  }
+  .customer-message-log-row>div:nth-child(2){
+    align-items:flex-start;
+  }
+}

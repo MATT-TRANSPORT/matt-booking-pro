@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMattEmail } from "@/lib/email";
 import { syncBookingCalendar } from "@/lib/googleCalendar";
+import { sendBookingNotification } from "@/lib/customerNotifications";
 
 const ALLOWED = [
   "assigned",
@@ -138,6 +139,25 @@ export async function POST(
         </div>
       `
     }).catch(() => null);
+  }
+
+
+  if (["in_progress", "arrived", "completed"].includes(status)) {
+    await sendBookingNotification(
+      admin,
+      updated,
+      {
+        kind: status === "in_progress"
+          ? "in_progress"
+          : status === "arrived"
+          ? "arrived"
+          : "completed",
+        eventKey: `driver-status:${status}:${updated.id}:${updated.updated_at || Date.now()}`,
+        driver
+      }
+    ).catch((notificationError) => {
+      console.error("Customer status notification:", notificationError);
+    });
   }
 
   return NextResponse.json(updated);

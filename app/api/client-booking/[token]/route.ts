@@ -62,6 +62,11 @@ export async function PATCH(
   const wasPaid =
     booking.payment_status === "paid";
 
+  const notificationChannel = ["email", "sms", "whatsapp"].includes(String(body.notificationChannel || ""))
+    ? String(body.notificationChannel)
+    : String(booking.customer_notification_channel || "email");
+  const notificationChanged = notificationChannel !== String(booking.customer_notification_channel || "email");
+
   const passengers = Math.max(1, Math.min(8, Number(body.passengers ?? booking.passengers)));
   const vehicleType = passengers > 3 ? "bus" : String(body.vehicleType ?? booking.vehicle_type);
   const invoiceRequired = Boolean(body.invoiceRequired);
@@ -122,6 +127,15 @@ export async function PATCH(
     invoice_required: invoiceRequired,
     company_nip: nip,
     notes: String(body.notes ?? "").trim() || null,
+    customer_notification_channel: notificationChannel,
+    customer_notification_opt_in_at:
+      notificationChannel === "email"
+        ? booking.customer_notification_opt_in_at
+        : booking.customer_notification_opt_in_at || new Date().toISOString(),
+    customer_notification_opt_out_at:
+      notificationChannel === "email" && notificationChanged
+        ? new Date().toISOString()
+        : null,
     total_price: total,
     status: newStatus,
     ...(requiresReconfirmation
@@ -186,6 +200,15 @@ export async function PATCH(
         : "Klient zaktualizował dane rezerwacji.",
     created_by: null
   });
+
+  if (notificationChanged) {
+    await admin.from("booking_history").insert({
+      booking_id: booking.id,
+      event: `Klient zmienił kanał powiadomień na: ${notificationChannel}`,
+      created_by: null
+    });
+  }
+
 
 
   await syncBookingCalendar(

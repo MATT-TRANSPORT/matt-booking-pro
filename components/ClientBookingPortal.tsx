@@ -39,7 +39,8 @@ export default function ClientBookingPortal({ token }: { token:string }) {
           vehicleType:b.vehicle_type||"car",
           invoiceRequired:!!b.invoice_required,
           companyNip:b.company_nip||"",
-          notes:b.notes||""
+          notes:b.notes||"",
+          notificationChannel:b.customer_notification_channel||"email"
         });
       });
   },[token]);
@@ -123,6 +124,20 @@ export default function ClientBookingPortal({ token }: { token:string }) {
             </select>
           </label>
           {form.invoiceRequired&&<label>NIP<input disabled={!editable} inputMode="numeric" maxLength={10} value={form.companyNip} onChange={e=>setForm({...form,companyNip:e.target.value.replace(/\D/g,"").slice(0,10)})}/></label>}
+        </div>
+
+
+
+        <div className="client-notification-settings">
+          <h3>Powiadomienia o przejeździe</h3>
+          <label>Kanał powiadomień
+            <select value={form.notificationChannel} onChange={e=>setForm({...form,notificationChannel:e.target.value})}>
+              <option value="email">E-mail</option>
+              <option value="sms">SMS</option>
+              <option value="whatsapp">WhatsApp + awaryjny SMS</option>
+            </select>
+          </label>
+          <small>SMS/WhatsApp dotyczą wyłącznie informacji operacyjnych o tej rezerwacji. Możesz w każdej chwili wrócić do opcji E-mail.</small>
         </div>
 
         {editable&&<div className="client-edit-warning">

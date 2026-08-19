@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMattEmail } from "@/lib/email";
 import { sendDriverPush } from "@/lib/pushServer";
 import { syncBookingCalendar } from "@/lib/googleCalendar";
+import { sendBookingNotification } from "@/lib/customerNotifications";
 import {
   confirmedEmail,
   assignedEmail,
@@ -384,10 +385,62 @@ export async function POST(req: NextRequest) {
     console.error("E-mail statusu:", mailError);
   }
 
+
+  let customerNotification: any = null;
+
+  try {
+    let notificationKind:
+      | "confirmed"
+      | "assigned"
+      | "completed"
+      | "cancelled"
+      | null = null;
+
+    if (statusChanged && nextStatus === "confirmed") {
+      notificationKind = "confirmed";
+    } else if (
+      (statusChanged || resourcesChanged) &&
+      nextStatus === "assigned" &&
+      updated.driver_id &&
+      updated.vehicle_id
+    ) {
+      notificationKind = "assigned";
+    } else if (statusChanged && nextStatus === "completed") {
+      notificationKind = "completed";
+    } else if (statusChanged && nextStatus === "cancelled") {
+      notificationKind = "cancelled";
+    }
+
+    if (notificationKind) {
+      customerNotification = await sendBookingNotification(
+        admin,
+        updated,
+        {
+          kind: notificationKind,
+          eventKey:
+            `${notificationKind}:${updated.id}:` +
+            `${updated.updated_at || Date.now()}`
+        }
+      );
+
+      if (customerNotification?.sent) {
+        await admin.from("booking_history").insert({
+          booking_id: id,
+          event: `Wysłano powiadomienie klienta: ${notificationKind} (${customerNotification.channel})`,
+          created_by: user.id
+        });
+      }
+    }
+  } catch (notificationError) {
+    console.error("Customer notification:", notificationError);
+  }
+
   return NextResponse.json({
     ...updated,
     email_sent: emailSent,
-    email_error: emailError
+    email_error: emailError,
+    customer_notification_sent: Boolean(customerNotification?.sent),
+    customer_notification_channel: customerNotification?.channel || null
   });
 }
 
