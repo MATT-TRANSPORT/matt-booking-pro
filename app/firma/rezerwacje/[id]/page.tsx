@@ -1,8 +1,11 @@
 import { notFound } from "next/navigation";
 import CompanyNav from "@/components/CompanyNav";
 import CompanyBookingActions from "@/components/CompanyBookingActions";
+import CompanyPaymentCell from "@/components/CompanyPaymentCell";
 import { companyClient } from "@/lib/company";
 import { statusPl } from "@/lib/status";
+import B2BPricingBreakdown from "@/components/B2BPricingBreakdown";
+import CompanyBookingDocuments from "@/components/CompanyBookingDocuments";
 
 export default async function Page({
   params
@@ -20,6 +23,13 @@ export default async function Page({
     .single();
 
   if (!booking) notFound();
+
+  const { data: documents } = await s
+    .from("booking_documents")
+    .select("*")
+    .eq("booking_id", booking.id)
+    .eq("visible_to_company", true)
+    .order("created_at", { ascending: false });
 
   const driver = Array.isArray(booking.drivers)
     ? booking.drivers[0]
@@ -48,7 +58,17 @@ export default async function Page({
             <div><span>Adres</span><strong>{booking.pickup_address}</strong></div>
             <div><span>Lotnisko</span><strong>{booking.airport_label}</strong></div>
             <div><span>Numer lotu</span><strong>{booking.flight_number || "—"}</strong></div>
-            <div><span>Kwota</span><strong>{Number(booking.total_price).toFixed(2)} zł</strong></div>
+            {booking.b2b_net !== null && booking.b2b_net !== undefined ? <>
+              <div><span>Netto</span><strong>{Number(booking.b2b_net).toFixed(2)} zł</strong></div>
+              <div><span>VAT {Number(booking.b2b_vat_rate ?? 8).toFixed(0)}%</span><strong>{Number(booking.b2b_vat ?? 0).toFixed(2)} zł</strong></div>
+              <div><span>Brutto</span><strong>{Number(booking.b2b_gross ?? booking.total_price).toFixed(2)} zł</strong></div>
+            </> : <div><span>Kwota historyczna</span><strong>{Number(booking.total_price).toFixed(2)} zł</strong></div>}
+            <div>
+              <span>Płatność</span>
+              <strong>
+                <CompanyPaymentCell booking={booking} />
+              </strong>
+            </div>
           </div>
 
           <h2>Obsada</h2>
@@ -60,7 +80,11 @@ export default async function Page({
           </div>
         </div>
 
-        <CompanyBookingActions booking={booking} />
+        <div>
+          <B2BPricingBreakdown booking={booking} />
+          <CompanyBookingDocuments bookingId={booking.id} documents={documents ?? []} />
+          <CompanyBookingActions booking={booking} />
+        </div>
       </div>
     </main>
   );

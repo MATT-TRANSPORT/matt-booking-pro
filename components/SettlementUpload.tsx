@@ -39,7 +39,7 @@ export default function SettlementUpload({ companyId }: { companyId: string }) {
       return;
     }
 
-    setMessage(`✓ Rozliczenie zapisane: ${Number(data.amount).toFixed(2)} zł`);
+    setMessage(`✓ Rozliczenie zapisane: ${Number(data.amount).toFixed(2)} zł brutto`);
     setSaving(false);
     setInvoiceNumber("");
     setFile(null);

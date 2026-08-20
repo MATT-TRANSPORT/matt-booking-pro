@@ -13,21 +13,23 @@ export default function CompanyBookingActions({ booking }: { booking: any }) {
   const [repeatDate, setRepeatDate] = useState("");
   const [repeatTime, setRepeatTime] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [quote, setQuote] = useState<any>(null);
+  const [quoteBusy, setQuoteBusy] = useState(false);
   const [form, setForm] = useState({
     serviceType: booking.service_type,
     address: booking.pickup_address,
     airport: booking.airport_key,
     travelDate: booking.travel_date,
-    travelTime: String(booking.travel_time).slice(0,5),
+    travelTime: String(booking.travel_time).slice(0, 5),
     flightNumber: booking.flight_number ?? "",
     passengers: Number(booking.passengers),
     vehicleType: booking.vehicle_type,
-    distanceKm: Number(booking.distance_km),
     notes: booking.notes ?? ""
   });
 
   async function addressChanged(value: string) {
     setForm({ ...form, address: value });
+    setQuote(null);
     if (value.trim().length < 3) {
       setSuggestions([]);
       return;
@@ -38,29 +40,45 @@ export default function CompanyBookingActions({ booking }: { booking: any }) {
     setSuggestions(data.suggestions ?? []);
   }
 
-  async function chooseAddress(value: string) {
-    setForm({ ...form, address: value });
-    setSuggestions([]);
+  async function refreshQuote(next = form) {
+    if (!next.address) return;
+    setQuoteBusy(true);
+    setMessage("Obliczanie wyceny od siedziby kontrahenta...");
 
-    const response = await fetch("/api/route", {
+    const response = await fetch("/api/company/quote", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ address: value })
+      body: JSON.stringify({
+        address: next.address,
+        serviceType: next.serviceType,
+        airport: next.airport,
+        travelDate: next.travelDate,
+        vehicleType: next.vehicleType
+      })
     });
     const data = await response.json();
+    setQuoteBusy(false);
 
-    if (response.ok) {
-      setForm((prev) => ({
-        ...prev,
-        address: value,
-        distanceKm: Number(data.distanceKm)
-      }));
+    if (!response.ok) {
+      setQuote(null);
+      setMessage(data.error ?? "Nie udało się obliczyć wyceny.");
+      return;
     }
+
+    setQuote(data);
+    setMessage("");
+  }
+
+  async function chooseAddress(value: string) {
+    const next = { ...form, address: value };
+    setForm(next);
+    setSuggestions([]);
+    await refreshQuote(next);
   }
 
   async function save() {
     setSaving(true);
-    setMessage("Zapisywanie zmian...");
+    setMessage("Zapisywanie zmian i ponowne liczenie ceny...");
 
     const response = await fetch(`/api/company/bookings/${booking.id}`, {
       method: "POST",
@@ -79,7 +97,7 @@ export default function CompanyBookingActions({ booking }: { booking: any }) {
       return;
     }
 
-    setMessage("✓ Rezerwacja została zaktualizowana.");
+    setMessage("✓ Rezerwacja została zaktualizowana i przeliczona.");
     setSaving(false);
     setEditing(false);
     router.refresh();
@@ -92,7 +110,7 @@ export default function CompanyBookingActions({ booking }: { booking: any }) {
     }
 
     setSaving(true);
-    setMessage("Tworzenie nowej rezerwacji...");
+    setMessage("Tworzenie nowej rezerwacji według warunków obowiązujących w nowym terminie...");
 
     const response = await fetch(`/api/company/bookings/${booking.id}`, {
       method: "POST",
@@ -146,76 +164,98 @@ export default function CompanyBookingActions({ booking }: { booking: any }) {
 
       {repeatOpen && (
         <div className="repeat-box">
-          <label>
-            Nowa data
-            <input type="date" value={repeatDate} onChange={(e) => setRepeatDate(e.target.value)} />
-          </label>
-          <label>
-            Nowa godzina
-            <input type="time" value={repeatTime} onChange={(e) => setRepeatTime(e.target.value)} />
-          </label>
-          <button className="btn" onClick={repeat} disabled={saving}>
-            UTWÓRZ NOWY KURS
-          </button>
+          <p className="muted">
+            Cena nowego kursu zostanie policzona według wersji warunków obowiązującej w wybranym dniu.
+          </p>
+          <label>Nowa data<input type="date" value={repeatDate} onChange={(e) => setRepeatDate(e.target.value)} /></label>
+          <label>Nowa godzina<input type="time" value={repeatTime} onChange={(e) => setRepeatTime(e.target.value)} /></label>
+          <button className="btn" onClick={repeat} disabled={saving}>UTWÓRZ NOWY KURS</button>
         </div>
       )}
 
       {editing && (
         <div className="company-edit-form">
+          <div className="b2b-vat-note">
+            Edycja może zmienić cenę. Wszystkie ceny B2B: <strong>NETTO + 8% VAT</strong>.
+          </div>
           <label>
             Adres
             <input value={form.address} onChange={(e) => addressChanged(e.target.value)} />
             {suggestions.length > 0 && (
               <div className="address-suggestions">
-                {suggestions.slice(0,5).map((s:any,i:number) => (
-                  <button key={s.placeId ?? i} type="button" onClick={() => chooseAddress(s.text ?? "")}>
-                    {s.text}
-                  </button>
+                {suggestions.slice(0, 5).map((s: any, i: number) => (
+                  <button key={s.placeId ?? i} type="button" onClick={() => chooseAddress(s.text ?? "")}>{s.text}</button>
                 ))}
               </div>
             )}
           </label>
           <label>
             Lotnisko
-            <select value={form.airport} onChange={(e) => setForm({...form, airport:e.target.value})}>
-              {Object.entries(PRICES).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
+            <select
+              value={form.airport}
+              onChange={(e) => {
+                const next = { ...form, airport: e.target.value };
+                setForm(next);
+                refreshQuote(next);
+              }}
+            >
+              {Object.entries(PRICES).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}
             </select>
           </label>
           <div className="grid">
             <label>
               Data
-              <input type="date" value={form.travelDate} onChange={(e) => setForm({...form,travelDate:e.target.value})}/>
+              <input
+                type="date"
+                value={form.travelDate}
+                onChange={(e) => {
+                  const next = { ...form, travelDate: e.target.value };
+                  setForm(next);
+                  refreshQuote(next);
+                }}
+              />
             </label>
-            <label>
-              Godzina
-              <input type="time" value={form.travelTime} onChange={(e) => setForm({...form,travelTime:e.target.value})}/>
-            </label>
-            <label>
-              Lot
-              <input value={form.flightNumber} onChange={(e) => setForm({...form,flightNumber:e.target.value})}/>
-            </label>
+            <label>Godzina<input type="time" value={form.travelTime} onChange={(e) => setForm({ ...form, travelTime: e.target.value })} /></label>
+            <label>Lot<input value={form.flightNumber} onChange={(e) => setForm({ ...form, flightNumber: e.target.value })} /></label>
             <label>
               Pasażerowie
               <select value={form.passengers} onChange={(e) => {
-                const count=Number(e.target.value);
-                setForm({...form,passengers:count,vehicleType:count>3?"bus":form.vehicleType})
+                const count = Number(e.target.value);
+                const next = { ...form, passengers: count, vehicleType: count > 3 ? "bus" : form.vehicleType };
+                setForm(next);
+                refreshQuote(next);
               }}>
-                {[1,2,3,4,5,6,7,8].map(n => <option key={n}>{n}</option>)}
+                {[1,2,3,4,5,6,7,8].map((n) => <option key={n}>{n}</option>)}
               </select>
             </label>
             <label>
               Pojazd
-              <select value={form.vehicleType} onChange={(e) => setForm({...form,vehicleType:e.target.value})}>
-                <option value="car" disabled={form.passengers>3}>Samochód osobowy</option>
+              <select value={form.vehicleType} onChange={(e) => {
+                const next = { ...form, vehicleType: e.target.value };
+                setForm(next);
+                refreshQuote(next);
+              }}>
+                <option value="car" disabled={form.passengers > 3}>Samochód osobowy</option>
                 <option value="bus">Bus do 8 osób</option>
               </select>
             </label>
           </div>
-          <label>
-            Uwagi
-            <textarea rows={4} value={form.notes} onChange={(e) => setForm({...form,notes:e.target.value})}/>
-          </label>
-          <button className="btn" style={{width:"100%",marginTop:12}} disabled={saving} onClick={save}>
+          <label>Uwagi<textarea rows={4} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></label>
+
+          <button className="btn secondary" style={{ width: "100%", marginTop: 10 }} disabled={quoteBusy} onClick={() => refreshQuote()}>
+            {quoteBusy ? "OBLICZANIE..." : "PRZELICZ CENĘ"}
+          </button>
+
+          {quote && (
+            <div className="b2b-edit-quote">
+              <div><span>Netto</span><strong>{Number(quote.net).toFixed(2)} zł</strong></div>
+              <div><span>VAT 8%</span><strong>{Number(quote.vat).toFixed(2)} zł</strong></div>
+              <div><span>Brutto</span><strong>{Number(quote.gross).toFixed(2)} zł</strong></div>
+              <small>{Number(quote.distanceFromHeadquartersKm).toFixed(1)} km od siedziby · {Number(quote.billableKm).toFixed(1)} km ponad limit</small>
+            </div>
+          )}
+
+          <button className="btn" style={{ width: "100%", marginTop: 12 }} disabled={saving} onClick={save}>
             {saving ? "ZAPISYWANIE..." : "ZAPISZ ZMIANY"}
           </button>
         </div>

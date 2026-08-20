@@ -33,14 +33,14 @@ export default async function Page() {
       <div className="card">
         <h2>Miesięczne rozliczenia</h2>
         <p className="muted">
-          Faktury są wystawiane poza MATT Booking PRO. Tutaj znajdują się dokumenty przypisane do miesięcznych rozliczeń.
+          Faktury są wystawiane poza MATT Booking PRO. Tutaj znajdują się dokumenty przypisane do miesięcznych rozliczeń. W rezerwacjach B2B PRO ceny są prezentowane jako netto + 8% VAT; kwota rozliczenia miesięcznego jest kwotą brutto.
         </p>
 
         <table className="table">
           <thead>
             <tr>
               <th>Miesiąc</th>
-              <th>Kwota</th>
+              <th>Kwota brutto</th>
               <th>Numer faktury</th>
               <th>Status</th>
               <th>Dokument</th>

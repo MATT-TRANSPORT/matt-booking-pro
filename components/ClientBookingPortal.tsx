@@ -108,6 +108,7 @@ export default function ClientBookingPortal({ token }: { token:string }) {
   const editable=data.editable && !["in_progress","arrived","picked_up","completed","cancelled"].includes(b.status);
   const cancellable=(data.cancellable ?? data.editable) && ["pending","confirmed","assigned"].includes(b.status);
   const paidBooking = b.payment_status === "paid" || b.payment_status === "review";
+  const isB2B = Boolean(b.company_id);
   const driver=Array.isArray(b.drivers)?b.drivers[0]:b.drivers;
   const vehicle=Array.isArray(b.vehicles)?b.vehicles[0]:b.vehicles;
 
@@ -157,14 +158,20 @@ export default function ClientBookingPortal({ token }: { token:string }) {
           <textarea disabled={!editable} rows={4} value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})}/>
         </label>
 
-        <div className="grid" style={{marginTop:14}}>
-          <label>Faktura VAT
-            <select disabled={!editable} value={form.invoiceRequired?"1":"0"} onChange={e=>setForm({...form,invoiceRequired:e.target.value==="1"})}>
-              <option value="0">Nie</option><option value="1">Tak</option>
-            </select>
-          </label>
-          {form.invoiceRequired&&<label>NIP<input disabled={!editable} inputMode="numeric" maxLength={10} value={form.companyNip} onChange={e=>setForm({...form,companyNip:e.target.value.replace(/\D/g,"").slice(0,10)})}/></label>}
-        </div>
+        {isB2B ? (
+          <div className="b2b-vat-note" style={{marginTop:14}}>
+            Rezerwacja firmowa B2B. Rozliczenie: <strong>NETTO + 8% VAT</strong>. Dane fakturowe są zarządzane przez firmę/MATT TRANSPORT.
+          </div>
+        ) : (
+          <div className="grid" style={{marginTop:14}}>
+            <label>Faktura VAT
+              <select disabled={!editable} value={form.invoiceRequired?"1":"0"} onChange={e=>setForm({...form,invoiceRequired:e.target.value==="1"})}>
+                <option value="0">Nie</option><option value="1">Tak</option>
+              </select>
+            </label>
+            {form.invoiceRequired&&<label>NIP<input disabled={!editable} inputMode="numeric" maxLength={10} value={form.companyNip} onChange={e=>setForm({...form,companyNip:e.target.value.replace(/\D/g,"").slice(0,10)})}/></label>}
+          </div>
+        )}
 
 
         {! ["completed","cancelled"].includes(b.status) && <CustomerPushControls token={token} />}
@@ -214,7 +221,11 @@ export default function ClientBookingPortal({ token }: { token:string }) {
       <aside className="card client-booking-summary">
         <h2>Podsumowanie</h2>
         <div><span>Lotnisko</span><strong>{b.airport_label}</strong></div>
-        <div><span>Kwota</span><strong>{Number(b.total_price).toFixed(2)} zł</strong></div>
+        {isB2B ? (b.b2b_net != null ? <>
+          <div><span>Netto</span><strong>{Number(b.b2b_net).toFixed(2)} zł</strong></div>
+          <div><span>VAT {Number(b.b2b_vat_rate ?? 8).toFixed(0)}%</span><strong>{Number(b.b2b_vat ?? 0).toFixed(2)} zł</strong></div>
+          <div><span>Brutto</span><strong>{Number(b.b2b_gross ?? b.total_price).toFixed(2)} zł</strong></div>
+        </> : <div><span>Kwota historyczna</span><strong>{Number(b.total_price).toFixed(2)} zł</strong></div>) : <div><span>Kwota</span><strong>{Number(b.total_price).toFixed(2)} zł</strong></div>}
         <div><span>Status</span><strong>{STATUS[b.status]||b.status}</strong></div>
         <div><span>Płatność</span><strong>{b.company_id
           ? (b.payment_method === "employee_payment" ? "Płatność pracownika online" : "Przelew firmowy")

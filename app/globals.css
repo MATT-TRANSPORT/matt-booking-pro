@@ -1795,3 +1795,124 @@
   .customer-push-actions,.communication-lite-actions{flex-direction:column}
   .customer-push-actions .btn,.communication-lite-actions .btn{width:100%}
 }
+
+/* ===== v3.3.0 B2B PRO ===== */
+.b2b-vat-note{
+  margin:12px 0 16px;
+  padding:13px 15px;
+  border:1px solid rgba(213,174,93,.35);
+  border-radius:12px;
+  background:rgba(213,174,93,.08);
+  color:#e9dfca;
+  line-height:1.5;
+}
+.b2b-price-editor{
+  margin-top:16px;
+  border:1px solid #343b49;
+  border-radius:14px;
+  overflow:hidden;
+}
+.b2b-price-editor-head,
+.b2b-price-editor-row{
+  display:grid;
+  grid-template-columns:minmax(180px,1fr) minmax(120px,.55fr) minmax(120px,.55fr);
+  gap:10px;
+  align-items:center;
+  padding:11px 13px;
+}
+.b2b-price-editor-head{
+  background:#10141b;
+  color:#f1d28b;
+  font-size:12px;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+.b2b-price-editor-row{
+  border-top:1px solid #2c3340;
+}
+.b2b-price-editor-row small{
+  display:block;
+  margin-top:3px;
+  color:#8f98a6;
+}
+.b2b-price-editor-row input{
+  min-width:0;
+}
+.b2b-terms-history{
+  margin-top:18px;
+  padding-top:16px;
+  border-top:1px solid #343b49;
+}
+.b2b-terms-history>div{
+  display:flex;
+  justify-content:space-between;
+  gap:16px;
+  padding:8px 0;
+  border-bottom:1px solid #252c37;
+}
+.b2b-terms-history span{
+  color:#aab1bc;
+  text-align:right;
+}
+.b2b-terms-mini{
+  display:grid;
+  gap:5px;
+  margin:12px 0 16px;
+  padding:14px;
+  border-radius:12px;
+  background:#10141b;
+  border:1px solid #343b49;
+}
+.b2b-terms-mini strong{color:#f1d28b;margin-bottom:4px}
+.b2b-terms-mini span{font-size:13px;color:#aab1bc;line-height:1.45}
+.b2b-summary .row.total strong{font-size:20px;color:#f1d28b}
+.b2b-edit-quote{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-top:12px;
+  padding:12px;
+  border:1px solid #343b49;
+  border-radius:12px;
+  background:#10141b;
+}
+.b2b-edit-quote>div{display:flex;flex-direction:column;gap:4px}
+.b2b-edit-quote span,.b2b-edit-quote small{color:#aab1bc;font-size:12px}
+.b2b-edit-quote small{grid-column:1/-1}
+.b2b-price-card{margin-bottom:16px}
+.b2b-snapshot-badge{
+  font-size:11px;
+  color:#cbd2dc;
+  border:1px solid #46505f;
+  border-radius:999px;
+  padding:6px 9px;
+  white-space:nowrap;
+}
+.b2b-price-compact{display:flex;flex-direction:column;gap:2px}
+.b2b-price-compact span{font-size:12px;color:#aab1bc}
+.booking-document-list{display:grid;gap:10px;margin-top:16px}
+.booking-document-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:12px;
+  border:1px solid #343b49;
+  border-radius:12px;
+  background:#10141b;
+}
+.booking-document-row>div:first-child{display:flex;flex-direction:column;gap:3px;min-width:0}
+.booking-document-row span{color:#d5d9df;overflow-wrap:anywhere}
+.booking-document-row small{color:#8f98a6}
+.booking-document-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:760px){
+  .b2b-price-editor-head{display:none}
+  .b2b-price-editor-row{grid-template-columns:1fr 1fr}
+  .b2b-price-editor-row>div{grid-column:1/-1}
+  .b2b-terms-history>div,.booking-document-row{flex-direction:column;align-items:stretch}
+  .b2b-terms-history span{text-align:left}
+  .booking-document-actions{justify-content:stretch}
+  .booking-document-actions>*{flex:1;text-align:center}
+  .b2b-edit-quote{grid-template-columns:1fr}
+  .b2b-edit-quote small{grid-column:auto}
+}

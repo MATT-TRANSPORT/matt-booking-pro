@@ -1,0 +1,63 @@
+MATT BOOKING PRO v3.3.0 — WDROŻENIE KROK PO KROKU
+
+KROK 1 — SUPABASE
+Uruchom cały:
+MATT_V3_3_0_B2B_PRO_SQL.sql
+
+Po sukcesie nie uruchamiaj starego SQL ponownie.
+
+KROK 2 — GITHUB / VERCEL
+Wgraj zawartość:
+MATT_V3_3_0_B2B_PRO_ONLY_FILES.zip
+
+Commit / push -> poczekaj na zielony deployment.
+
+KROK 3 — KONFIGURACJA PIERWSZEJ FIRMY
+Panel MATT -> Firmy B2B -> wybierz firmę -> Warunki handlowe.
+
+Ustaw:
+- Siedziba kontrahenta do kalkulacji km (wybierz z Google Places),
+- Limit bez dopłaty od siedziby,
+- Dopłata zł netto/km,
+- Termin płatności,
+- Cennik standardowy lub indywidualny,
+- indywidualne ceny NETTO dla wybranych lotnisk,
+- „Ważne od”.
+
+Kliknij:
+ZAPISZ NOWĄ WERSJĘ WARUNKÓW.
+
+KROK 4 — TEST WYCENY
+Portal firmy -> Nowa rezerwacja.
+Wybierz adres pracownika.
+System ma pokazać:
+- km od siedziby firmy,
+- limit darmowy,
+- km płatne,
+- cenę bazową netto,
+- dopłatę netto,
+- VAT 8%,
+- brutto.
+
+KROK 5 — TEST REZERWACJI
+Złóż rezerwację i otwórz ją w Panel MATT.
+Sprawdź kartę WYCENA B2B:
+- snapshot,
+- siedziba,
+- km,
+- NETTO/VAT/BRUTTO.
+
+KROK 6 — TEST FAKTURY
+W szczegółach tej rezerwacji -> FAKTURY / DOKUMENTY:
+- wybierz Faktura,
+- wpisz numer,
+- dodaj PDF/JPG/PNG,
+- pozostaw „widoczny dla kontrahenta” włączone.
+
+Następnie zaloguj się do portalu firmy -> ta sama rezerwacja ->
+FAKTURY / DOKUMENTY -> OTWÓRZ / POBIERZ.
+
+KROK 7 — TEST WERSJONOWANIA
+Ustaw drugą wersję warunków z datą przyszłą.
+Stara rezerwacja ma zachować stary snapshot.
+Nowa rezerwacja z terminem po dacie wejścia nowych warunków ma dostać nową cenę.

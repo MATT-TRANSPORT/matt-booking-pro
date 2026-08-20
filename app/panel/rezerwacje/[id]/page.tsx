@@ -10,6 +10,8 @@ import FlightAlertList from "@/components/FlightAlertList";
 import GoogleCalendarSyncCard from "@/components/GoogleCalendarSyncCard";
 import CustomerCommunicationCard from "@/components/CustomerCommunicationCard";
 import { quickWhatsAppUrl } from "@/lib/customerNotifications";
+import B2BPricingBreakdown from "@/components/B2BPricingBreakdown";
+import BookingDocumentsCard from "@/components/BookingDocumentsCard";
 
 
 export default async function Page({
@@ -37,6 +39,14 @@ export default async function Page({
   ]);
 
   if (!booking) notFound();
+
+  const { data: bookingDocuments } = booking.company_id
+    ? await s
+        .from("booking_documents")
+        .select("*")
+        .eq("booking_id", id)
+        .order("created_at", { ascending: false })
+    : { data: [] as any[] };
 
   const [{ data: customerPushLogs }, { count: activeCustomerPush }] = await Promise.all([
     s
@@ -140,8 +150,8 @@ export default async function Page({
             </div>
 
             <div className="reservation-price">
-              <span className="muted">Kwota</span>
-              <strong>{Number(booking.total_price).toFixed(2)} zł</strong>
+              <span className="muted">{booking.company_id ? "Kwota brutto" : "Kwota"}</span>
+              <strong>{Number(booking.b2b_gross ?? booking.total_price).toFixed(2)} zł</strong>
             </div>
           </div>
 
@@ -178,9 +188,9 @@ export default async function Page({
 
           <h2>Rozliczenie</h2>
           <div className="detail-list">
-            <div><span>Cena bazowa</span><strong>{Number(booking.base_price).toFixed(2)} zł</strong></div>
-            <div><span>Dopłata za km</span><strong>{Number(booking.extra_price).toFixed(2)} zł</strong></div>
-            <div><span>VAT</span><strong>{Number(booking.vat_price).toFixed(2)} zł</strong></div>
+            <div><span>Cena bazowa{booking.company_id ? " netto" : ""}</span><strong>{Number(booking.base_price).toFixed(2)} zł</strong></div>
+            <div><span>Dopłata za km{booking.company_id ? " netto" : ""}</span><strong>{Number(booking.extra_price).toFixed(2)} zł</strong></div>
+            <div><span>VAT{booking.company_id ? ` ${Number(booking.b2b_vat_rate ?? 8).toFixed(0)}%` : ""}</span><strong>{Number(booking.vat_price).toFixed(2)} zł</strong></div>
             <div>
               <span>Sposób płatności</span>
               <strong>
@@ -194,7 +204,7 @@ export default async function Page({
               </strong>
             </div>
             <div><span>Status płatności</span><strong>{booking.payment_status === "paid" ? "✓ Opłacono" : booking.payment_status === "failed" ? "Nieudana" : booking.payment_status === "refunded" ? "Zwrot" : booking.payment_status === "review" ? "Do weryfikacji" : "Oczekuje"}</strong></div>
-            <div className="detail-total"><span>Razem</span><strong>{Number(booking.total_price).toFixed(2)} zł</strong></div>
+            <div className="detail-total"><span>{booking.company_id ? "Razem brutto" : "Razem"}</span><strong>{Number(booking.b2b_gross ?? booking.total_price).toFixed(2)} zł</strong></div>
           </div>
 
           {booking.notes && (
@@ -206,6 +216,16 @@ export default async function Page({
         </div>
 
         <div>
+          {booking.company_id && (
+            <>
+              <B2BPricingBreakdown booking={booking} />
+              <BookingDocumentsCard
+                bookingId={booking.id}
+                documents={bookingDocuments ?? []}
+              />
+            </>
+          )}
+
           <BookingAdminActions
             bookingId={booking.id}
             initialStatus={booking.status}

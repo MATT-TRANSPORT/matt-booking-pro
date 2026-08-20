@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMattEmail } from "@/lib/email";
 import { PRICES } from "@/lib/pricing";
+import { b2bBookingPriceFields, calculateB2BQuote } from "@/lib/b2bPricing";
 import { expireCheckoutSession } from "@/lib/stripeServer";
 import { syncBookingCalendar } from "@/lib/googleCalendar";
 import { sendBookingNotification } from "@/lib/customerNotifications";
@@ -68,10 +69,15 @@ export async function PATCH(
 
   const passengers = Math.max(1, Math.min(8, Number(body.passengers ?? booking.passengers)));
   const vehicleType = passengers > 3 ? "bus" : String(body.vehicleType ?? booking.vehicle_type);
-  const invoiceRequired = Boolean(body.invoiceRequired);
-  const nip = invoiceRequired ? cleanNip(body.companyNip) : null;
+  const isB2B = Boolean(booking.company_id);
+  const invoiceRequired = isB2B ? true : Boolean(body.invoiceRequired);
+  const nip = isB2B
+    ? booking.company_nip || null
+    : invoiceRequired
+    ? cleanNip(body.companyNip)
+    : null;
 
-  if (invoiceRequired && nip?.length !== 10) {
+  if (!isB2B && invoiceRequired && nip?.length !== 10) {
     return NextResponse.json({ error: "Podaj poprawny 10-cyfrowy NIP." }, { status: 400 });
   }
 
@@ -80,20 +86,62 @@ export async function PATCH(
     return NextResponse.json({ error: "Nie udało się odczytać cennika tej rezerwacji. Skontaktuj się z MATT TRANSPORT." }, { status: 400 });
   }
 
-  // Zachowujemy obecny dystans. Zmiana adresu wymaga ponownego potwierdzenia przez MATT,
-  // więc cena nie jest automatycznie obiecywana klientowi.
-  const routeChanged = String(body.pickupAddress ?? booking.pickup_address).trim() !== String(booking.pickup_address ?? "").trim();
+  const newPickupAddress = String(body.pickupAddress ?? booking.pickup_address).trim();
+  const newTravelDate = String(body.travelDate ?? booking.travel_date);
+
+  const routeChanged = newPickupAddress !== String(booking.pickup_address ?? "").trim();
   const dateChanged =
-    String(body.travelDate ?? booking.travel_date) !== String(booking.travel_date) ||
+    newTravelDate !== String(booking.travel_date) ||
     String(body.travelTime ?? booking.travel_time) !== String(booking.travel_time);
 
-  const price = PRICES[airport as keyof typeof PRICES];
-  const multiplier = booking.service_type === "roundtrip" ? 2 : 1;
-  const base = Number(price[vehicleType as "car" | "bus"]) * multiplier;
-  const extra = Math.max(0, Number(booking.distance_km ?? 0) - 40) * 2.4 * multiplier;
-  const subtotal = base + extra;
-  const vat = invoiceRequired ? subtotal * 0.08 : 0;
-  const total = subtotal + vat;
+  let total = 0;
+  let pricingFields: Record<string, any> = {};
+
+  if (isB2B) {
+    try {
+      const quote = await calculateB2BQuote(admin, {
+        companyId: booking.company_id,
+        travelDate: newTravelDate,
+        serviceType: booking.service_type,
+        airport,
+        vehicleType,
+        pickupAddress: newPickupAddress,
+        termsId:
+          newTravelDate === String(booking.travel_date)
+            ? booking.b2b_terms_id || null
+            : null
+      });
+      pricingFields = b2bBookingPriceFields(quote);
+      total = quote.gross;
+    } catch (pricingError) {
+      return NextResponse.json(
+        {
+          error:
+            pricingError instanceof Error
+              ? pricingError.message
+              : "Nie udało się ponownie wycenić rezerwacji B2B."
+        },
+        { status: 400 }
+      );
+    }
+  } else {
+    // Dla B2C zachowujemy dotychczasowy dystans. Zmiana adresu nadal
+    // wymaga weryfikacji MATT, więc system nie obiecuje nowej trasy automatycznie.
+    const price = PRICES[airport as keyof typeof PRICES];
+    const multiplier = booking.service_type === "roundtrip" ? 2 : 1;
+    const base = Number(price[vehicleType as "car" | "bus"]) * multiplier;
+    const extra = Math.max(0, Number(booking.distance_km ?? 0) - 40) * 2.4 * multiplier;
+    const subtotal = base + extra;
+    const vat = invoiceRequired ? subtotal * 0.08 : 0;
+    total = subtotal + vat;
+    pricingFields = {
+      base_price: base,
+      extra_price: extra,
+      vat_price: vat,
+      total_price: total
+    };
+  }
+
   const priceChanged =
     Math.round(Number(booking.total_price || 0) * 100) !==
     Math.round(total * 100);
@@ -114,8 +162,8 @@ export async function PATCH(
     : booking.status;
 
   const update = {
-    pickup_address: String(body.pickupAddress ?? booking.pickup_address).trim(),
-    travel_date: body.travelDate ?? booking.travel_date,
+    pickup_address: newPickupAddress,
+    travel_date: newTravelDate,
     travel_time: body.travelTime ?? booking.travel_time,
     return_date: body.returnDate || null,
     return_time: body.returnTime || null,
@@ -126,7 +174,7 @@ export async function PATCH(
     invoice_required: invoiceRequired,
     company_nip: nip,
     notes: String(body.notes ?? "").trim() || null,
-    total_price: total,
+    ...pricingFields,
     status: newStatus,
     ...(requiresReconfirmation
       ? wasPaid

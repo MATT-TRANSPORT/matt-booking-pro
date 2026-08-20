@@ -164,7 +164,7 @@ export default function OnlinePaymentCard({
           <h3>{paymentStatusLabel(status)}</h3>
         </div>
         <strong>
-          {Number(booking.total_price).toFixed(2)} zł
+          {Number(booking.b2b_gross ?? booking.total_price).toFixed(2)} zł{booking.company_id && booking.b2b_gross !== null && booking.b2b_gross !== undefined ? " brutto" : ""}
         </strong>
       </div>
 
@@ -188,7 +188,9 @@ export default function OnlinePaymentCard({
       ) : (
         <>
           <p>
-            Zapłać bezpiecznie online za potwierdzoną rezerwację.
+            {booking.company_id
+              ? "Zapłać bezpiecznie online kwotę brutto (cena netto + 8% VAT)."
+              : "Zapłać bezpiecznie online za potwierdzoną rezerwację."}
           </p>
           <button
             type="button"

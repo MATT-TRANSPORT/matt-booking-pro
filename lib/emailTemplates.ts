@@ -31,6 +31,10 @@ type BookingMail = {
   payment_status?: string | null;
   payment_link?: string | null;
   online_payment_requested?: boolean | null;
+  b2b_net?: number | string | null;
+  b2b_vat?: number | string | null;
+  b2b_vat_rate?: number | string | null;
+  b2b_gross?: number | string | null;
 };
 
 function appBaseUrl() {
@@ -129,7 +133,7 @@ function paymentButton(b: BookingMail) {
   return `
     <div style="margin-top:20px;padding:18px;border-radius:14px;background:#10141b;border:1px solid #4f4733">
       <div style="font-weight:800;color:#f1d28b;margin-bottom:8px">Płatność online</div>
-      <div style="color:#aab1bc;margin-bottom:14px">Kwota do zapłaty: <strong style="color:#fff">${Number(b.total_price).toFixed(2)} zł</strong></div>
+      <div style="color:#aab1bc;margin-bottom:14px">Kwota do zapłaty${b.company_id && b.b2b_gross !== null && b.b2b_gross !== undefined ? " brutto" : ""}: <strong style="color:#fff">${Number(b.b2b_gross ?? b.total_price).toFixed(2)} zł</strong></div>
       <a href="${url}" style="display:inline-block;background:#d5ae5d;color:#111;padding:14px 20px;border-radius:11px;text-decoration:none;font-weight:900">
         OPŁAĆ REZERWACJĘ ONLINE
       </a>
@@ -176,7 +180,17 @@ function details(b: BookingMail, forAdmin = false) {
       <div><span style="color:#aab1bc">Pasażerowie:</span> <strong>${esc(b.passengers)}</strong></div>
       <div><span style="color:#aab1bc">Pojazd:</span> <strong>${esc(vehicle)}</strong></div>
       <div><span style="color:#aab1bc">Lot:</span> <strong>${esc(b.flight_number || "—")}</strong></div>
-      <div><span style="color:#aab1bc">Kwota:</span> <strong style="color:#f1d28b">${Number(b.total_price).toFixed(2)} zł</strong></div>
+      ${b.company_id && b.b2b_net !== null && b.b2b_net !== undefined ? `
+        <div><span style="color:#aab1bc">Cena netto:</span> <strong>${Number(b.b2b_net).toFixed(2)} zł</strong></div>
+        <div><span style="color:#aab1bc">VAT ${Number(b.b2b_vat_rate ?? 8).toFixed(0)}%:</span> <strong>${Number(b.b2b_vat ?? 0).toFixed(2)} zł</strong></div>
+        <div><span style="color:#aab1bc">Cena brutto:</span> <strong style="color:#f1d28b">${Number(b.b2b_gross ?? b.total_price).toFixed(2)} zł</strong></div>
+        <div style="margin-top:8px;color:#aab1bc;font-size:12px">Wszystkie ceny B2B są cenami netto. Do ceny doliczany jest VAT 8%.</div>
+      ` : b.company_id ? `
+        <div><span style="color:#aab1bc">Kwota historyczna:</span> <strong style="color:#f1d28b">${Number(b.total_price).toFixed(2)} zł</strong></div>
+        <div style="margin-top:8px;color:#aab1bc;font-size:12px">Rezerwacja utworzona przed wdrożeniem B2B PRO — brak snapshotu netto/VAT/brutto.</div>
+      ` : `
+        <div><span style="color:#aab1bc">Kwota:</span> <strong style="color:#f1d28b">${Number(b.total_price).toFixed(2)} zł</strong></div>
+      `}
       <div><span style="color:#aab1bc">Płatność:</span> <strong>${esc(paymentPreferenceText(b))}</strong></div>
     </div>`;
 }
@@ -292,7 +306,7 @@ export function paymentReceivedEmail(b: BookingMail) {
       </p>
       ${details(b)}
       <div style="margin-top:18px;padding:16px;border-radius:12px;background:#1b3a2a;color:#c2efd2;font-weight:800">
-        ✓ OPŁACONO · ${Number(b.total_price).toFixed(2)} zł
+        ✓ OPŁACONO · ${Number(b.b2b_gross ?? b.total_price).toFixed(2)} zł
       </div>
       ${customerPortalButton(b)}`
     )

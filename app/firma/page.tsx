@@ -7,13 +7,16 @@ export default async function Page(){
   const {s,company}=await companyClient();
   const monthStart=new Date();monthStart.setDate(1);
 
-  const [{data:all},{data:monthRows}]=await Promise.all([
+  const today=new Date().toISOString().slice(0,10);
+  const [{data:all},{data:monthRows},{data:terms}]=await Promise.all([
     s.from("bookings").select("*").eq("company_id",company.id).order("created_at",{ascending:false}).limit(100),
-    s.from("bookings").select("total_price,status").eq("company_id",company.id).gte("travel_date",monthStart.toISOString().slice(0,10)).neq("status","cancelled")
+    s.from("bookings").select("total_price,b2b_net,b2b_gross,status").eq("company_id",company.id).gte("travel_date",monthStart.toISOString().slice(0,10)).neq("status","cancelled"),
+    s.from("company_commercial_terms").select("payment_days").eq("company_id",company.id).eq("active",true).lte("effective_from",today).order("effective_from",{ascending:false}).order("created_at",{ascending:false}).limit(1).maybeSingle()
   ]);
 
   const rows=all??[];
-  const value=(monthRows??[]).reduce((a:number,x:any)=>a+Number(x.total_price||0),0);
+  const valueNet=(monthRows??[]).reduce((a:number,x:any)=>a+Number(x.b2b_net ?? x.total_price ?? 0),0);
+  const valueGross=(monthRows??[]).reduce((a:number,x:any)=>a+Number(x.b2b_gross ?? x.total_price ?? 0),0);
   const active=rows.filter((x:any)=>["pending","confirmed","assigned","in_progress","arrived","picked_up"].includes(String(x.status).toLowerCase())).length;
 
   return <main className="container">
@@ -24,8 +27,9 @@ export default async function Page(){
     <div className="stats">
       <div className="stat"><strong>{active}</strong><span>Aktywne</span></div>
       <div className="stat"><strong>{rows.length}</strong><span>Rezerwacje</span></div>
-      <div className="stat"><strong>{value.toFixed(0)} zł</strong><span>Wartość miesiąca</span></div>
-      <div className="stat"><strong>{company.payment_days??14} dni</strong><span>Termin płatności</span></div>
+      <div className="stat"><strong>{valueNet.toFixed(0)} zł</strong><span>Miesiąc netto</span></div>
+      <div className="stat"><strong>{valueGross.toFixed(0)} zł</strong><span>Miesiąc brutto</span></div>
+      <div className="stat"><strong>{terms?.payment_days ?? company.payment_days ?? 14} dni</strong><span>Termin płatności</span></div>
     </div>
 
     <div className="card">

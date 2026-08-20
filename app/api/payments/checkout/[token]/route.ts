@@ -152,7 +152,7 @@ export async function POST(
     await admin.from("booking_history").insert({
       booking_id: booking.id,
       event:
-        `Utworzono płatność online Stripe: ${Number(booking.total_price).toFixed(2)} zł`,
+        `Utworzono płatność online Stripe: ${Number(booking.total_price).toFixed(2)} zł${booking.company_id && booking.b2b_gross !== null && booking.b2b_gross !== undefined ? " brutto" : ""}`,
       created_by: null
     });
 
