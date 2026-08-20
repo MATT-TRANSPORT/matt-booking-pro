@@ -234,14 +234,22 @@ export async function POST(req: NextRequest) {
     console.error("E-mail B2B:", mailError);
   }
 
-  await admin.from("booking_history").insert({
-    booking_id: data.id,
-    event:
-      emailSent && adminEmailSent
-        ? "E-mail B2B: firma i MATT otrzymali powiadomienie."
-        : `E-mail B2B: firma=${emailSent ? "OK" : "BŁĄD"}, MATT=${adminEmailSent ? "OK" : "BŁĄD"}${emailWarning ? ` · ${emailWarning}` : ""}`,
-    created_by: user.id
-  }).catch(() => null);
+  const { error: emailHistoryError } =
+    await admin.from("booking_history").insert({
+      booking_id: data.id,
+      event:
+        emailSent && adminEmailSent
+          ? "E-mail B2B: firma i MATT otrzymali powiadomienie."
+          : `E-mail B2B: firma=${emailSent ? "OK" : "BŁĄD"}, MATT=${adminEmailSent ? "OK" : "BŁĄD"}${emailWarning ? ` · ${emailWarning}` : ""}`,
+      created_by: user.id
+    });
+
+  if (emailHistoryError) {
+    console.error(
+      "Historia e-mail B2B:",
+      emailHistoryError
+    );
+  }
 
   return NextResponse.json({
     ...data,

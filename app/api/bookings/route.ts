@@ -180,14 +180,22 @@ export async function POST(req: NextRequest) {
   }
 
 
-  await supabase.from("booking_history").insert({
-    booking_id: data.id,
-    event:
-      customerEmailSent && adminEmailSent
-        ? "E-mail: klient i MATT otrzymali powiadomienie o nowej rezerwacji."
-        : `E-mail nowej rezerwacji: klient=${customerEmailSent ? "OK" : "BŁĄD"}, MATT=${adminEmailSent ? "OK" : "BŁĄD"}${emailWarning ? ` · ${emailWarning}` : ""}`,
-    created_by: null
-  }).catch(() => null);
+  const { error: emailHistoryError } =
+    await supabase.from("booking_history").insert({
+      booking_id: data.id,
+      event:
+        customerEmailSent && adminEmailSent
+          ? "E-mail: klient i MATT otrzymali powiadomienie o nowej rezerwacji."
+          : `E-mail nowej rezerwacji: klient=${customerEmailSent ? "OK" : "BŁĄD"}, MATT=${adminEmailSent ? "OK" : "BŁĄD"}${emailWarning ? ` · ${emailWarning}` : ""}`,
+      created_by: null
+    });
+
+  if (emailHistoryError) {
+    console.error(
+      "Historia e-mail nowej rezerwacji:",
+      emailHistoryError
+    );
+  }
 
   let notificationResult: any = null;
 

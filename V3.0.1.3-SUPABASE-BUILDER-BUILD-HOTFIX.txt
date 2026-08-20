@@ -1,0 +1,14 @@
+MATT Booking PRO v3.0.1.3 — SUPABASE BUILDER BUILD HOTFIX
+
+Naprawia błąd Vercel/TypeScript:
+Property 'catch' does not exist on type 'PostgrestFilterBuilder...'
+
+Poprawione pliki:
+- app/api/bookings/route.ts
+- app/api/company/bookings/route.ts
+
+Zapytania do Supabase używają teraz poprawnego:
+const { error } = await ...insert(...)
+
+SQL: brak.
+ENV: brak.
