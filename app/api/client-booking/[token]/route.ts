@@ -4,6 +4,8 @@ import { sendMattEmail } from "@/lib/email";
 import { PRICES } from "@/lib/pricing";
 import { expireCheckoutSession } from "@/lib/stripeServer";
 import { syncBookingCalendar } from "@/lib/googleCalendar";
+import { sendBookingNotification } from "@/lib/customerNotifications";
+import { cancelledEmail } from "@/lib/emailTemplates";
 
 const EDITABLE_STATUSES = ["pending", "confirmed", "assigned"];
 
@@ -34,7 +36,8 @@ export async function GET(
 
   return NextResponse.json({
     booking,
-    editable: EDITABLE_STATUSES.includes(booking.status)
+    editable: EDITABLE_STATUSES.includes(booking.status),
+    cancellable: EDITABLE_STATUSES.includes(booking.status)
   });
 }
 
@@ -226,5 +229,217 @@ export async function PATCH(
   return NextResponse.json({
     booking: updated,
     requiresReconfirmation
+  });
+}
+
+
+async function bookingRecipient(
+  admin: any,
+  booking: any
+) {
+  if (!booking.company_id) {
+    return booking.email
+      ? String(booking.email).trim()
+      : null;
+  }
+
+  const { data: company } = await admin
+    .from("companies")
+    .select("email")
+    .eq("id", booking.company_id)
+    .maybeSingle();
+
+  if (company?.email) {
+    return String(company.email).trim();
+  }
+
+  if (booking.ordered_by_user_id) {
+    const { data: account } =
+      await admin.auth.admin.getUserById(
+        booking.ordered_by_user_id
+      );
+
+    if (account?.user?.email) {
+      return account.user.email;
+    }
+  }
+
+  return null;
+}
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ token: string }> }
+) {
+  const { token } = await params;
+  const admin = createAdminClient();
+  const booking = await getBooking(token);
+
+  if (!booking) {
+    return NextResponse.json(
+      { error: "Rezerwacja nie istnieje lub link wygasł." },
+      { status: 404 }
+    );
+  }
+
+  if (!EDITABLE_STATUSES.includes(booking.status)) {
+    return NextResponse.json(
+      {
+        error:
+          booking.status === "cancelled"
+            ? "Ta rezerwacja jest już anulowana."
+            : "Rezerwacja jest już w realizacji lub zakończona. W sprawie anulowania skontaktuj się z MATT TRANSPORT: +48 691 242 691."
+      },
+      { status: 409 }
+    );
+  }
+
+  const wasPaid =
+    booking.payment_status === "paid" ||
+    booking.payment_status === "review";
+
+  if (!wasPaid && booking.payment_checkout_session_id) {
+    try {
+      await expireCheckoutSession(
+        booking.payment_checkout_session_id
+      );
+    } catch (error) {
+      console.error(
+        "Anulowanie sesji Stripe przy rezygnacji klienta:",
+        error
+      );
+    }
+  }
+
+  const now = new Date().toISOString();
+  const update: any = {
+    status: "cancelled",
+    updated_at: now,
+    customer_last_edited_at: now
+  };
+
+  if (wasPaid) {
+    update.payment_status = "review";
+    update.payment_review_reason =
+      "Klient samodzielnie anulował opłaconą rezerwację. Sprawdź warunki anulacji i ewentualny zwrot.";
+    update.payment_last_error = null;
+  }
+
+  const { data: updated, error } = await admin
+    .from("bookings")
+    .update(update)
+    .eq("id", booking.id)
+    .select("*")
+    .single();
+
+  if (error || !updated) {
+    return NextResponse.json(
+      { error: error?.message ?? "Nie udało się anulować rezerwacji." },
+      { status: 500 }
+    );
+  }
+
+  await admin.from("booking_history").insert({
+    booking_id: booking.id,
+    event: wasPaid
+      ? "Klient ANULOWAŁ rezerwację przez link. Rezerwacja była opłacona — płatność oznaczono DO WERYFIKACJI (ewentualny zwrot)."
+      : "Klient ANULOWAŁ rezerwację przez link.",
+    created_by: null
+  });
+
+  const calendarResult =
+    await syncBookingCalendar(admin, updated);
+
+  if (calendarResult.configured && calendarResult.synced) {
+    await admin.from("booking_history").insert({
+      booking_id: booking.id,
+      event: calendarResult.deleted
+        ? "Google Calendar: usunięto wydarzenie po anulowaniu przez klienta."
+        : "Google Calendar: zsynchronizowano anulowanie.",
+      created_by: null
+    });
+  }
+
+  try {
+    const pushResult = await sendBookingNotification(
+      admin,
+      updated,
+      {
+        kind: "cancelled",
+        eventKey: `cancelled:self:${updated.id}:${updated.updated_at}`
+      }
+    );
+
+    if (pushResult.sent) {
+      await admin.from("booking_history").insert({
+        booking_id: booking.id,
+        event: "Wysłano Push potwierdzający anulowanie rezerwacji.",
+        created_by: null
+      });
+    }
+  } catch (pushError) {
+    console.error("Push po anulowaniu przez klienta:", pushError);
+  }
+
+  const recipient = await bookingRecipient(admin, updated);
+  const customerTemplate = cancelledEmail(updated);
+  const customerMail = await sendMattEmail({
+    to: recipient as any,
+    subject: customerTemplate.subject,
+    html: customerTemplate.html
+  });
+
+  await admin.from("booking_history").insert({
+    booking_id: booking.id,
+    event: customerMail.sent
+      ? `Wysłano e-mail: ${customerTemplate.subject}`
+      : `BŁĄD e-mail anulowania do klienta/firmy: ${customerMail.error || "nieznany błąd"}`,
+    created_by: null
+  });
+
+  const panelBase =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    "https://panel.matt-transport.pl";
+  const adminUrl =
+    `${panelBase.replace(/\/$/, "")}/panel/rezerwacje/${booking.id}`;
+
+  const adminMail = await sendMattEmail({
+    to: process.env.ADMIN_EMAIL || "kontakt@matt-transport.pl",
+    subject: `ANULOWANA PRZEZ KLIENTA · ${booking.booking_number}`,
+    html: `
+      <div style="margin:0;padding:32px 14px;background:#0b0e13;font-family:Arial,sans-serif;color:#f7f7f7">
+        <div style="max-width:680px;margin:auto;background:#151923;border:1px solid #343b49;border-radius:18px;padding:28px">
+          <div style="font-size:20px;font-weight:800;color:#f1d28b">MATT TRANSPORT</div>
+          <h1 style="margin:18px 0;color:#fff">Klient anulował rezerwację</h1>
+          <p>Numer: <strong>${booking.booking_number}</strong></p>
+          <p>Klient: <strong>${booking.customer_name || "—"}</strong></p>
+          <p>Termin: <strong>${booking.travel_date} ${String(booking.travel_time || "").slice(0,5)}</strong></p>
+          ${
+            wasPaid
+              ? `<p style="padding:14px;border-radius:10px;background:#493915;color:#ffe5a3"><strong>UWAGA:</strong> rezerwacja była opłacona. Płatność ma status DO WERYFIKACJI — sprawdź ewentualny zwrot.</p>`
+              : ""
+          }
+          <p style="margin-top:20px">
+            <a href="${adminUrl}" style="display:inline-block;background:#d5ae5d;color:#111;padding:13px 18px;border-radius:10px;text-decoration:none;font-weight:bold">OTWÓRZ REZERWACJĘ W PANELU</a>
+          </p>
+        </div>
+      </div>`
+  });
+
+  await admin.from("booking_history").insert({
+    booking_id: booking.id,
+    event: adminMail.sent
+      ? "Wysłano e-mail do MATT o anulowaniu przez klienta."
+      : `BŁĄD e-mail do MATT o anulowaniu: ${adminMail.error || "nieznany błąd"}`,
+    created_by: null
+  });
+
+  return NextResponse.json({
+    ok: true,
+    booking: updated,
+    payment_requires_review: wasPaid,
+    email_sent: customerMail.sent,
+    admin_email_sent: adminMail.sent,
+    calendar_deleted: Boolean(calendarResult.deleted)
   });
 }

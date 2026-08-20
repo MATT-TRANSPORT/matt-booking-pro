@@ -252,6 +252,35 @@ export function completedEmail(b: BookingMail) {
   };
 }
 
+export function cancelledEmail(b: BookingMail) {
+  const paidNotice =
+    b.payment_status === "paid" ||
+    b.payment_status === "review"
+      ? `
+        <div style="margin-top:18px;padding:16px;border-radius:12px;background:#493915;color:#ffe5a3">
+          Płatność była już zaksięgowana. MATT TRANSPORT zweryfikuje ewentualny zwrot zgodnie z warunkami anulacji. Nie wykonuj kolejnej płatności.
+        </div>`
+      : "";
+
+  return {
+    subject: `Rezerwacja ${b.booking_number} została anulowana`,
+    html: shell(
+      "Rezerwacja anulowana",
+      `<p style="color:#aab1bc;line-height:1.7">
+        Potwierdzamy anulowanie rezerwacji ${esc(b.booking_number)}.
+      </p>
+      ${details(b)}
+      <div style="margin-top:18px;padding:16px;border-radius:12px;background:#3a2023;color:#ffd1d6">
+        Rezerwacja nie będzie realizowana.
+      </div>
+      ${paidNotice}
+      <p style="margin-top:18px;color:#aab1bc;line-height:1.7">
+        W razie pytań skontaktuj się z nami pod numerem +48 691 242 691.
+      </p>`
+    )
+  };
+}
+
 
 export function paymentReceivedEmail(b: BookingMail) {
   return {

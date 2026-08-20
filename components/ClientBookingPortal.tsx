@@ -20,6 +20,8 @@ export default function ClientBookingPortal({ token }: { token:string }) {
   const [form,setForm] = useState<any>(null);
   const [message,setMessage] = useState("");
   const [saving,setSaving] = useState(false);
+  const [cancelling,setCancelling] = useState(false);
+  const [showCancelConfirm,setShowCancelConfirm] = useState(false);
 
   useEffect(()=>{
     fetch(`/api/client-booking/${token}`)
@@ -62,12 +64,50 @@ export default function ClientBookingPortal({ token }: { token:string }) {
     window.scrollTo({top:0,behavior:"smooth"});
   }
 
+  async function cancelBooking(){
+    if(cancelling) return;
+    setCancelling(true);
+    setMessage("");
+
+    try {
+      const r=await fetch(`/api/client-booking/${token}`,{
+        method:"DELETE"
+      });
+      const d=await r.json();
+
+      if(!r.ok){
+        setMessage(d.error||"Nie udało się anulować rezerwacji.");
+        setCancelling(false);
+        return;
+      }
+
+      setData((old:any)=>({
+        ...old,
+        booking:d.booking,
+        editable:false,
+        cancellable:false
+      }));
+      setShowCancelConfirm(false);
+      setMessage(
+        d.payment_requires_review
+          ? "Rezerwacja została anulowana. Ponieważ była już opłacona, MATT TRANSPORT zweryfikuje ewentualny zwrot zgodnie z warunkami anulacji."
+          : "Rezerwacja została anulowana. Potwierdzenie zostało wysłane e-mailem."
+      );
+      window.scrollTo({top:0,behavior:"smooth"});
+    } catch {
+      setMessage("Nie udało się anulować rezerwacji. Spróbuj ponownie lub zadzwoń: +48 691 242 691.");
+    }
+
+    setCancelling(false);
+  }
+
   if(message && !data) return <main className="container client-portal-shell"><div className="card"><h1>Twoja rezerwacja</h1><div className="booking-error">{message}</div></div></main>;
   if(!data||!form) return <main className="container client-portal-shell"><div className="card"><h1>Ładowanie rezerwacji…</h1></div></main>;
 
   const b=data.booking;
   const editable=data.editable && !["in_progress","arrived","picked_up","completed","cancelled"].includes(b.status);
-  const paidBooking = b.payment_status === "paid";
+  const cancellable=(data.cancellable ?? data.editable) && ["pending","confirmed","assigned"].includes(b.status);
+  const paidBooking = b.payment_status === "paid" || b.payment_status === "review";
   const driver=Array.isArray(b.drivers)?b.drivers[0]:b.drivers;
   const vehicle=Array.isArray(b.vehicles)?b.vehicles[0]:b.vehicles;
 
@@ -127,7 +167,7 @@ export default function ClientBookingPortal({ token }: { token:string }) {
         </div>
 
 
-        <CustomerPushControls token={token} />
+        {! ["completed","cancelled"].includes(b.status) && <CustomerPushControls token={token} />}
 
         {editable&&<div className="client-edit-warning">
           {paidBooking
@@ -137,7 +177,38 @@ export default function ClientBookingPortal({ token }: { token:string }) {
 
         {message&&<div className={message.startsWith("Zmiany")?"client-success-message":"booking-error"}>{message}</div>}
 
-        {editable&&<button className="btn" style={{width:"100%",marginTop:16}} disabled={saving} onClick={save}>{saving?"ZAPISYWANIE...":"ZAPISZ ZMIANY"}</button>}
+        {editable&&<button className="btn" style={{width:"100%",marginTop:16}} disabled={saving||cancelling} onClick={save}>{saving?"ZAPISYWANIE...":"ZAPISZ ZMIANY"}</button>}
+
+        {cancellable&&!showCancelConfirm&&
+          <button
+            type="button"
+            className="btn secondary"
+            style={{width:"100%",marginTop:14,borderColor:"#8b343b",color:"#ffb9bf"}}
+            disabled={saving||cancelling}
+            onClick={()=>setShowCancelConfirm(true)}
+          >
+            ANULUJ REZERWACJĘ
+          </button>
+        }
+
+        {cancellable&&showCancelConfirm&&
+          <div style={{marginTop:14,padding:16,border:"1px solid #8b343b",borderRadius:12,background:"#2b171a"}}>
+            <strong style={{color:"#ffb9bf"}}>
+              Czy na pewno chcesz całkowicie anulować tę rezerwację?
+            </strong>
+            <p className="muted" style={{marginTop:8}}>
+              Kurs zostanie oznaczony jako anulowany i usunięty z planu realizacji. Jeśli rezerwacja była opłacona, zwrot zostanie zweryfikowany przez MATT TRANSPORT zgodnie z warunkami anulacji.
+            </p>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:12}}>
+              <button type="button" className="btn secondary" disabled={cancelling} onClick={()=>setShowCancelConfirm(false)}>
+                NIE, ZOSTAW
+              </button>
+              <button type="button" className="btn" style={{background:"#8b343b",borderColor:"#a8434c"}} disabled={cancelling} onClick={cancelBooking}>
+                {cancelling?"ANULOWANIE...":"TAK, ANULUJ"}
+              </button>
+            </div>
+          </div>
+        }
       </section>
 
       <aside className="card client-booking-summary">

@@ -1,0 +1,14 @@
+MATT Booking PRO v3.0.1.4 — CLIENT CANCELLATION + NO EMAIL LOGO
+
+- klient może anulować rezerwację z indywidualnego linku dla statusów pending/confirmed/assigned;
+- dwuetapowe potwierdzenie chroni przed przypadkowym anulowaniem;
+- status po anulowaniu: cancelled;
+- Google Calendar usuwa wydarzenie;
+- Web Push potwierdza anulowanie, jeśli klient ma Push ON;
+- klient/firma i MATT dostają e-mail;
+- opłacona rezerwacja nie jest automatycznie refundowana: payment_status -> review;
+- niewykorzystana sesja Stripe jest wygaszana;
+- całkowicie usunięto logo z maili — zostaje tekstowy nagłówek MATT TRANSPORT.
+
+SQL: brak.
+ENV: brak.
