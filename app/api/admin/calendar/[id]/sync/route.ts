@@ -40,7 +40,8 @@ export async function POST(
 
   if (
     result.configured &&
-    !result.synced
+    !result.synced &&
+    !result.waitingForAssignment
   ) {
     return NextResponse.json(
       {

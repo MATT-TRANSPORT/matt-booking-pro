@@ -28,6 +28,9 @@ type CalendarResult = {
   configured: boolean;
   synced: boolean;
   deleted?: boolean;
+  waitingForAssignment?: boolean;
+  missingDriver?: boolean;
+  missingVehicle?: boolean;
   error?: string | null;
   primaryEventId?: string | null;
   returnEventId?: string | null;
@@ -696,14 +699,8 @@ export async function syncBookingCalendar(
     );
 
   try {
-    // Anulowana lub bez pełnej obsady:
-    // usuń stare wydarzenia, żeby kalendarz
-    // nie pokazywał nieaktualnego kursu.
-    if (
-      booking.status === "cancelled" ||
-      !booking.driver_id ||
-      !booking.vehicle_id
-    ) {
+    // Anulowanie zawsze usuwa wydarzenia.
+    if (booking.status === "cancelled") {
       await deleteEvent(
         config.calendarId,
         primaryId
@@ -729,6 +726,55 @@ export async function syncBookingCalendar(
         configured: true,
         synced: true,
         deleted: true,
+        primaryEventId: null,
+        returnEventId: null
+      };
+    }
+
+    // Bez pełnej obsady nie tworzymy wydarzenia.
+    // Jeżeli wcześniej istniało, czyścimy je jako nieaktualne.
+    if (
+      !booking.driver_id ||
+      !booking.vehicle_id
+    ) {
+      const hadCalendarEvent =
+        Boolean(
+          booking.google_calendar_event_id ||
+          booking.google_calendar_return_event_id
+        );
+
+      if (hadCalendarEvent) {
+        await deleteEvent(
+          config.calendarId,
+          primaryId
+        );
+
+        await deleteEvent(
+          config.calendarId,
+          returnId
+        );
+      }
+
+      await admin
+        .from("bookings")
+        .update({
+          google_calendar_event_id: null,
+          google_calendar_return_event_id: null,
+          google_calendar_synced_at:
+            hadCalendarEvent
+              ? new Date().toISOString()
+              : booking.google_calendar_synced_at || null,
+          google_calendar_sync_error: null
+        })
+        .eq("id", booking.id);
+
+      return {
+        configured: true,
+        synced: false,
+        deleted: hadCalendarEvent,
+        waitingForAssignment: true,
+        missingDriver: !booking.driver_id,
+        missingVehicle: !booking.vehicle_id,
         primaryEventId: null,
         returnEventId: null
       };

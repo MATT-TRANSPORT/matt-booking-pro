@@ -189,6 +189,8 @@ export async function POST(req: NextRequest) {
   let emailSent = false;
   let adminEmailSent = false;
 
+  let emailWarning: string | null = null;
+
   try {
     const companyAdminEmail = companyTerms?.email || user.email || null;
     if (companyAdminEmail) {
@@ -199,6 +201,14 @@ export async function POST(req: NextRequest) {
         html: customerMail.html
       });
       emailSent = customerResult.sent;
+
+      if (!customerResult.sent) {
+        emailWarning =
+          `Firma: ${customerResult.error || "nie udało się wysłać"}`;
+      }
+    } else {
+      emailWarning =
+        "Firma: brak adresu e-mail odbiorcy.";
     }
 
     const adminMail = adminNewBookingEmail(data, data.email, data.phone);
@@ -208,13 +218,35 @@ export async function POST(req: NextRequest) {
       html: adminMail.html
     });
     adminEmailSent = adminResult.sent;
+
+    if (!adminResult.sent) {
+      emailWarning =
+        [
+          emailWarning,
+          `MATT: ${adminResult.error || "nie udało się wysłać"}`
+        ].filter(Boolean).join(" · ");
+    }
   } catch (mailError) {
+    emailWarning =
+      mailError instanceof Error
+        ? mailError.message
+        : "Nieznany błąd e-mail B2B";
     console.error("E-mail B2B:", mailError);
   }
+
+  await admin.from("booking_history").insert({
+    booking_id: data.id,
+    event:
+      emailSent && adminEmailSent
+        ? "E-mail B2B: firma i MATT otrzymali powiadomienie."
+        : `E-mail B2B: firma=${emailSent ? "OK" : "BŁĄD"}, MATT=${adminEmailSent ? "OK" : "BŁĄD"}${emailWarning ? ` · ${emailWarning}` : ""}`,
+    created_by: user.id
+  }).catch(() => null);
 
   return NextResponse.json({
     ...data,
     email_sent: emailSent,
-    admin_email_sent: adminEmailSent
+    admin_email_sent: adminEmailSent,
+    email_warning: emailWarning
   });
 }

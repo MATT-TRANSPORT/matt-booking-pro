@@ -1,0 +1,27 @@
+MATT Booking PRO v3.0.1.2 — EMAIL + CALENDAR REGRESSION HOTFIX
+
+NAPRAWY E-MAIL:
+- logo jest wczytywane lokalnie z public/MATT_TRANSPORT_gold_static.png
+  i wysyłane do Resend jako Base64/CID;
+- brak zależności od pobrania logo przez Resend z URL aplikacji;
+- jeżeli wysyłka z inline logo się nie powiedzie, system automatycznie
+  ponawia e-mail bez załącznika, aby nie zgubić wiadomości;
+- walidacja pustego odbiorcy;
+- B2B: fallback z companies.email na e-mail użytkownika, który zamówił kurs,
+  a potem na aktywnego admina/managera/accounting firmy;
+- błędy wysyłki są zapisywane do historii rezerwacji.
+
+NAPRAWY GOOGLE CALENDAR:
+- brak pełnej obsady nie jest już raportowany jak poprawne "usunięcie wydarzenia";
+- przy braku kierowcy/pojazdu karta pokazuje dokładnie, czego brakuje;
+- przy pełnej obsadzie synchronizacja wykonuje normalny upsert;
+- anulowanie nadal usuwa wydarzenie;
+- usunięcie starego eventu przy zdjęciu obsady następuje tylko, gdy event faktycznie wcześniej istniał;
+- przy braku pełnej obsady ręczny przycisk synchronizacji jest wyłączony.
+
+BEZPIECZEŃSTWO OBSADY:
+- API /api/admin/bookings nie zeruje już driver_id/vehicle_id,
+  jeśli akcja przesyła tylko zmianę statusu.
+
+SQL: BRAK.
+NOWE ENV: BRAK.

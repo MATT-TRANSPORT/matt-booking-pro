@@ -55,6 +55,15 @@ export default function GoogleCalendarSyncCard({
         setMessage(
           "Google Calendar nie jest jeszcze skonfigurowany."
         );
+      } else if (data.waitingForAssignment) {
+        const missing = [
+          data.missingDriver ? "kierowcy" : null,
+          data.missingVehicle ? "pojazdu" : null
+        ].filter(Boolean).join(" i ");
+
+        setMessage(
+          `Kalendarz czeka na przypisanie ${missing || "pełnej obsady"}.`
+        );
       } else if (data.deleted) {
         setMessage(
           "✓ Usunięto nieaktualne wydarzenie z kalendarza."
@@ -135,12 +144,14 @@ export default function GoogleCalendarSyncCard({
       <button
         type="button"
         className="btn secondary"
-        disabled={busy}
+        disabled={busy || !hasAssignment}
         onClick={syncNow}
         style={{ width: "100%" }}
       >
         {busy
           ? "SYNCHRONIZACJA..."
+          : !hasAssignment
+          ? "OCZEKUJE NA KIEROWCĘ I POJAZD"
           : "🔄 SYNCHRONIZUJ TERAZ"}
       </button>
 

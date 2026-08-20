@@ -12,11 +12,55 @@ import {
 } from "@/lib/emailTemplates";
 
 async function recipientForBooking(admin:any, booking:any){
-  if(booking.company_id){
-    const {data:company}=await admin.from("companies").select("email").eq("id",booking.company_id).single();
-    return company?.email || null;
+  if (booking.company_id) {
+    const { data: company } = await admin
+      .from("companies")
+      .select("email")
+      .eq("id", booking.company_id)
+      .maybeSingle();
+
+    if (company?.email) {
+      return String(company.email).trim();
+    }
+
+    // Awaryjnie użyj e-maila konta, które utworzyło rezerwację B2B.
+    if (booking.ordered_by_user_id) {
+      const { data: orderedBy } =
+        await admin.auth.admin.getUserById(
+          booking.ordered_by_user_id
+        );
+
+      if (orderedBy?.user?.email) {
+        return orderedBy.user.email;
+      }
+    }
+
+    // Ostatni fallback: aktywny administrator/manager firmy.
+    const { data: companyUsers } = await admin
+      .from("company_users")
+      .select("user_id,role")
+      .eq("company_id", booking.company_id)
+      .eq("active", true)
+      .in("role", ["admin", "manager", "accounting"])
+      .limit(10);
+
+    for (const member of companyUsers ?? []) {
+      const { data: account } =
+        await admin.auth.admin.getUserById(
+          member.user_id
+        );
+
+      if (account?.user?.email) {
+        return account.user.email;
+      }
+    }
+
+    return null;
   }
-  return booking.email || null;
+
+  return booking.email
+    ? String(booking.email).trim()
+    : null;
 }
 
 const ALLOWED_STATUSES = [
@@ -44,13 +88,35 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const requestBody = await req.json();
+
   const {
     id,
-    driverId,
-    vehicleId,
     status,
     action
-  } = await req.json();
+  } = requestBody;
+
+  const hasDriverId =
+    Object.prototype.hasOwnProperty.call(
+      requestBody,
+      "driverId"
+    );
+
+  const hasVehicleId =
+    Object.prototype.hasOwnProperty.call(
+      requestBody,
+      "vehicleId"
+    );
+
+  const driverId =
+    hasDriverId
+      ? requestBody.driverId
+      : undefined;
+
+  const vehicleId =
+    hasVehicleId
+      ? requestBody.vehicleId
+      : undefined;
 
   if (!id) {
     return NextResponse.json(
@@ -172,6 +238,16 @@ export async function POST(req: NextRequest) {
 
   let nextStatus = status || current.status;
 
+  const effectiveDriverId =
+    hasDriverId
+      ? driverId || null
+      : current.driver_id || null;
+
+  const effectiveVehicleId =
+    hasVehicleId
+      ? vehicleId || null
+      : current.vehicle_id || null;
+
   if (status && !ALLOWED_STATUSES.includes(status)) {
     return NextResponse.json(
       { error: "Nieprawidłowy status rezerwacji." },
@@ -180,7 +256,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Konflikty operacyjne: ten sam kierowca lub pojazd w oknie 3 godzin.
-  if (driverId || vehicleId) {
+  if (effectiveDriverId || effectiveVehicleId) {
     const { data: sameDay } = await admin
       .from("bookings")
       .select("id,booking_number,travel_time,driver_id,vehicle_id")
@@ -204,16 +280,16 @@ export async function POST(req: NextRequest) {
 
       return (
         close &&
-        ((driverId && row.driver_id === driverId) ||
-          (vehicleId && row.vehicle_id === vehicleId))
+        ((effectiveDriverId && row.driver_id === effectiveDriverId) ||
+          (effectiveVehicleId && row.vehicle_id === effectiveVehicleId))
       );
     });
 
     if (conflict) {
       const driverConflict =
-        driverId && conflict.driver_id === driverId;
+        effectiveDriverId && conflict.driver_id === effectiveDriverId;
       const vehicleConflict =
-        vehicleId && conflict.vehicle_id === vehicleId;
+        effectiveVehicleId && conflict.vehicle_id === effectiveVehicleId;
 
       const what =
         driverConflict && vehicleConflict
@@ -238,19 +314,28 @@ export async function POST(req: NextRequest) {
 
   // Automatyczny status po przydzieleniu pełnej obsady.
   if (
-    driverId &&
-    vehicleId &&
+    effectiveDriverId &&
+    effectiveVehicleId &&
     ["pending", "confirmed", "assigned"].includes(nextStatus)
   ) {
     nextStatus = "assigned";
   }
 
   const updateData: any = {
-    driver_id: driverId || null,
-    vehicle_id: vehicleId || null,
     status: nextStatus,
     updated_at: new Date().toISOString()
   };
+
+  // Nie zeruj obsady przy akcjach, które zmieniają tylko status.
+  if (hasDriverId) {
+    updateData.driver_id =
+      driverId || null;
+  }
+
+  if (hasVehicleId) {
+    updateData.vehicle_id =
+      vehicleId || null;
+  }
 
 
   const { data: updated, error } = await admin
@@ -360,8 +445,14 @@ export async function POST(req: NextRequest) {
     }
 
     if (template) {
+      const recipient =
+        await recipientForBooking(
+          admin,
+          updated
+        );
+
       const result = await sendMattEmail({
-        to: await recipientForBooking(admin,updated),
+        to: recipient as any,
         subject: template.subject,
         html: template.html
       });
@@ -369,13 +460,13 @@ export async function POST(req: NextRequest) {
       emailSent = result.sent;
       emailError = result.error ?? null;
 
-      if (result.sent) {
-        await admin.from("booking_history").insert({
-          booking_id: id,
-          event: `Wysłano e-mail: ${template.subject}`,
-          created_by: user.id
-        });
-      }
+      await admin.from("booking_history").insert({
+        booking_id: id,
+        event: result.sent
+          ? `Wysłano e-mail: ${template.subject}`
+          : `BŁĄD e-mail: ${template.subject} · ${result.error || "nieznany błąd"}`,
+        created_by: user.id
+      });
     }
   } catch (mailError) {
     emailError =
