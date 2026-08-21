@@ -108,7 +108,6 @@ export default function ClientBookingPortal({ token }: { token:string }) {
   const editable=data.editable && !["in_progress","arrived","picked_up","completed","cancelled"].includes(b.status);
   const cancellable=(data.cancellable ?? data.editable) && ["pending","confirmed","assigned"].includes(b.status);
   const paidBooking = b.payment_status === "paid" || b.payment_status === "review";
-  const isB2B = Boolean(b.company_id);
   const driver=Array.isArray(b.drivers)?b.drivers[0]:b.drivers;
   const vehicle=Array.isArray(b.vehicles)?b.vehicles[0]:b.vehicles;
 
@@ -158,9 +157,10 @@ export default function ClientBookingPortal({ token }: { token:string }) {
           <textarea disabled={!editable} rows={4} value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})}/>
         </label>
 
-        {isB2B ? (
-          <div className="b2b-vat-note" style={{marginTop:14}}>
-            Rezerwacja firmowa B2B. Rozliczenie: <strong>NETTO + 8% VAT</strong>. Dane fakturowe są zarządzane przez firmę/MATT TRANSPORT.
+        {b.company_id ? (
+          <div style={{marginTop:14,padding:12,border:"1px solid #4f4733",borderRadius:10}}>
+            <strong>Rozliczenie firmowe B2B</strong>
+            <div className="muted">Ceny netto + VAT 8%. Ustawień faktury nie zmienia się z linku pasażera.</div>
           </div>
         ) : (
           <div className="grid" style={{marginTop:14}}>
@@ -221,11 +221,11 @@ export default function ClientBookingPortal({ token }: { token:string }) {
       <aside className="card client-booking-summary">
         <h2>Podsumowanie</h2>
         <div><span>Lotnisko</span><strong>{b.airport_label}</strong></div>
-        {isB2B ? (b.b2b_net != null ? <>
-          <div><span>Netto</span><strong>{Number(b.b2b_net).toFixed(2)} zł</strong></div>
-          <div><span>VAT {Number(b.b2b_vat_rate ?? 8).toFixed(0)}%</span><strong>{Number(b.b2b_vat ?? 0).toFixed(2)} zł</strong></div>
-          <div><span>Brutto</span><strong>{Number(b.b2b_gross ?? b.total_price).toFixed(2)} zł</strong></div>
-        </> : <div><span>Kwota historyczna</span><strong>{Number(b.total_price).toFixed(2)} zł</strong></div>) : <div><span>Kwota</span><strong>{Number(b.total_price).toFixed(2)} zł</strong></div>}
+        {b.company_id ? <>
+          <div><span>Netto</span><strong>{Number(b.price_net ?? b.total_price).toFixed(2)} zł</strong></div>
+          <div><span>VAT {Number(b.vat_rate ?? 8).toFixed(0)}%</span><strong>{Number(b.vat_price ?? 0).toFixed(2)} zł</strong></div>
+          <div><span>Brutto</span><strong>{Number(b.price_gross ?? b.total_price).toFixed(2)} zł</strong></div>
+        </> : <div><span>Kwota</span><strong>{Number(b.total_price).toFixed(2)} zł</strong></div>}
         <div><span>Status</span><strong>{STATUS[b.status]||b.status}</strong></div>
         <div><span>Płatność</span><strong>{b.company_id
           ? (b.payment_method === "employee_payment" ? "Płatność pracownika online" : "Przelew firmowy")

@@ -30,6 +30,20 @@ export type CompanyQuote = {
   snapshot: Record<string, unknown>;
 };
 
+function pricingSchemaUnavailable(error: any) {
+  const message = String(
+    error?.message || error?.details || ""
+  ).toLowerCase();
+
+  return (
+    error?.code === "PGRST205" ||
+    message.includes("company_pricing_terms") &&
+      message.includes("schema cache") ||
+    message.includes("company_pricing_airport_prices") &&
+      message.includes("schema cache")
+  );
+}
+
 function money(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
@@ -109,7 +123,9 @@ export async function getCompanyPricingTerms(
       .eq("company_id", companyId)
       .maybeSingle();
 
-    if (error) throw new Error(error.message);
+    if (error && !pricingSchemaUnavailable(error)) {
+      throw new Error(error.message);
+    }
     if (data) return data;
   }
 
@@ -126,9 +142,14 @@ export async function getCompanyPricingTerms(
     .limit(1)
     .maybeSingle();
 
-  if (error) throw new Error(error.message);
+  if (error && !pricingSchemaUnavailable(error)) {
+    throw new Error(error.message);
+  }
   if (data) return data;
 
+  // Jeżeli PostgREST chwilowo nie widzi tabel B2B PRO,
+  // nie wywracamy rezerwacji. Używamy bezpiecznego fallbacku
+  // ze starszych warunków firmy do czasu przeładowania schema cache.
   // Awaryjna zgodność ze starszym modułem B2B.
   const { data: company, error: companyError } = await admin
     .from("companies")
@@ -221,8 +242,10 @@ export async function calculateCompanyQuote(
       .eq("airport_key", input.airportKey)
       .maybeSingle();
 
-    if (error) throw new Error(error.message);
-    customPrice = data;
+    if (error && !pricingSchemaUnavailable(error)) {
+      throw new Error(error.message);
+    }
+    customPrice = error ? null : data;
   }
 
   const customValue =

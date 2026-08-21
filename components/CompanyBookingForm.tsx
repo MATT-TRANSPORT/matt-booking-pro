@@ -3,6 +3,51 @@
 import { useEffect, useState } from "react";
 import { PRICES } from "@/lib/pricing";
 
+function safeNumber(value: unknown, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function fixed(value: unknown, digits = 2) {
+  return safeNumber(value).toFixed(digits);
+}
+
+function normalizeQuote(value: any) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  return {
+    ...value,
+    effectiveFrom:
+      value.effectiveFrom
+        ? String(value.effectiveFrom)
+        : null,
+    pricingSource:
+      String(value.pricingSource || "standard"),
+    originAddress:
+      String(value.originAddress || ""),
+    airportLabel:
+      String(value.airportLabel || ""),
+    distanceKm: safeNumber(value.distanceKm),
+    freeKm: safeNumber(value.freeKm),
+    billableKm: safeNumber(value.billableKm),
+    extraKmRateNet: safeNumber(value.extraKmRateNet),
+    baseOneWayNet: safeNumber(value.baseOneWayNet),
+    basePriceNet: safeNumber(value.basePriceNet),
+    extraPriceNet: safeNumber(value.extraPriceNet),
+    net: safeNumber(value.net),
+    vatRate: safeNumber(value.vatRate, 8),
+    vat: safeNumber(value.vat),
+    gross: safeNumber(value.gross),
+    multiplier: Math.max(1, safeNumber(value.multiplier, 1)),
+    defaultPaymentMethod:
+      value.defaultPaymentMethod === "employee_payment"
+        ? "employee_payment"
+        : "company_transfer"
+  };
+}
+
 export default function CompanyBookingForm({
   employees,
   companyName,
@@ -13,7 +58,7 @@ export default function CompanyBookingForm({
   commercialTerms?: any | null;
 }) {
   const [passengerMode, setPassengerMode] = useState<"existing" | "new">(
-    employees.length ? "existing" : "new"
+    Array.isArray(employees) && employees.length ? "existing" : "new"
   );
   const [employeeId, setEmployeeId] = useState("");
   const [newEmployee, setNewEmployee] = useState({
@@ -48,11 +93,22 @@ export default function CompanyBookingForm({
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState<any>(null);
 
-  const employee = employees.find((x) => x.id === employeeId);
+  const safeEmployees = Array.isArray(employees)
+    ? employees.filter(Boolean)
+    : [];
+
+  const employee = safeEmployees.find(
+    (x) => String(x?.id || "") === employeeId
+  );
 
   useEffect(() => {
-    if (passengerMode === "existing" && employee?.default_address) {
-      setAddress(employee.default_address);
+    if (passengerMode === "existing") {
+      const employeeAddress = String(
+        employee?.default_address || ""
+      );
+      setAddress(employeeAddress);
+      setQuote(null);
+      setQuoteError("");
     }
   }, [employeeId, passengerMode]);
 
@@ -121,10 +177,27 @@ export default function CompanyBookingForm({
         setQuote(null);
         setQuoteError(data.error ?? "Nie udało się przygotować wyceny.");
       } else {
-        setQuote(data);
-        if (!paymentInitialized) {
-          setPaymentMethod(data.defaultPaymentMethod || "company_transfer");
-          setPaymentInitialized(true);
+        const normalized = normalizeQuote(data);
+
+        if (
+          !normalized ||
+          !normalized.originAddress ||
+          normalized.net < 0 ||
+          normalized.gross < 0
+        ) {
+          setQuote(null);
+          setQuoteError(
+            "Kalkulator zwrócił niepełne dane. Odśwież formularz lub spróbuj ponownie."
+          );
+        } else {
+          setQuote(normalized);
+
+          if (!paymentInitialized) {
+            setPaymentMethod(
+              normalized.defaultPaymentMethod
+            );
+            setPaymentInitialized(true);
+          }
         }
       }
     } catch {
@@ -218,9 +291,9 @@ export default function CompanyBookingForm({
 
         <div className="success-details">
           <div><span>Pasażer</span><strong>{success.customer_name}</strong></div>
-          <div><span>Netto</span><strong>{net.toFixed(2)} zł</strong></div>
-          <div><span>VAT 8%</span><strong>{vat.toFixed(2)} zł</strong></div>
-          <div><span>Brutto</span><strong>{gross.toFixed(2)} zł</strong></div>
+          <div><span>Netto</span><strong>{fixed(net)} zł</strong></div>
+          <div><span>VAT 8%</span><strong>{fixed(vat)} zł</strong></div>
+          <div><span>Brutto</span><strong>{fixed(gross)} zł</strong></div>
         </div>
 
         <p className="muted">
@@ -246,7 +319,7 @@ export default function CompanyBookingForm({
             <small>WARUNKI {companyName ? companyName.toUpperCase() : "KONTRAHENTA"}</small>
             <strong>
               {commercialTerms
-                ? `${Number(commercialTerms.free_km ?? 0).toFixed(1)} km bez dopłaty · ${Number(commercialTerms.extra_km_rate_net ?? 0).toFixed(2)} zł netto/km ponad limit`
+                ? `${fixed(commercialTerms.free_km, 1)} km bez dopłaty · ${fixed(commercialTerms.extra_km_rate_net)} zł netto/km ponad limit`
                 : "Warunki handlowe zostaną pobrane przy wycenie"}
             </strong>
             <span>
@@ -263,7 +336,7 @@ export default function CompanyBookingForm({
             type="button"
             className={passengerMode === "existing" ? "active" : ""}
             onClick={() => setPassengerMode("existing")}
-            disabled={!employees.length}
+            disabled={!safeEmployees.length}
           >
             Z listy pracowników
           </button>
@@ -281,8 +354,8 @@ export default function CompanyBookingForm({
             Pracownik
             <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
               <option value="">— Wybierz pracownika —</option>
-              {employees.filter((x) => x.active !== false).map((x) => (
-                <option key={x.id} value={x.id}>{x.first_name} {x.last_name}</option>
+              {safeEmployees.filter((x) => x?.active !== false).map((x) => (
+                <option key={x.id} value={x.id}>{String(x?.first_name || "")} {String(x?.last_name || "")}</option>
               ))}
             </select>
           </label>
@@ -337,7 +410,7 @@ export default function CompanyBookingForm({
           {quoteBusy
             ? "Obliczanie odległości od siedziby kontrahenta i wyceny..."
             : quote
-            ? `✓ ${quote.distanceKm.toFixed(1)} km od siedziby kontrahenta · ${quote.billableKm.toFixed(1)} km płatne`
+            ? `✓ ${fixed(quote.distanceKm, 1)} km od siedziby kontrahenta · ${fixed(quote.billableKm, 1)} km płatne`
             : quoteError || "Wybierz dokładny adres, aby pobrać indywidualną wycenę."}
         </div>
 
@@ -374,23 +447,23 @@ export default function CompanyBookingForm({
       <aside className="card summary">
         <span className="badge">TWOJE WARUNKI</span>
         <h3>Podsumowanie B2B</h3>
-        <div className="row"><span>Pasażer</span><strong>{passengerMode === "existing" ? (employee ? `${employee.first_name} ${employee.last_name}` : "—") : `${newEmployee.firstName} ${newEmployee.lastName}`.trim() || "—"}</strong></div>
+        <div className="row"><span>Pasażer</span><strong>{passengerMode === "existing" ? (employee ? `${String(employee.first_name || "")} ${String(employee.last_name || "")}` : "—") : `${newEmployee.firstName} ${newEmployee.lastName}`.trim() || "—"}</strong></div>
 
         {quote ? (
           <>
             <div className="row"><span>Warunki ważne od</span><strong>{quote.effectiveFrom || "—"}</strong></div>
             <div className="row"><span>Siedziba kontrahenta</span><strong style={{ textAlign: "right", maxWidth: "60%" }}>{quote.originAddress}</strong></div>
-            <div className="row"><span>Odległość od siedziby</span><strong>{quote.distanceKm.toFixed(1)} km</strong></div>
-            <div className="row"><span>Limit bez dopłaty</span><strong>{quote.freeKm.toFixed(1)} km</strong></div>
-            <div className="row"><span>Km płatne</span><strong>{quote.billableKm.toFixed(1)} km</strong></div>
-            <div className="row"><span>Stawka ponad limit</span><strong>{quote.extraKmRateNet.toFixed(2)} zł netto/km</strong></div>
-            <div className="row"><span>Cena 1 strony</span><strong>{quote.baseOneWayNet.toFixed(2)} zł netto</strong></div>
+            <div className="row"><span>Odległość od siedziby</span><strong>{fixed(quote.distanceKm, 1)} km</strong></div>
+            <div className="row"><span>Limit bez dopłaty</span><strong>{fixed(quote.freeKm, 1)} km</strong></div>
+            <div className="row"><span>Km płatne</span><strong>{fixed(quote.billableKm, 1)} km</strong></div>
+            <div className="row"><span>Stawka ponad limit</span><strong>{fixed(quote.extraKmRateNet)} zł netto/km</strong></div>
+            <div className="row"><span>Cena 1 strony</span><strong>{fixed(quote.baseOneWayNet)} zł netto</strong></div>
             {quote.multiplier > 1 && <div className="row"><span>Mnożnik przejazdu</span><strong>× {quote.multiplier}</strong></div>}
-            <div className="row"><span>Cena bazowa</span><strong>{quote.basePriceNet.toFixed(2)} zł netto</strong></div>
-            <div className="row"><span>Dopłata km</span><strong>{quote.extraPriceNet.toFixed(2)} zł netto</strong></div>
-            <div className="row total"><span>RAZEM NETTO</span><strong>{quote.net.toFixed(2)} zł</strong></div>
-            <div className="row"><span>VAT {quote.vatRate.toFixed(0)}%</span><strong>{quote.vat.toFixed(2)} zł</strong></div>
-            <div className="row total"><span>RAZEM BRUTTO</span><strong>{quote.gross.toFixed(2)} zł</strong></div>
+            <div className="row"><span>Cena bazowa</span><strong>{fixed(quote.basePriceNet)} zł netto</strong></div>
+            <div className="row"><span>Dopłata km</span><strong>{fixed(quote.extraPriceNet)} zł netto</strong></div>
+            <div className="row total"><span>RAZEM NETTO</span><strong>{quote.fixed(net)} zł</strong></div>
+            <div className="row"><span>VAT {fixed(quote.vatRate, 0)}%</span><strong>{quote.fixed(vat)} zł</strong></div>
+            <div className="row total"><span>RAZEM BRUTTO</span><strong>{quote.fixed(gross)} zł</strong></div>
             <p className="muted" style={{ marginTop: 12 }}>
               {quote.pricingSource === "custom" ? "Indywidualny cennik kontrahenta." : "Cena standardowa MATT dla tej pozycji."}<br />
               Wszystkie ceny B2B są cenami NETTO + 8% VAT.

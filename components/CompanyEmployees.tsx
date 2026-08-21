@@ -2,7 +2,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+function txt(value:any){
+  return value === null || value === undefined
+    ? ""
+    : String(value);
+}
+
 export default function CompanyEmployees({employees}:{employees:any[]}) {
+  const safeEmployees = Array.isArray(employees)
+    ? employees.filter(Boolean)
+    : [];
   const router=useRouter();
   const [form,setForm]=useState({firstName:"",lastName:"",phone:"",email:"",defaultAddress:"",department:""});
   const [message,setMessage]=useState("");
@@ -33,6 +42,6 @@ export default function CompanyEmployees({employees}:{employees:any[]}) {
       <label>Dział<input value={form.department} onChange={e=>setForm({...form,department:e.target.value})}/></label>
     </div><button className="btn" style={{marginTop:16}} disabled={saving} onClick={add}>{saving?"ZAPISYWANIE...":"DODAJ PRACOWNIKA"}</button>{message&&<div className="admin-save-message">{message}</div>}</div>
     <div className="card" style={{marginTop:18}}><h2>Pracownicy</h2><table className="table"><thead><tr><th>Pracownik</th><th>Kontakt</th><th>Dział</th><th>Adres</th><th>Status</th></tr></thead>
-    <tbody>{employees.map(x=><tr key={x.id}><td><strong>{x.first_name} {x.last_name}</strong></td><td>{x.phone||"—"}<br/><span className="muted">{x.email||"—"}</span></td><td>{x.department||"—"}</td><td>{x.default_address||"—"}</td><td><button className="btn secondary company-small-btn" onClick={()=>toggle(x.id,x.active)}>{x.active?"Aktywny":"Nieaktywny"}</button></td></tr>)}</tbody></table></div>
+    <tbody>{safeEmployees.map(x=><tr key={x.id}><td><strong>{txt(x.first_name)} {txt(x.last_name)}</strong></td><td>{txt(x.phone)||"—"}<br/><span className="muted">{txt(x.email)||"—"}</span></td><td>{txt(x.department)||"—"}</td><td>{txt(x.default_address)||"—"}</td><td><button className="btn secondary company-small-btn" onClick={()=>toggle(x.id,x.active)}>{x.active?"Aktywny":"Nieaktywny"}</button></td></tr>)}</tbody></table></div>
   </>;
 }

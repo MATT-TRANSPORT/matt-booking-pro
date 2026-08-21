@@ -1,316 +1,263 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PRICES } from "@/lib/pricing";
 
-type PriceMap = Record<string, { car?: number | string | null; bus?: number | string | null }>;
-
 export default function CompanyTermsEditor({
   company,
-  currentTerms,
-  currentPrices,
-  history
+  terms,
+  prices
 }: {
   company: any;
-  currentTerms?: any | null;
-  currentPrices?: any[];
-  history?: any[];
+  terms?: any | null;
+  prices?: any[];
 }) {
   const router = useRouter();
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const today = new Date().toISOString().slice(0, 10);
+  const initialPrices = useMemo(() => {
+    const out: Record<string, { car: string; bus: string }> = {};
+    for (const key of Object.keys(PRICES)) {
+      const row = (prices ?? []).find((x: any) => x.airport_key === key);
+      out[key] = {
+        car: row?.car_price_net == null ? "" : String(row.car_price_net),
+        bus: row?.bus_price_net == null ? "" : String(row.bus_price_net)
+      };
+    }
+    return out;
+  }, [prices]);
 
-  const initialPrices: PriceMap = {};
-  for (const [key] of Object.entries(PRICES)) {
-    const row = (currentPrices || []).find((x: any) => x.airport_key === key);
-    initialPrices[key] = {
-      car: row?.car_price_net ?? "",
-      bus: row?.bus_price_net ?? ""
-    };
-  }
-
-  const [form, setForm] = useState({
-    effectiveFrom: new Date().toISOString().slice(0, 10),
-    headquartersAddress:
-      currentTerms?.headquarters_address || company.address || "",
-    headquartersPlaceId: currentTerms?.headquarters_place_id || "",
-    paymentDays: Number(currentTerms?.payment_days ?? company.payment_days ?? 14),
-    discount: Number(currentTerms?.discount_percent ?? company.discount_percent ?? 0),
-    freeKm: Number(currentTerms?.free_km ?? company.free_pickup_km ?? 40),
-    extraKmRateNet: Number(currentTerms?.extra_km_rate_net ?? 2.4),
-    defaultPayment:
-      currentTerms?.default_payment_method ||
-      company.default_payment_method ||
-      "company_transfer",
-    useCustomPricing: Boolean(
-      currentTerms?.use_custom_pricing ?? company.use_custom_pricing
-    ),
-    notes: currentTerms?.notes ?? company.internal_notes ?? "",
-    prices: initialPrices
+  const [f, setF] = useState({
+    pricingOriginAddress:
+      terms?.pricing_origin_address ||
+      company.pricing_origin_address ||
+      company.address ||
+      "",
+    effectiveFrom: terms?.effective_from || today,
+    freeKm: Number(terms?.free_km ?? company.free_pickup_km ?? 40),
+    extraKmRateNet: Number(terms?.extra_km_rate_net ?? 2.4),
+    paymentDays: Number(terms?.payment_days ?? company.payment_days ?? 14),
+    defaultPaymentMethod:
+      terms?.default_payment_method || company.default_payment_method || "company_transfer",
+    useCustomPricing: Boolean(terms?.use_custom_pricing ?? company.use_custom_pricing),
+    notes: terms?.commercial_notes ?? company.internal_notes ?? ""
   });
+  const [priceMap, setPriceMap] = useState(initialPrices);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
 
-  async function headquartersChanged(value: string) {
-    setForm((prev) => ({
-      ...prev,
-      headquartersAddress: value,
-      headquartersPlaceId: ""
-    }));
-
-    if (value.trim().length < 3) {
+  useEffect(() => {
+    if (f.pricingOriginAddress.trim().length < 3) {
       setSuggestions([]);
       return;
     }
 
-    const response = await fetch(
-      `/api/places?q=${encodeURIComponent(value)}`
-    );
-    const data = await response.json();
-    setSuggestions(data.suggestions ?? []);
-  }
-
-  function setPrice(airport: string, vehicle: "car" | "bus", value: string) {
-    setForm((prev) => ({
-      ...prev,
-      prices: {
-        ...prev.prices,
-        [airport]: {
-          ...prev.prices[airport],
-          [vehicle]: value
-        }
+    const timer = setTimeout(async () => {
+      try {
+        const r = await fetch(`/api/places?q=${encodeURIComponent(f.pricingOriginAddress)}`);
+        const d = await r.json();
+        setSuggestions(d.suggestions ?? []);
+      } catch {
+        setSuggestions([]);
       }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [f.pricingOriginAddress]);
+
+  function updatePrice(key: string, vehicle: "car" | "bus", value: string) {
+    setPriceMap((current) => ({
+      ...current,
+      [key]: { ...current[key], [vehicle]: value }
     }));
   }
 
   async function save() {
-    if (!form.headquartersAddress.trim()) {
-      setMessage("Podaj siedzibę kontrahenta do kalkulacji kilometrów.");
-      return;
-    }
-
+    if (saving) return;
     setSaving(true);
-    setMessage("Zapisywanie nowej wersji warunków...");
+    setMsg("");
 
-    const response = await fetch("/api/admin/companies", {
+    const r = await fetch(`/api/admin/companies/${company.id}/commercial-terms`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "terms",
-        id: company.id,
-        ...form
-      })
+      body: JSON.stringify({ ...f, prices: priceMap })
     });
+    const d = await r.json();
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      setMessage(data.error ?? "Nie udało się zapisać warunków.");
+    if (!r.ok) {
+      setMsg(d.error ?? "Nie udało się zapisać warunków.");
       setSaving(false);
       return;
     }
 
-    setMessage("✓ Nowa wersja warunków handlowych została zapisana.");
+    setMsg("✓ Zapisano nową wersję warunków handlowych.");
     setSaving(false);
     router.refresh();
   }
 
   return (
-    <div className="card b2b-terms-card">
-      <div className="company-section-head">
-        <div>
-          <span className="badge">B2B PRO</span>
-          <h2>Warunki handlowe</h2>
-          <p className="muted">
-            Zapis tworzy nową wersję. Stare rezerwacje zachowują swój snapshot ceny.
-          </p>
-        </div>
-      </div>
-
-      <div className="b2b-vat-note">
-        Wszystkie ceny B2B są cenami <strong>NETTO</strong>. Do ceny system dolicza <strong>8% VAT</strong>.
-      </div>
+    <div className="card">
+      <span className="badge">B2B PRO</span>
+      <h2>Warunki handlowe</h2>
+      <p className="muted">
+        Każdy zapis tworzy nową wersję. Stare rezerwacje zachowują wcześniejszą wycenę.
+      </p>
 
       <div className="grid">
+        <label style={{ position: "relative" }}>
+          Siedziba kontrahenta do kalkulacji km
+          <input
+            value={f.pricingOriginAddress}
+            onChange={(e) => setF({ ...f, pricingOriginAddress: e.target.value })}
+            autoComplete="off"
+          />
+          {suggestions.length > 0 && (
+            <div className="address-suggestions">
+              {suggestions.slice(0, 5).map((s: any, i: number) => (
+                <button
+                  key={s.placeId ?? i}
+                  type="button"
+                  onClick={() => {
+                    setF({ ...f, pricingOriginAddress: s.text ?? "" });
+                    setSuggestions([]);
+                  }}
+                >
+                  {s.text}
+                </button>
+              ))}
+            </div>
+          )}
+        </label>
         <label>
           Warunki ważne od
           <input
             type="date"
-            value={form.effectiveFrom}
-            onChange={(e) => setForm({ ...form, effectiveFrom: e.target.value })}
+            value={f.effectiveFrom}
+            onChange={(e) => setF({ ...f, effectiveFrom: e.target.value })}
           />
         </label>
-
-        <label>
-          Termin płatności (dni)
-          <input
-            type="number"
-            min="0"
-            value={form.paymentDays}
-            onChange={(e) => setForm({ ...form, paymentDays: Number(e.target.value) })}
-          />
-        </label>
-      </div>
-
-      <label style={{ marginTop: 12, position: "relative" }}>
-        Siedziba kontrahenta do kalkulacji km
-        <input
-          value={form.headquartersAddress}
-          autoComplete="off"
-          onChange={(e) => headquartersChanged(e.target.value)}
-        />
-        {suggestions.length > 0 && (
-          <div className="address-suggestions">
-            {suggestions.slice(0, 5).map((s: any, i: number) => (
-              <button
-                key={s.placeId ?? i}
-                type="button"
-                onClick={() => {
-                  setForm((prev) => ({
-                    ...prev,
-                    headquartersAddress: s.text ?? "",
-                    headquartersPlaceId: s.placeId ?? ""
-                  }));
-                  setSuggestions([]);
-                }}
-              >
-                {s.text}
-              </button>
-            ))}
-          </div>
-        )}
-      </label>
-
-      <div className="grid" style={{ marginTop: 12 }}>
         <label>
           Limit bez dopłaty od siedziby (km)
           <input
             type="number"
             min="0"
             step="0.1"
-            value={form.freeKm}
-            onChange={(e) => setForm({ ...form, freeKm: Number(e.target.value) })}
+            value={f.freeKm}
+            onChange={(e) => setF({ ...f, freeKm: Number(e.target.value) })}
           />
         </label>
-
         <label>
           Dopłata powyżej limitu (zł netto/km)
           <input
             type="number"
             min="0"
             step="0.01"
-            value={form.extraKmRateNet}
-            onChange={(e) =>
-              setForm({ ...form, extraKmRateNet: Number(e.target.value) })
-            }
+            value={f.extraKmRateNet}
+            onChange={(e) => setF({ ...f, extraKmRateNet: Number(e.target.value) })}
           />
         </label>
-
         <label>
-          Rabat dodatkowy %
+          Termin płatności (dni)
           <input
             type="number"
             min="0"
-            max="100"
-            step="0.1"
-            value={form.discount}
-            onChange={(e) => setForm({ ...form, discount: Number(e.target.value) })}
+            value={f.paymentDays}
+            onChange={(e) => setF({ ...f, paymentDays: Number(e.target.value) })}
           />
         </label>
-
         <label>
           Domyślna płatność
           <select
-            value={form.defaultPayment}
-            onChange={(e) => setForm({ ...form, defaultPayment: e.target.value })}
+            value={f.defaultPaymentMethod}
+            onChange={(e) => setF({ ...f, defaultPaymentMethod: e.target.value })}
           >
             <option value="company_transfer">Przelew firmowy</option>
             <option value="employee_payment">Płatność pracownika</option>
           </select>
         </label>
+        <label>
+          Indywidualne ceny lotnisk
+          <select
+            value={f.useCustomPricing ? "1" : "0"}
+            onChange={(e) => setF({ ...f, useCustomPricing: e.target.value === "1" })}
+          >
+            <option value="0">Wyłączone — ceny standardowe MATT</option>
+            <option value="1">Włączone</option>
+          </select>
+        </label>
+        <label>
+          VAT
+          <input value="8%" disabled />
+        </label>
       </div>
 
-      <label style={{ marginTop: 12 }}>
-        Cennik
-        <select
-          value={form.useCustomPricing ? "1" : "0"}
-          onChange={(e) =>
-            setForm({ ...form, useCustomPricing: e.target.value === "1" })
-          }
-        >
-          <option value="0">Standardowy MATT</option>
-          <option value="1">Indywidualny / mieszany</option>
-        </select>
-      </label>
-
-      <div className="b2b-price-editor">
-        <div className="b2b-price-editor-head">
-          <strong>Lotnisko</strong>
-          <strong>Samochód NETTO</strong>
-          <strong>Bus NETTO</strong>
+      <div style={{ marginTop: 18 }}>
+        <h3>Indywidualny cennik lotnisk — ceny NETTO</h3>
+        <p className="muted">
+          Puste pole oznacza automatyczny fallback do standardowej ceny MATT.
+        </p>
+        <div className="company-bookings-table">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Lotnisko</th>
+                <th>Samochód netto</th>
+                <th>Bus netto</th>
+                <th>Standard MATT</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.entries(PRICES).map(([key, row]) => (
+                <tr key={key}>
+                  <td><strong>{row.label}</strong></td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder={`${row.car}`}
+                      value={priceMap[key]?.car ?? ""}
+                      disabled={!f.useCustomPricing}
+                      onChange={(e) => updatePrice(key, "car", e.target.value)}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder={`${row.bus}`}
+                      value={priceMap[key]?.bus ?? ""}
+                      disabled={!f.useCustomPricing}
+                      onChange={(e) => updatePrice(key, "bus", e.target.value)}
+                    />
+                  </td>
+                  <td>{row.car} / {row.bus} zł netto</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        {Object.entries(PRICES).map(([key, standard]) => (
-          <div className="b2b-price-editor-row" key={key}>
-            <div>
-              <strong>{standard.label}</strong>
-              <small>
-                Standard: {standard.car.toFixed(2)} / {standard.bus.toFixed(2)} zł netto
-              </small>
-            </div>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder={String(standard.car)}
-              value={form.prices[key]?.car ?? ""}
-              disabled={!form.useCustomPricing}
-              onChange={(e) => setPrice(key, "car", e.target.value)}
-            />
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder={String(standard.bus)}
-              value={form.prices[key]?.bus ?? ""}
-              disabled={!form.useCustomPricing}
-              onChange={(e) => setPrice(key, "bus", e.target.value)}
-            />
-          </div>
-        ))}
       </div>
 
-      <p className="muted" style={{ marginTop: 8 }}>
-        Puste pole w cenniku indywidualnym = użyj standardowej ceny MATT dla tej pozycji.
-      </p>
-
-      <label style={{ marginTop: 12 }}>
-        Notatki handlowe
+      <label style={{ marginTop: 14 }}>
+        Uwagi / warunki dodatkowe
         <textarea
           rows={4}
-          value={form.notes}
-          onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          value={f.notes}
+          onChange={(e) => setF({ ...f, notes: e.target.value })}
         />
       </label>
 
-      <button className="btn" disabled={saving} onClick={save}>
+      <div style={{ marginTop: 12, padding: 12, border: "1px solid #4f4733", borderRadius: 10 }}>
+        <strong>Wszystkie ceny B2B są cenami NETTO. Do ceny doliczany jest VAT 8%.</strong>
+      </div>
+
+      <button className="btn" style={{ marginTop: 14 }} disabled={saving} onClick={save}>
         {saving ? "ZAPISYWANIE..." : "ZAPISZ NOWĄ WERSJĘ WARUNKÓW"}
       </button>
-
-      {message && <div className="admin-save-message">{message}</div>}
-
-      {(history || []).length > 0 && (
-        <div className="b2b-terms-history">
-          <h3>Historia wersji</h3>
-          {(history || []).slice(0, 8).map((item: any) => (
-            <div key={item.id}>
-              <strong>Od {item.effective_from}</strong>
-              <span>
-                {Number(item.free_km).toFixed(1)} km bez dopłaty · {Number(item.extra_km_rate_net).toFixed(2)} zł netto/km · VAT {Number(item.vat_rate).toFixed(0)}%
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
+      {msg && <div className="admin-save-message">{msg}</div>}
     </div>
   );
 }
