@@ -1,0 +1,78 @@
+MATT BOOKING PRO v2.8.2 — ONLINE PAYMENTS
+
+BAZA:
+v2.8.1 Branding & Payments.
+
+OPERATOR:
+Stripe Checkout — płatność jednorazowa w PLN.
+Metody płatności są dynamiczne: to, co klient zobaczy w Checkout,
+zależy od metod włączonych i dostępnych na koncie Stripe.
+Dla Polski można skonfigurować m.in. karty, BLIK i Przelewy24,
+jeśli konto spełnia wymagania Stripe i dana metoda jest aktywna.
+
+FLOW B2C:
+1. Klient składa rezerwację -> status pending -> brak płatności.
+2. MATT potwierdza rezerwację -> status confirmed/assigned.
+3. E-mail potwierdzający zawiera przycisk OPŁAĆ REZERWACJĘ ONLINE.
+4. Ten sam przycisk jest w portalu klienta.
+5. Kliknięcie tworzy nową Stripe Checkout Session na aktualną kwotę z bazy.
+6. Klient płaci w Stripe Checkout.
+7. Webhook aktualizuje booking.payment_status.
+8. Po zapłacie klient dostaje e-mail z potwierdzeniem płatności.
+
+FLOW B2B:
+- company_transfer -> bez płatności online; rozliczenie firmy pozostaje jak dotąd.
+- employee_payment -> firma widzi OPŁAĆ/KOPIUJ, a status wraca automatycznie do panelu firmy.
+- jeśli w starszej rezerwacji zapisano ręczny zewnętrzny payment_link, ma on pierwszeństwo; usuń go w panelu, aby przejść na Stripe dla tej rezerwacji.
+
+STATUSY:
+pending  = oczekuje
+paid     = opłacono
+failed   = płatność nieudana
+refunded = zwrot
+review   = wymaga ręcznej weryfikacji MATT
+
+BEZPIECZEŃSTWO:
+- kwota Checkout zawsze jest pobierana z bazy, nie z przeglądarki klienta
+- webhook weryfikuje podpis Stripe
+- przed oznaczeniem OPŁACONO system porównuje kwotę Stripe z aktualną ceną rezerwacji
+- gdy termin/status/cena zmieni się podczas płatności, status przechodzi na REVIEW zamiast automatycznie OPŁACONO
+- przy edycji nieopłaconej rezerwacji wcześniejsza otwarta sesja Checkout jest wygaszana
+- opłaconej rezerwacji klient/firma nie może już samodzielnie edytować
+- ręczne OZNACZ JAKO OPŁACONE pozostaje jako opcja awaryjna
+- płatności zaksięgowanej przez Stripe nie można ręcznie cofnąć do pending; zwrot wykonuje się u operatora
+
+WYMAGANA MIGRACJA:
+supabase/migrations-v2.8.2-online-payments.sql
+
+VERCEL ENV:
+STRIPE_SECRET_KEY=sk_test_... / sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+NEXT_PUBLIC_APP_URL powinien wskazywać domenę produkcyjną panelu.
+
+WEBHOOK URL:
+https://panel.matt-transport.pl/api/payments/stripe/webhook
+
+ZDARZENIA WEBHOOK:
+checkout.session.completed
+checkout.session.async_payment_succeeded
+checkout.session.async_payment_failed
+payment_intent.payment_failed
+charge.refunded
+
+ZALECANA KOLEJNOŚĆ WDROŻENIA:
+1. Uruchom SQL w Supabase.
+2. Utwórz / skonfiguruj konto Stripe.
+3. Najpierw użyj klucza TESTowego STRIPE_SECRET_KEY w Vercel.
+4. Deploy v2.8.2.
+5. Dodaj endpoint webhook w Stripe i wybierz zdarzenia powyżej.
+6. Skopiuj Signing secret whsec_... do STRIPE_WEBHOOK_SECRET w Vercel.
+7. Redeploy.
+8. W Stripe włącz potrzebne metody płatności.
+9. Test: nowa rezerwacja -> POTWIERDŹ -> mail -> OPŁAĆ -> testowa płatność -> sprawdź OPŁACONO w MATT.
+10. Dopiero po pełnym teście przełącz klucze Stripe na LIVE.
+
+UWAGA:
+Pełny lokalny next build nie był wykonywany w środowisku tworzenia paczki.
+Wykonano kontrole statyczne struktury i kluczowych ścieżek.

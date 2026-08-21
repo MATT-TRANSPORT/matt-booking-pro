@@ -1,0 +1,27 @@
+MATT Booking PRO v3.3.1.2 — B2B PORTAL STABILITY + PRICING HOTFIX
+
+Naprawia:
+1. możliwy client-side crash po wyborze pracownika,
+2. błędne/podwójne prezentowanie VAT w starszych lub przejściowych rezerwacjach,
+3. twardy błąd calculateCompanyQuote przy chwilowym PGRST schema-cache dla company_pricing_terms.
+
+Zasady pieniędzy B2B po poprawce:
+- pełny pricing_snapshot ma najwyższy priorytet,
+- potem price_net / price_gross,
+- potem historyczne base_price + extra_price,
+- dopiero na końcu legacy total_price.
+- VAT nie jest doliczany drugi raz do kwoty, która już jest brutto.
+
+Formularz:
+- normalizuje dane pracownika,
+- adres pracownika zawsze trafia do state jako string,
+- odpowiedź kalkulatora jest walidowana,
+- nie ma bezpośrednich ryzykownych .toFixed() na danych z API.
+
+Schema:
+- companyPricing potrafi awaryjnie wrócić do starszych warunków firmy,
+  jeśli PostgREST chwilowo nie widzi tabel B2B PRO.
+- Nadal należy uruchomić dołączony SQL REPAIR, aby indywidualny cennik działał w pełni.
+
+SQL głównej migracji nie cofamy.
+ENV bez zmian.

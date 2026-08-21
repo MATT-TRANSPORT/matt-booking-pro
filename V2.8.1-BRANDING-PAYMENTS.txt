@@ -1,0 +1,43 @@
+MATT BOOKING PRO v2.8.1 — BRANDING & PAYMENTS
+
+BAZA:
+v2.8 Driver PWA & Push Notifications.
+
+NOWE 1 — STATYCZNE ZŁOTE LOGO W MAILACH
+- dodano public/MATT_TRANSPORT_gold_static.png
+- statyczny PNG został utworzony z pierwszej klatki zatwierdzonego złotego logo MATT
+- logo jest dokładane CENTRALNIE w lib/email.ts
+- dzięki temu pojawia się we wszystkich wiadomościach wysyłanych przez sendMattEmail:
+  * przyjęcie rezerwacji
+  * potwierdzenie
+  * przypisanie kierowcy
+  * zakończenie
+  * maile B2B
+  * zmiany klienta
+  * płatności
+  * konto kierowcy / firmy
+  * statusy kierowcy
+  * wesele
+  * test e-mail
+  * inne bieżące i przyszłe maile korzystające z sendMattEmail
+
+NOWE 2 — RĘCZNE POTWIERDZENIE PŁATNOŚCI PRACOWNIKA
+Panel -> szczegóły rezerwacji -> Płatność pracownika:
+- OZNACZ JAKO OPŁACONE
+- COFNIJ STATUS „OPŁACONO”
+- zmiana trafia do booking_history
+
+Firma widzi:
+- Dashboard firmy: ✓ Opłacono przez pracownika
+- szczegóły rezerwacji firmy: pole Płatność z tym samym statusem
+
+Dashboard MATT:
+- PŁATNOŚĆ · ✓ OPŁACONO
+
+SQL:
+BRAK NOWEJ MIGRACJI.
+Kolumna bookings.payment_status istnieje od v2.4.2.
+
+UWAGA:
+To jest ręczne potwierdzenie płatności przez administratora.
+Nie jest to jeszcze webhook operatora płatności.

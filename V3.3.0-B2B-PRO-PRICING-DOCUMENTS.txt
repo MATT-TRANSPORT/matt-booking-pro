@@ -1,0 +1,83 @@
+MATT BOOKING PRO v3.3.0 — B2B PRO PRICING ENGINE + BOOKING DOCUMENTS
+
+GŁÓWNE NOWOŚCI
+
+1. WERSJONOWANE WARUNKI HANDLOWE PER FIRMA
+- siedziba kontrahenta jako punkt zerowy kalkulacji,
+- limit km bez dopłaty od siedziby,
+- indywidualna stawka netto za km ponad limit,
+- indywidualny cennik lotnisk: samochód / bus,
+- puste ceny indywidualne = fallback do standardowego cennika MATT,
+- termin płatności i domyślna metoda płatności,
+- pole "ważne od",
+- każda zmiana tworzy nową wersję; stare rezerwacje zachowują snapshot.
+
+2. B2B: NETTO + VAT 8% + BRUTTO
+- cena bazowa i dopłaty są NETTO,
+- VAT zawsze 8% dla B2B,
+- formularz firmy pokazuje netto, VAT i brutto,
+- lista i szczegóły B2B pokazują netto i brutto,
+- e-maile B2B pokazują netto + VAT + brutto,
+- płatność pracownika Stripe pobiera kwotę BRUTTO.
+
+3. SERWEROWY SILNIK WYCENY
+- klient nie może przesłać własnej ceny ani dystansu,
+- backend sam wywołuje Google Routes,
+- liczona jest najkrótsza trasa SIEDZIBA KONTRAHENTA -> ADRES PASAŻERA,
+- zapis rezerwacji ponownie przelicza cenę na serwerze,
+- edycja istniejącej rezerwacji korzysta z wersji warunków zapisanej na rezerwacji,
+- "Powtórz rezerwację" korzysta z aktualnych warunków handlowych.
+
+4. SNAPSHOT WYCENY NA REZERWACJI
+Zapisywane są m.in.:
+- wersja warunków,
+- siedziba kontrahenta,
+- dystans,
+- limit darmowych km,
+- płatne km,
+- stawka netto/km,
+- cena bazowa netto,
+- dopłata netto,
+- netto,
+- VAT 8%,
+- brutto,
+- źródło ceny (indywidualna / standardowy fallback).
+
+5. FAKTURA / DOKUMENT DO POJEDYNCZEJ REZERWACJI
+- prywatny Supabase Storage,
+- PDF / JPG / PNG, max 10 MB,
+- typy: faktura, korekta, potwierdzenie płatności, inny dokument,
+- numer dokumentu,
+- dodawanie/usuwanie w panelu MATT,
+- firma widzi dokument w szczegółach swojej rezerwacji,
+- dodatkowa lista dokumentów w zakładce Faktury,
+- pobieranie przez krótkotrwały Signed URL po kontroli uprawnień.
+
+6. BEZPIECZEŃSTWO
+- prywatny bucket company-booking-documents,
+- firma nie może pobrać dokumentu innego kontrahenta,
+- tylko MATT admin/accounting może dodawać i usuwać dokumenty,
+- link klienta B2B nie pozwala zmienić zasad fakturowania,
+- edycja B2B z linku również używa serwerowego pricing engine.
+
+WDROŻENIE
+1. Najpierw uruchom MATT_V3_3_0_B2B_PRO_SQL.sql w Supabase.
+2. Następnie wgraj paczkę ONLY FILES i zrób deploy Vercel.
+3. Panel MATT -> Firmy B2B -> wybrana firma -> Warunki handlowe.
+4. Ustaw prawidłową siedzibę kontrahenta, limit km, stawkę i ceny.
+5. Zapisz nową wersję warunków.
+6. Zaloguj się do portalu firmy i wykonaj rezerwację testową.
+7. Sprawdź kalkulację netto/VAT/brutto.
+8. W szczegółach rezerwacji MATT dodaj testowy PDF/JPG/PNG i sprawdź dostęp w portalu firmy.
+
+NOWE ENV: BRAK.
+WYMAGANE ISTNIEJĄCE ENV: GOOGLE_MAPS_API_KEY, Supabase env.
+
+UWAGA O STARYCH REZERWACJACH
+Migracja nie nadpisuje historycznego total_price. Dla starszych rezerwacji B2B tworzy pomocnicze pola price_net / price_gross, ale zachowuje oryginalną wartość historyczną. Nowe rezerwacje v3.3 używają pełnego snapshotu.
+
+TESTY W PAKIECIE
+- parser TypeScript dla wszystkich TS/TSX: 0 błędów składniowych,
+- lokalne importy @/: 0 braków,
+- skan błędnego .catch() po Supabase mutation builder: 0 przypadków.
+- pełny next build: NIE wykonany; npm install w środowisku roboczym przekroczył limit czasu.

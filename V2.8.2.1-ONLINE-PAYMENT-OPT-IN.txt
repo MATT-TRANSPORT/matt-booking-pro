@@ -1,0 +1,13 @@
+MATT BOOKING PRO v2.8.2.1 — ONLINE PAYMENT OPT-IN
+
+Zmiana względem v2.8.2:
+- klient B2C w formularzu ma checkbox:
+  „Chcę zapłacić online po potwierdzeniu rezerwacji”
+- checkbox jest domyślnie wyłączony
+- samo zaznaczenie NIE pobiera płatności
+- po potwierdzeniu przez MATT TRANSPORT link Stripe jest dostępny tylko dla rezerwacji, które wybrały płatność online
+- wybór jest widoczny w podsumowaniu formularza, ekranie sukcesu, mailach, portalu klienta i panelu administratora
+- B2B pozostaje bez zmian: przelew firmowy albo płatność indywidualna pracownika
+
+SQL:
+Uruchom MATT_V2_8_2_1_ONLINE_PAYMENTS_SQL.sql. Jest bezpieczny również jeśli wcześniejszy SQL v2.8.2 został już wykonany, bo używa ADD COLUMN IF NOT EXISTS / CREATE TABLE IF NOT EXISTS.
