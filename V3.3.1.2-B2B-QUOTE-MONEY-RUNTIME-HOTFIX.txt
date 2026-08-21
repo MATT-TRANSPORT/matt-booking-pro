@@ -1,0 +1,11 @@
+MATT Booking PRO v3.3.1.2 — B2B QUOTE / MONEY / RUNTIME HOTFIX
+
+Naprawia:
+- Cannot find name net w CompanyBookingForm.tsx,
+- client-side exception przy danych pracownika/wycenie,
+- niespójne NETTO/VAT/BRUTTO,
+- podwójne doliczanie VAT w oczywistych historycznych rekordach,
+- fallback przy brakującym/starym schema cache company_pricing_terms.
+
+SQL: osobny repair SQL.
+ENV: brak.

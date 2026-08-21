@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import OnlinePaymentCard from "@/components/OnlinePaymentCard";
 import CustomerPushControls from "@/components/CustomerPushControls";
+import { companyBookingMoney } from "@/lib/companyPortal";
 
 const STATUS: Record<string,string> = {
   pending:"Oczekuje na potwierdzenie",
@@ -110,6 +111,7 @@ export default function ClientBookingPortal({ token }: { token:string }) {
   const paidBooking = b.payment_status === "paid" || b.payment_status === "review";
   const driver=Array.isArray(b.drivers)?b.drivers[0]:b.drivers;
   const vehicle=Array.isArray(b.vehicles)?b.vehicles[0]:b.vehicles;
+  const b2bMoney = b.company_id ? companyBookingMoney(b) : null;
 
   return <main className="container client-portal-shell">
     <div className="card client-portal-hero">
@@ -221,10 +223,10 @@ export default function ClientBookingPortal({ token }: { token:string }) {
       <aside className="card client-booking-summary">
         <h2>Podsumowanie</h2>
         <div><span>Lotnisko</span><strong>{b.airport_label}</strong></div>
-        {b.company_id ? <>
-          <div><span>Netto</span><strong>{Number(b.price_net ?? b.total_price).toFixed(2)} zł</strong></div>
-          <div><span>VAT {Number(b.vat_rate ?? 8).toFixed(0)}%</span><strong>{Number(b.vat_price ?? 0).toFixed(2)} zł</strong></div>
-          <div><span>Brutto</span><strong>{Number(b.price_gross ?? b.total_price).toFixed(2)} zł</strong></div>
+        {b.company_id && b2bMoney ? <>
+          <div><span>Netto</span><strong>{b2bMoney.net.toFixed(2)} zł</strong></div>
+          <div><span>VAT {b2bMoney.vatRate.toFixed(0)}%</span><strong>{b2bMoney.vat.toFixed(2)} zł</strong></div>
+          <div><span>Brutto</span><strong>{b2bMoney.gross.toFixed(2)} zł</strong></div>
         </> : <div><span>Kwota</span><strong>{Number(b.total_price).toFixed(2)} zł</strong></div>}
         <div><span>Status</span><strong>{STATUS[b.status]||b.status}</strong></div>
         <div><span>Płatność</span><strong>{b.company_id

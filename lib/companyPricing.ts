@@ -30,26 +30,18 @@ export type CompanyQuote = {
   snapshot: Record<string, unknown>;
 };
 
-function pricingSchemaUnavailable(error: any) {
-  const message = String(
-    error?.message || error?.details || ""
-  ).toLowerCase();
-
-  return (
-    error?.code === "PGRST205" ||
-    message.includes("company_pricing_terms") &&
-      message.includes("schema cache") ||
-    message.includes("company_pricing_airport_prices") &&
-      message.includes("schema cache")
-  );
-}
-
 function money(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
 function km(value: number) {
   return Math.round((value + Number.EPSILON) * 10) / 10;
+}
+
+function missingPricingSchema(error: any) {
+  const code = String(error?.code || "");
+  const message = String(error?.message || "").toLowerCase();
+  return code === "PGRST205" || message.includes("company_pricing_terms") || message.includes("company_pricing_airport_prices");
 }
 
 export async function shortestDrivingDistanceKm(
@@ -123,9 +115,7 @@ export async function getCompanyPricingTerms(
       .eq("company_id", companyId)
       .maybeSingle();
 
-    if (error && !pricingSchemaUnavailable(error)) {
-      throw new Error(error.message);
-    }
+    if (error && !missingPricingSchema(error)) throw new Error(error.message);
     if (data) return data;
   }
 
@@ -142,20 +132,13 @@ export async function getCompanyPricingTerms(
     .limit(1)
     .maybeSingle();
 
-  if (error && !pricingSchemaUnavailable(error)) {
-    throw new Error(error.message);
-  }
+  if (error && !missingPricingSchema(error)) throw new Error(error.message);
   if (data) return data;
 
-  // Jeżeli PostgREST chwilowo nie widzi tabel B2B PRO,
-  // nie wywracamy rezerwacji. Używamy bezpiecznego fallbacku
-  // ze starszych warunków firmy do czasu przeładowania schema cache.
-  // Awaryjna zgodność ze starszym modułem B2B.
+  // Awaryjna zgodność ze starszym modułem B2B / schema cache.
   const { data: company, error: companyError } = await admin
     .from("companies")
-    .select(
-      "id,address,pricing_origin_address,free_pickup_km,use_custom_pricing,payment_days,default_payment_method"
-    )
+    .select("*")
     .eq("id", companyId)
     .single();
 
@@ -242,10 +225,16 @@ export async function calculateCompanyQuote(
       .eq("airport_key", input.airportKey)
       .maybeSingle();
 
-    if (error && !pricingSchemaUnavailable(error)) {
-      throw new Error(error.message);
-    }
-    customPrice = error ? null : data;
+    if (error && !missingPricingSchema(error)) throw new Error(error.message);
+    customPrice = data;
+  } else if (terms.legacy && terms.use_custom_pricing) {
+    const { data } = await admin
+      .from("company_airport_prices")
+      .select("car_price,bus_price")
+      .eq("company_id", input.companyId)
+      .eq("airport_key", input.airportKey)
+      .maybeSingle();
+    customPrice = data ? { car_price_net: data.car_price, bus_price_net: data.bus_price } : null;
   }
 
   const customValue =

@@ -3,49 +3,29 @@
 import { useEffect, useState } from "react";
 import { PRICES } from "@/lib/pricing";
 
-function safeNumber(value: unknown, fallback = 0) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : fallback;
+function finite(value: unknown, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function money(value: number) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
 function fixed(value: unknown, digits = 2) {
-  return safeNumber(value).toFixed(digits);
+  return finite(value, 0).toFixed(digits);
 }
 
-function normalizeQuote(value: any) {
-  if (!value || typeof value !== "object") {
-    return null;
-  }
-
-  return {
-    ...value,
-    effectiveFrom:
-      value.effectiveFrom
-        ? String(value.effectiveFrom)
-        : null,
-    pricingSource:
-      String(value.pricingSource || "standard"),
-    originAddress:
-      String(value.originAddress || ""),
-    airportLabel:
-      String(value.airportLabel || ""),
-    distanceKm: safeNumber(value.distanceKm),
-    freeKm: safeNumber(value.freeKm),
-    billableKm: safeNumber(value.billableKm),
-    extraKmRateNet: safeNumber(value.extraKmRateNet),
-    baseOneWayNet: safeNumber(value.baseOneWayNet),
-    basePriceNet: safeNumber(value.basePriceNet),
-    extraPriceNet: safeNumber(value.extraPriceNet),
-    net: safeNumber(value.net),
-    vatRate: safeNumber(value.vatRate, 8),
-    vat: safeNumber(value.vat),
-    gross: safeNumber(value.gross),
-    multiplier: Math.max(1, safeNumber(value.multiplier, 1)),
-    defaultPaymentMethod:
-      value.defaultPaymentMethod === "employee_payment"
-        ? "employee_payment"
-        : "company_transfer"
-  };
+function normalizeQuote(raw: any) {
+  const multiplier = Math.max(1, finite(raw?.multiplier, 1));
+  const baseOneWayNet = money(finite(raw?.baseOneWayNet, 0));
+  const basePriceNet = money(finite(raw?.basePriceNet, baseOneWayNet * multiplier));
+  const extraPriceNet = money(finite(raw?.extraPriceNet, 0));
+  const net = money(basePriceNet + extraPriceNet);
+  const vatRate = finite(raw?.vatRate, 8);
+  const vat = money(net * (vatRate / 100));
+  const gross = money(net + vat);
+  return { ...raw, originAddress: String(raw?.originAddress || ""), distanceKm: finite(raw?.distanceKm,0), freeKm: finite(raw?.freeKm,0), billableKm: finite(raw?.billableKm,0), extraKmRateNet: finite(raw?.extraKmRateNet,0), baseOneWayNet, basePriceNet, extraPriceNet, multiplier, net, vatRate, vat, gross };
 }
 
 export default function CompanyBookingForm({
@@ -57,8 +37,9 @@ export default function CompanyBookingForm({
   companyName?: string;
   commercialTerms?: any | null;
 }) {
+  const employeeRows = Array.isArray(employees) ? employees : [];
   const [passengerMode, setPassengerMode] = useState<"existing" | "new">(
-    Array.isArray(employees) && employees.length ? "existing" : "new"
+    employeeRows.length ? "existing" : "new"
   );
   const [employeeId, setEmployeeId] = useState("");
   const [newEmployee, setNewEmployee] = useState({
@@ -93,28 +74,17 @@ export default function CompanyBookingForm({
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState<any>(null);
 
-  const safeEmployees = Array.isArray(employees)
-    ? employees.filter(Boolean)
-    : [];
-
-  const employee = safeEmployees.find(
-    (x) => String(x?.id || "") === employeeId
-  );
+  const employee = employeeRows.find((x) => String(x?.id) === String(employeeId));
 
   useEffect(() => {
-    if (passengerMode === "existing") {
-      const employeeAddress = String(
-        employee?.default_address || ""
-      );
-      setAddress(employeeAddress);
-      setQuote(null);
-      setQuoteError("");
+    if (passengerMode === "existing" && employee?.default_address) {
+      setAddress(String(employee.default_address || ""));
     }
   }, [employeeId, passengerMode]);
 
   useEffect(() => {
     if (passengerMode === "new" && newEmployee.defaultAddress) {
-      setAddress(newEmployee.defaultAddress);
+      setAddress(String(newEmployee.defaultAddress || ""));
     }
   }, [newEmployee.defaultAddress, passengerMode]);
 
@@ -177,27 +147,10 @@ export default function CompanyBookingForm({
         setQuote(null);
         setQuoteError(data.error ?? "Nie udało się przygotować wyceny.");
       } else {
-        const normalized = normalizeQuote(data);
-
-        if (
-          !normalized ||
-          !normalized.originAddress ||
-          normalized.net < 0 ||
-          normalized.gross < 0
-        ) {
-          setQuote(null);
-          setQuoteError(
-            "Kalkulator zwrócił niepełne dane. Odśwież formularz lub spróbuj ponownie."
-          );
-        } else {
-          setQuote(normalized);
-
-          if (!paymentInitialized) {
-            setPaymentMethod(
-              normalized.defaultPaymentMethod
-            );
-            setPaymentInitialized(true);
-          }
+        setQuote(normalizeQuote(data));
+        if (!paymentInitialized) {
+          setPaymentMethod(data.defaultPaymentMethod || "company_transfer");
+          setPaymentInitialized(true);
         }
       }
     } catch {
@@ -273,9 +226,11 @@ export default function CompanyBookingForm({
   }
 
   if (success) {
-    const net = Number(success.price_net ?? success.quote?.net ?? 0);
-    const vat = Number(success.vat_price ?? success.quote?.vat ?? 0);
-    const gross = Number(success.price_gross ?? success.total_price ?? 0);
+    const successQuote = success.quote ? normalizeQuote(success.quote) : null;
+    const net = money(finite(success.price_net, successQuote?.net ?? 0));
+    const vatRate = finite(success.vat_rate, successQuote?.vatRate ?? 8);
+    const vat = money(finite(success.vat_price, successQuote?.vat ?? net * (vatRate / 100)));
+    const gross = money(net + vat);
 
     return (
       <div className="booking-success-card">
@@ -291,9 +246,9 @@ export default function CompanyBookingForm({
 
         <div className="success-details">
           <div><span>Pasażer</span><strong>{success.customer_name}</strong></div>
-          <div><span>Netto</span><strong>{fixed(net)} zł</strong></div>
-          <div><span>VAT 8%</span><strong>{fixed(vat)} zł</strong></div>
-          <div><span>Brutto</span><strong>{fixed(gross)} zł</strong></div>
+          <div><span>Netto</span><strong>{net.toFixed(2)} zł</strong></div>
+          <div><span>VAT 8%</span><strong>{vat.toFixed(2)} zł</strong></div>
+          <div><span>Brutto</span><strong>{gross.toFixed(2)} zł</strong></div>
         </div>
 
         <p className="muted">
@@ -319,7 +274,7 @@ export default function CompanyBookingForm({
             <small>WARUNKI {companyName ? companyName.toUpperCase() : "KONTRAHENTA"}</small>
             <strong>
               {commercialTerms
-                ? `${fixed(commercialTerms.free_km, 1)} km bez dopłaty · ${fixed(commercialTerms.extra_km_rate_net)} zł netto/km ponad limit`
+                ? `${Number(commercialTerms.free_km ?? 0).toFixed(1)} km bez dopłaty · ${Number(commercialTerms.extra_km_rate_net ?? 0).toFixed(2)} zł netto/km ponad limit`
                 : "Warunki handlowe zostaną pobrane przy wycenie"}
             </strong>
             <span>
@@ -336,7 +291,7 @@ export default function CompanyBookingForm({
             type="button"
             className={passengerMode === "existing" ? "active" : ""}
             onClick={() => setPassengerMode("existing")}
-            disabled={!safeEmployees.length}
+            disabled={!employeeRows.length}
           >
             Z listy pracowników
           </button>
@@ -354,8 +309,8 @@ export default function CompanyBookingForm({
             Pracownik
             <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
               <option value="">— Wybierz pracownika —</option>
-              {safeEmployees.filter((x) => x?.active !== false).map((x) => (
-                <option key={x.id} value={x.id}>{String(x?.first_name || "")} {String(x?.last_name || "")}</option>
+              {employeeRows.filter((x) => x?.active !== false).map((x) => (
+                <option key={x.id} value={x.id}>{x.first_name} {x.last_name}</option>
               ))}
             </select>
           </label>
@@ -386,7 +341,7 @@ export default function CompanyBookingForm({
               <div className="address-suggestions">
                 {suggestions.slice(0, 5).map((s: any, i: number) => (
                   <button key={s.placeId ?? i} type="button" onClick={() => {
-                    const value = s.text ?? "";
+                    const value = String(s?.text ?? "");
                     setAddress(value);
                     setSuggestions([]);
                     setTimeout(() => quoteFor(value), 0);
@@ -447,7 +402,7 @@ export default function CompanyBookingForm({
       <aside className="card summary">
         <span className="badge">TWOJE WARUNKI</span>
         <h3>Podsumowanie B2B</h3>
-        <div className="row"><span>Pasażer</span><strong>{passengerMode === "existing" ? (employee ? `${String(employee.first_name || "")} ${String(employee.last_name || "")}` : "—") : `${newEmployee.firstName} ${newEmployee.lastName}`.trim() || "—"}</strong></div>
+        <div className="row"><span>Pasażer</span><strong>{passengerMode === "existing" ? (employee ? `${employee.first_name} ${employee.last_name}` : "—") : `${newEmployee.firstName} ${newEmployee.lastName}`.trim() || "—"}</strong></div>
 
         {quote ? (
           <>
@@ -456,14 +411,14 @@ export default function CompanyBookingForm({
             <div className="row"><span>Odległość od siedziby</span><strong>{fixed(quote.distanceKm, 1)} km</strong></div>
             <div className="row"><span>Limit bez dopłaty</span><strong>{fixed(quote.freeKm, 1)} km</strong></div>
             <div className="row"><span>Km płatne</span><strong>{fixed(quote.billableKm, 1)} km</strong></div>
-            <div className="row"><span>Stawka ponad limit</span><strong>{fixed(quote.extraKmRateNet)} zł netto/km</strong></div>
-            <div className="row"><span>Cena 1 strony</span><strong>{fixed(quote.baseOneWayNet)} zł netto</strong></div>
+            <div className="row"><span>Stawka ponad limit</span><strong>{fixed(quote.extraKmRateNet, 2)} zł netto/km</strong></div>
+            <div className="row"><span>Cena 1 strony</span><strong>{fixed(quote.baseOneWayNet, 2)} zł netto</strong></div>
             {quote.multiplier > 1 && <div className="row"><span>Mnożnik przejazdu</span><strong>× {quote.multiplier}</strong></div>}
-            <div className="row"><span>Cena bazowa</span><strong>{fixed(quote.basePriceNet)} zł netto</strong></div>
-            <div className="row"><span>Dopłata km</span><strong>{fixed(quote.extraPriceNet)} zł netto</strong></div>
-            <div className="row total"><span>RAZEM NETTO</span><strong>{quote.fixed(net)} zł</strong></div>
-            <div className="row"><span>VAT {fixed(quote.vatRate, 0)}%</span><strong>{quote.fixed(vat)} zł</strong></div>
-            <div className="row total"><span>RAZEM BRUTTO</span><strong>{quote.fixed(gross)} zł</strong></div>
+            <div className="row"><span>Cena bazowa</span><strong>{fixed(quote.basePriceNet, 2)} zł netto</strong></div>
+            <div className="row"><span>Dopłata km</span><strong>{fixed(quote.extraPriceNet, 2)} zł netto</strong></div>
+            <div className="row total"><span>RAZEM NETTO</span><strong>{fixed(quote.net, 2)} zł</strong></div>
+            <div className="row"><span>VAT {fixed(quote.vatRate, 0)}%</span><strong>{fixed(quote.vat, 2)} zł</strong></div>
+            <div className="row total"><span>RAZEM BRUTTO</span><strong>{fixed(quote.gross, 2)} zł</strong></div>
             <p className="muted" style={{ marginTop: 12 }}>
               {quote.pricingSource === "custom" ? "Indywidualny cennik kontrahenta." : "Cena standardowa MATT dla tej pozycji."}<br />
               Wszystkie ceny B2B są cenami NETTO + 8% VAT.
