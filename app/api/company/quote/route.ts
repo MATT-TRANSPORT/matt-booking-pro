@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { calculateB2BQuote } from "@/lib/b2bPricing";
+import { calculateCompanyQuote } from "@/lib/companyPricing";
+
+export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   const auth = await createClient();
@@ -25,13 +27,13 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
 
   try {
-    const quote = await calculateB2BQuote(createAdminClient(), {
+    const quote = await calculateCompanyQuote(createAdminClient(), {
       companyId: membership.company_id,
-      travelDate: body.travelDate || null,
-      serviceType: body.serviceType,
-      airport: body.airport,
-      vehicleType: body.vehicleType,
-      pickupAddress: body.address
+      pickupAddress: String(body.address || ""),
+      airportKey: String(body.airport || ""),
+      vehicleType: String(body.vehicleType || "car"),
+      serviceType: String(body.serviceType || "to_airport"),
+      termsId: body.termsId ? String(body.termsId) : null
     });
 
     return NextResponse.json(quote);
@@ -41,7 +43,7 @@ export async function POST(req: NextRequest) {
         error:
           error instanceof Error
             ? error.message
-            : "Nie udało się obliczyć wyceny B2B."
+            : "Nie udało się przygotować wyceny B2B."
       },
       { status: 400 }
     );

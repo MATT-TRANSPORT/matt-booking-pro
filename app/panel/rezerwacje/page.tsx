@@ -94,7 +94,7 @@ export default async function Page({
                       </span>
                     ) : "—"}
                   </td>
-                  <td>{Number(b.total_price).toFixed(2)} zł</td>
+                  <td>{b.company_id ? <><strong>{Number(b.price_net ?? b.total_price).toFixed(2)} zł netto</strong><br/><span className="muted">{Number(b.price_gross ?? b.total_price).toFixed(2)} zł brutto</span></> : `${Number(b.total_price).toFixed(2)} zł`}</td>
                   <td><span className={`status ${b.status}`}>{statusPl(b.status)}</span></td>
                 </tr>
               );
@@ -126,7 +126,7 @@ export default async function Page({
                   {driver.full_name}
                 </span>
               )}
-              <span>{Number(b.total_price).toFixed(2)} zł</span>
+              <span>{b.company_id ? `${Number(b.price_net ?? b.total_price).toFixed(2)} zł netto · ${Number(b.price_gross ?? b.total_price).toFixed(2)} zł brutto` : `${Number(b.total_price).toFixed(2)} zł`}</span>
             </a>
           );
         })}

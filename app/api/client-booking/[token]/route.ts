@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMattEmail } from "@/lib/email";
 import { PRICES } from "@/lib/pricing";
-import { b2bBookingPriceFields, calculateB2BQuote } from "@/lib/b2bPricing";
 import { expireCheckoutSession } from "@/lib/stripeServer";
 import { syncBookingCalendar } from "@/lib/googleCalendar";
 import { sendBookingNotification } from "@/lib/customerNotifications";
 import { cancelledEmail } from "@/lib/emailTemplates";
+import { bookingPricingFields, calculateCompanyQuote } from "@/lib/companyPricing";
 
 const EDITABLE_STATUSES = ["pending", "confirmed", "assigned"];
 
@@ -62,20 +62,14 @@ export async function PATCH(
   }
 
   const body = await req.json();
-
-  const wasPaid =
-    booking.payment_status === "paid";
-
-
+  const wasPaid = booking.payment_status === "paid";
+  const isB2B = Boolean(booking.company_id);
   const passengers = Math.max(1, Math.min(8, Number(body.passengers ?? booking.passengers)));
   const vehicleType = passengers > 3 ? "bus" : String(body.vehicleType ?? booking.vehicle_type);
-  const isB2B = Boolean(booking.company_id);
-  const invoiceRequired = isB2B ? true : Boolean(body.invoiceRequired);
-  const nip = isB2B
-    ? booking.company_nip || null
-    : invoiceRequired
-    ? cleanNip(body.companyNip)
-    : null;
+  const pickupAddress = String(body.pickupAddress ?? booking.pickup_address).trim();
+
+  let invoiceRequired = isB2B ? true : Boolean(body.invoiceRequired);
+  const nip = !isB2B && invoiceRequired ? cleanNip(body.companyNip) : booking.company_nip ?? null;
 
   if (!isB2B && invoiceRequired && nip?.length !== 10) {
     return NextResponse.json({ error: "Podaj poprawny 10-cyfrowy NIP." }, { status: 400 });
@@ -86,47 +80,40 @@ export async function PATCH(
     return NextResponse.json({ error: "Nie udało się odczytać cennika tej rezerwacji. Skontaktuj się z MATT TRANSPORT." }, { status: 400 });
   }
 
-  const newPickupAddress = String(body.pickupAddress ?? booking.pickup_address).trim();
-  const newTravelDate = String(body.travelDate ?? booking.travel_date);
-
-  const routeChanged = newPickupAddress !== String(booking.pickup_address ?? "").trim();
+  const routeChanged = pickupAddress !== String(booking.pickup_address ?? "").trim();
   const dateChanged =
-    newTravelDate !== String(booking.travel_date) ||
+    String(body.travelDate ?? booking.travel_date) !== String(booking.travel_date) ||
     String(body.travelTime ?? booking.travel_time) !== String(booking.travel_time);
 
-  let total = 0;
-  let pricingFields: Record<string, any> = {};
+  let total = Number(booking.total_price || 0);
+  let priceChanged = false;
+  let pricingUpdate: Record<string, unknown> = {};
 
   if (isB2B) {
     try {
-      const quote = await calculateB2BQuote(admin, {
+      // B2B zawsze przeliczamy po siedzibie kontrahenta i po wersji warunków
+      // zapisanej na tej rezerwacji. Klient nie może podać własnego dystansu/ceny.
+      const quote = await calculateCompanyQuote(admin, {
         companyId: booking.company_id,
-        travelDate: newTravelDate,
-        serviceType: booking.service_type,
-        airport,
+        pickupAddress,
+        airportKey: airport,
         vehicleType,
-        pickupAddress: newPickupAddress,
-        termsId:
-          newTravelDate === String(booking.travel_date)
-            ? booking.b2b_terms_id || null
-            : null
+        serviceType: booking.service_type,
+        termsId: booking.company_pricing_terms_id || null
       });
-      pricingFields = b2bBookingPriceFields(quote);
+      pricingUpdate = bookingPricingFields(quote);
       total = quote.gross;
-    } catch (pricingError) {
+      const oldGross = Number(booking.price_gross ?? booking.total_price ?? 0);
+      priceChanged = Math.round(oldGross * 100) !== Math.round(total * 100);
+    } catch (error) {
       return NextResponse.json(
-        {
-          error:
-            pricingError instanceof Error
-              ? pricingError.message
-              : "Nie udało się ponownie wycenić rezerwacji B2B."
-        },
+        { error: error instanceof Error ? error.message : "Nie udało się przeliczyć wyceny B2B." },
         { status: 400 }
       );
     }
   } else {
-    // Dla B2C zachowujemy dotychczasowy dystans. Zmiana adresu nadal
-    // wymaga weryfikacji MATT, więc system nie obiecuje nowej trasy automatycznie.
+    // B2C: zachowujemy dotychczasowy model. Zmiana adresu wymaga ponownego
+    // potwierdzenia, a dystans pozostaje kontrolowany przez MATT.
     const price = PRICES[airport as keyof typeof PRICES];
     const multiplier = booking.service_type === "roundtrip" ? 2 : 1;
     const base = Number(price[vehicleType as "car" | "bus"]) * multiplier;
@@ -134,36 +121,28 @@ export async function PATCH(
     const subtotal = base + extra;
     const vat = invoiceRequired ? subtotal * 0.08 : 0;
     total = subtotal + vat;
-    pricingFields = {
+    pricingUpdate = {
       base_price: base,
       extra_price: extra,
       vat_price: vat,
       total_price: total
     };
+    priceChanged =
+      Math.round(Number(booking.total_price || 0) * 100) !== Math.round(total * 100);
   }
 
-  const priceChanged =
-    Math.round(Number(booking.total_price || 0) * 100) !==
-    Math.round(total * 100);
-  const requiresReconfirmation =
-    routeChanged || dateChanged || priceChanged;
+  const vehicleChanged = String(booking.vehicle_type ?? "") !== vehicleType;
+  const requiresReconfirmation = routeChanged || dateChanged || vehicleChanged || priceChanged;
 
-  if (
-    requiresReconfirmation &&
-    !wasPaid
-  ) {
-    await expireCheckoutSession(
-      booking.payment_checkout_session_id
-    );
+  if (requiresReconfirmation && !wasPaid) {
+    await expireCheckoutSession(booking.payment_checkout_session_id);
   }
 
-  const newStatus = requiresReconfirmation
-    ? "pending"
-    : booking.status;
+  const newStatus = requiresReconfirmation ? "pending" : booking.status;
 
   const update = {
-    pickup_address: newPickupAddress,
-    travel_date: newTravelDate,
+    pickup_address: pickupAddress,
+    travel_date: body.travelDate ?? booking.travel_date,
     travel_time: body.travelTime ?? booking.travel_time,
     return_date: body.returnDate || null,
     return_time: body.returnTime || null,
@@ -174,7 +153,7 @@ export async function PATCH(
     invoice_required: invoiceRequired,
     company_nip: nip,
     notes: String(body.notes ?? "").trim() || null,
-    ...pricingFields,
+    ...pricingUpdate,
     status: newStatus,
     ...(requiresReconfirmation
       ? wasPaid
@@ -183,16 +162,8 @@ export async function PATCH(
               payment_status: "review",
               payment_review_reason:
                 `Klient zmienił opłaconą rezerwację. ` +
-                `Kwota zapłacona: ${(
-                  Number(
-                    booking.payment_amount_cents ??
-                    Math.round(
-                      Number(booking.total_price || 0) * 100
-                    )
-                  ) / 100
-                ).toFixed(2)} zł. ` +
-                `Nowa kwota rezerwacji: ${total.toFixed(2)} zł. ` +
-                `Sprawdź dopłatę lub zwrot.`,
+                `Kwota zapłacona: ${(Number(booking.payment_amount_cents ?? Math.round(Number(booking.total_price || 0) * 100)) / 100).toFixed(2)} zł. ` +
+                `Nowa kwota: ${total.toFixed(2)} zł${isB2B ? " brutto" : ""}. Sprawdź dopłatę lub zwrot.`,
               payment_last_error: null
             }
           : {
@@ -222,64 +193,54 @@ export async function PATCH(
     .select("*")
     .single();
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error || !updated) {
+    return NextResponse.json({ error: error?.message || "Błąd zapisu." }, { status: 500 });
   }
 
+  const oldDisplayed = Number(isB2B ? (booking.price_gross ?? booking.total_price) : booking.total_price || 0);
   await admin.from("booking_history").insert({
     booking_id: booking.id,
     event:
       requiresReconfirmation && wasPaid && priceChanged
-        ? `Klient zmienił OPŁACONĄ rezerwację — wymaga ponownego potwierdzenia. Płatność do weryfikacji: było ${Number(booking.total_price || 0).toFixed(2)} zł, nowa kwota ${total.toFixed(2)} zł.`
+        ? `Klient zmienił OPŁACONĄ rezerwację — płatność do weryfikacji: było ${oldDisplayed.toFixed(2)} zł, nowa kwota ${total.toFixed(2)} zł${isB2B ? " brutto" : ""}.`
         : requiresReconfirmation && wasPaid
         ? "Klient zmienił OPŁACONĄ rezerwację — wymaga ponownego potwierdzenia. Płatność pozostaje zaksięgowana."
         : requiresReconfirmation
-        ? "Klient zmienił rezerwację — wymaga ponownego potwierdzenia i nowej płatności."
+        ? `Klient zmienił rezerwację — wymaga ponownego potwierdzenia${isB2B ? "; wycena B2B została ponownie przeliczona wg zapisanych warunków" : " i nowej płatności"}.`
         : "Klient zaktualizował dane rezerwacji.",
     created_by: null
   });
 
+  await syncBookingCalendar(admin, updated);
 
+  const panelBase = process.env.NEXT_PUBLIC_APP_URL || "https://panel.matt-transport.pl";
+  const adminUrl = `${panelBase.replace(/\/$/, "")}/panel/rezerwacje/${booking.id}`;
 
-
-  await syncBookingCalendar(
-    admin,
-    updated
-  );
-
-  const panelBase = process.env.NEXT_PUBLIC_APP_URL || "https://matt-booking-pro.vercel.app";
-  const adminUrl = `${panelBase}/panel/rezerwacje/${booking.id}`;
-
-  await sendMattEmail({
-    to: process.env.ADMIN_EMAIL || "kontakt@matt-transport.pl",
-    subject: `Klient zmienił rezerwację ${booking.booking_number}`,
-    html: `
-      <div style="font-family:Arial,sans-serif;background:#0b0e13;color:#fff;padding:28px">
-        <div style="max-width:650px;margin:auto;background:#151923;border:1px solid #343b49;border-radius:16px;padding:28px">
-          <h2 style="color:#f1d28b">MATT TRANSPORT</h2>
-          <h1>Klient zmienił rezerwację</h1>
-          <p>Numer: <strong>${booking.booking_number}</strong></p>
-          <p>${
-            requiresReconfirmation && wasPaid && priceChanged
-              ? `Klient zmienił opłaconą rezerwację. Nowa kwota: ${total.toFixed(2)} zł. Płatność została oznaczona jako DO WERYFIKACJI — sprawdź ewentualną dopłatę lub zwrot.`
-              : requiresReconfirmation && wasPaid
-              ? "Klient zmienił opłaconą rezerwację. Wymaga ponownego potwierdzenia, ale płatność pozostaje zaksięgowana."
-              : requiresReconfirmation
-              ? "Zmiana danych lub ceny wymaga ponownego potwierdzenia. Poprzednia sesja płatności została unieważniona."
-              : "Zaktualizowano dane rezerwacji."
-          }</p>
-          <p><a href="${adminUrl}" style="display:inline-block;background:#d5ae5d;color:#111;padding:13px 18px;border-radius:10px;text-decoration:none;font-weight:bold">OTWÓRZ REZERWACJĘ W PANELU</a></p>
-        </div>
-      </div>
-    `
-  }).catch(() => null);
+  try {
+    await sendMattEmail({
+      to: process.env.ADMIN_EMAIL || "kontakt@matt-transport.pl",
+      subject: `Klient zmienił rezerwację ${booking.booking_number}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;background:#0b0e13;color:#fff;padding:28px">
+          <div style="max-width:650px;margin:auto;background:#151923;border:1px solid #343b49;border-radius:16px;padding:28px">
+            <h2 style="color:#f1d28b">MATT TRANSPORT</h2>
+            <h1>Klient zmienił rezerwację</h1>
+            <p>Numer: <strong>${booking.booking_number}</strong></p>
+            <p>${requiresReconfirmation ? "Zmiana wymaga ponownego potwierdzenia przez MATT TRANSPORT." : "Zaktualizowano dane rezerwacji."}</p>
+            ${isB2B ? `<p>Aktualna wycena: <strong>${Number(updated.price_net ?? 0).toFixed(2)} zł netto + VAT 8% = ${Number(updated.price_gross ?? updated.total_price).toFixed(2)} zł brutto.</strong></p>` : ""}
+            <p><a href="${adminUrl}" style="display:inline-block;background:#d5ae5d;color:#111;padding:13px 18px;border-radius:10px;text-decoration:none;font-weight:bold">OTWÓRZ REZERWACJĘ W PANELU</a></p>
+          </div>
+        </div>`
+    });
+  } catch (mailError) {
+    console.error("E-mail po edycji klienta:", mailError);
+  }
 
   return NextResponse.json({
     booking: updated,
     requiresReconfirmation
   });
 }
-
 
 async function bookingRecipient(
   admin: any,

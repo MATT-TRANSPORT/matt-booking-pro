@@ -80,9 +80,13 @@ export async function POST(
     );
   }
 
-  const amount = Math.round(
-    Number(booking.total_price || 0) * 100
+  const payableAmount = Number(
+    booking.company_id
+      ? booking.price_gross ?? booking.total_price ?? 0
+      : booking.total_price ?? 0
   );
+
+  const amount = Math.round(payableAmount * 100);
 
   if (!Number.isFinite(amount) || amount <= 0) {
     return NextResponse.json(
@@ -152,7 +156,7 @@ export async function POST(
     await admin.from("booking_history").insert({
       booking_id: booking.id,
       event:
-        `Utworzono płatność online Stripe: ${Number(booking.total_price).toFixed(2)} zł${booking.company_id && booking.b2b_gross !== null && booking.b2b_gross !== undefined ? " brutto" : ""}`,
+        `Utworzono płatność online Stripe: ${payableAmount.toFixed(2)} zł${booking.company_id ? " brutto" : ""}`,
       created_by: null
     });
 
