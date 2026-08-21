@@ -1,0 +1,20 @@
+MATT Booking PRO v3.3.1 — B2B PORTAL PRO
+
+NOWOŚCI:
+- nowa zakładka Cennik i warunki w portalu firmy;
+- pełny aktualny cennik netto/brutto samochód + bus;
+- oznaczenie ceny indywidualnej vs fallback STANDARD MATT;
+- podgląd siedziby do kalkulacji, limitu darmowych km, stawki/km, terminu płatności i daty obowiązywania;
+- informacja o zaplanowanej kolejnej wersji warunków i historia wersji;
+- formularz nowej rezerwacji pokazuje warunki kontrahenta przed rozpoczęciem kalkulacji;
+- rozbudowane podsumowanie wyceny (warunki od, cena 1 strony, mnożnik);
+- Dashboard B2B pokazuje NETTO / VAT / BRUTTO miesiąca;
+- lista rezerwacji pokazuje poprawny kierunek trasy i status dokumentu/faktury;
+- szczegóły rezerwacji: kierunek, powrót, pojazd, pasażerowie, wyraźny NETTO/VAT/BRUTTO;
+- firma może samodzielnie anulować rezerwację pending/confirmed/assigned;
+- anulowanie usuwa wydarzenie z Google Calendar i wygasza niewykorzystany Stripe Checkout;
+- przy opłaconej rezerwacji brak automatycznego refundu — płatność -> DO WERYFIKACJI;
+- e-mail do firmy i MATT po anulowaniu.
+
+SQL: BRAK.
+NOWE ENV: BRAK.

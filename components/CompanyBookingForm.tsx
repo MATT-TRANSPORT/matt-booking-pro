@@ -4,9 +4,13 @@ import { useEffect, useState } from "react";
 import { PRICES } from "@/lib/pricing";
 
 export default function CompanyBookingForm({
-  employees
+  employees,
+  companyName,
+  commercialTerms
 }: {
   employees: any[];
+  companyName?: string;
+  commercialTerms?: any | null;
 }) {
   const [passengerMode, setPassengerMode] = useState<"existing" | "new">(
     employees.length ? "existing" : "new"
@@ -35,85 +39,31 @@ export default function CompanyBookingForm({
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] =
     useState<"company_transfer" | "employee_payment">("company_transfer");
-  const [paymentTouched, setPaymentTouched] = useState(false);
+  const [paymentInitialized, setPaymentInitialized] = useState(false);
   const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [routeMessage, setRouteMessage] = useState(
-    "Wybierz pracownika lub wpisz adres."
-  );
   const [quote, setQuote] = useState<any>(null);
   const [quoteBusy, setQuoteBusy] = useState(false);
+  const [quoteError, setQuoteError] = useState("");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState<any>(null);
 
   const employee = employees.find((x) => x.id === employeeId);
 
-  async function refreshQuote(value = address, overrides: any = {}) {
-    const targetAddress = String(value || "").trim();
-    if (!targetAddress) return;
-
-    setQuoteBusy(true);
-    setRouteMessage("Obliczanie trasy od siedziby kontrahenta...");
-
-    const response = await fetch("/api/company/quote", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        address: targetAddress,
-        serviceType: overrides.serviceType ?? serviceType,
-        airport: overrides.airport ?? airport,
-        vehicleType: overrides.vehicleType ?? vehicle,
-        travelDate: overrides.travelDate ?? travelDate
-      })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      setQuote(null);
-      setRouteMessage(data.error ?? "Nie udało się obliczyć wyceny B2B.");
-      setQuoteBusy(false);
-      return;
-    }
-
-    setQuote(data);
-    setRouteMessage(
-      `✓ ${Number(data.distanceFromHeadquartersKm).toFixed(1)} km od siedziby kontrahenta · ${Number(data.billableKm).toFixed(1)} km płatne`
-    );
-
-    if (!paymentTouched) {
-      setPaymentMethod(
-        data.defaultPaymentMethod === "employee_payment"
-          ? "employee_payment"
-          : "company_transfer"
-      );
-    }
-
-    setQuoteBusy(false);
-  }
-
   useEffect(() => {
     if (passengerMode === "existing" && employee?.default_address) {
       setAddress(employee.default_address);
-      refreshQuote(employee.default_address);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [employeeId, passengerMode]);
 
   useEffect(() => {
     if (passengerMode === "new" && newEmployee.defaultAddress) {
       setAddress(newEmployee.defaultAddress);
-      setQuote(null);
-      setRouteMessage("Wybierz adres z podpowiedzi lub kliknij OBLICZ WYCENĘ.");
     }
   }, [newEmployee.defaultAddress, passengerMode]);
 
   useEffect(() => {
-    if (passengers > 3 && vehicle !== "bus") {
-      setVehicle("bus");
-      if (address) refreshQuote(address, { vehicleType: "bus" });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (passengers > 3) setVehicle("bus");
   }, [passengers]);
 
   useEffect(() => {
@@ -123,34 +73,66 @@ export default function CompanyBookingForm({
     }
 
     const timer = setTimeout(async () => {
-      const response = await fetch(
-        `/api/places?q=${encodeURIComponent(address)}`
-      );
-      const data = await response.json();
-      setSuggestions(data.suggestions ?? []);
+      try {
+        const response = await fetch(`/api/places?q=${encodeURIComponent(address)}`);
+        const data = await response.json();
+        setSuggestions(data.suggestions ?? []);
+      } catch {
+        setSuggestions([]);
+      }
     }, 350);
 
     return () => clearTimeout(timer);
   }, [address]);
 
-  function chooseService(value: typeof serviceType) {
-    setServiceType(value);
-    if (address) refreshQuote(address, { serviceType: value });
-  }
+  useEffect(() => {
+    if (address.trim().length < 5) {
+      setQuote(null);
+      setQuoteError("");
+      return;
+    }
 
-  function chooseAirport(value: keyof typeof PRICES) {
-    setAirport(value);
-    if (address) refreshQuote(address, { airport: value });
-  }
+    const timer = setTimeout(() => {
+      quoteFor(address);
+    }, 650);
 
-  function chooseVehicle(value: "car" | "bus") {
-    setVehicle(value);
-    if (address) refreshQuote(address, { vehicleType: value });
-  }
+    return () => clearTimeout(timer);
+  }, [address, airport, vehicle, serviceType]);
 
-  function chooseTravelDate(value: string) {
-    setTravelDate(value);
-    if (address) refreshQuote(address, { travelDate: value });
+  async function quoteFor(value: string) {
+    if (!value || quoteBusy) return;
+    setQuoteBusy(true);
+    setQuoteError("");
+
+    try {
+      const response = await fetch("/api/company/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address: value,
+          airport,
+          vehicleType: vehicle,
+          serviceType
+        })
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setQuote(null);
+        setQuoteError(data.error ?? "Nie udało się przygotować wyceny.");
+      } else {
+        setQuote(data);
+        if (!paymentInitialized) {
+          setPaymentMethod(data.defaultPaymentMethod || "company_transfer");
+          setPaymentInitialized(true);
+        }
+      }
+    } catch {
+      setQuote(null);
+      setQuoteError("Nie udało się połączyć z kalkulatorem B2B.");
+    }
+
+    setQuoteBusy(false);
   }
 
   async function submit() {
@@ -174,8 +156,13 @@ export default function CompanyBookingForm({
       return;
     }
 
+    if (!quote) {
+      setMessage("Poczekaj na poprawną wycenę B2B.");
+      return;
+    }
+
     setSaving(true);
-    setMessage("Serwer ponownie sprawdza wycenę i zapisuje rezerwację...");
+    setMessage("Zapisywanie rezerwacji i ponowne przeliczanie ceny na serwerze...");
 
     const response = await fetch("/api/company/bookings", {
       method: "POST",
@@ -213,9 +200,9 @@ export default function CompanyBookingForm({
   }
 
   if (success) {
-    const net = Number(success.b2b_net ?? 0);
-    const vat = Number(success.b2b_vat ?? 0);
-    const gross = Number(success.b2b_gross ?? success.total_price ?? 0);
+    const net = Number(success.price_net ?? success.quote?.net ?? 0);
+    const vat = Number(success.vat_price ?? success.quote?.vat ?? 0);
+    const gross = Number(success.price_gross ?? success.total_price ?? 0);
 
     return (
       <div className="booking-success-card">
@@ -237,7 +224,7 @@ export default function CompanyBookingForm({
         </div>
 
         <p className="muted">
-          Wszystkie ceny B2B są cenami netto. Do ceny doliczono 8% VAT.
+          Wszystkie ceny B2B są cenami netto. Do ceny doliczany jest VAT 8%.
         </p>
 
         <div className="success-actions">
@@ -251,16 +238,29 @@ export default function CompanyBookingForm({
   return (
     <div className="layout">
       <div className="card">
-        <span className="badge">REZERWACJA B2B PRO</span>
+        <span className="badge">B2B PRO</span>
         <h1>Nowy transport</h1>
 
-        <div className="b2b-vat-note">
-          Wszystkie ceny są cenami <strong>NETTO</strong>. System dolicza <strong>8% VAT</strong>.
+        <div className="b2b-booking-terms-banner">
+          <div>
+            <small>WARUNKI {companyName ? companyName.toUpperCase() : "KONTRAHENTA"}</small>
+            <strong>
+              {commercialTerms
+                ? `${Number(commercialTerms.free_km ?? 0).toFixed(1)} km bez dopłaty · ${Number(commercialTerms.extra_km_rate_net ?? 0).toFixed(2)} zł netto/km ponad limit`
+                : "Warunki handlowe zostaną pobrane przy wycenie"}
+            </strong>
+            <span>
+              {commercialTerms?.use_custom_pricing ? "Cennik indywidualny" : "Cennik standardowy MATT / indywidualny fallback"}
+              {commercialTerms?.effective_from ? ` · ważny od ${commercialTerms.effective_from}` : ""}
+            </span>
+          </div>
+          <a href="/firma/cennik">ZOBACZ CENNIK →</a>
         </div>
 
         <h3>Pasażer</h3>
         <div className="passenger-mode">
           <button
+            type="button"
             className={passengerMode === "existing" ? "active" : ""}
             onClick={() => setPassengerMode("existing")}
             disabled={!employees.length}
@@ -268,6 +268,7 @@ export default function CompanyBookingForm({
             Z listy pracowników
           </button>
           <button
+            type="button"
             className={passengerMode === "new" ? "active" : ""}
             onClick={() => setPassengerMode("new")}
           >
@@ -281,9 +282,7 @@ export default function CompanyBookingForm({
             <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
               <option value="">— Wybierz pracownika —</option>
               {employees.filter((x) => x.active !== false).map((x) => (
-                <option key={x.id} value={x.id}>
-                  {x.first_name} {x.last_name}
-                </option>
+                <option key={x.id} value={x.id}>{x.first_name} {x.last_name}</option>
               ))}
             </select>
           </label>
@@ -300,38 +299,25 @@ export default function CompanyBookingForm({
 
         <h3>Rodzaj przejazdu</h3>
         <div className="choice-grid">
-          <button className={`choice ${serviceType === "to_airport" ? "active" : ""}`} onClick={() => chooseService("to_airport")}><strong>🛫 Na lotnisko</strong></button>
-          <button className={`choice ${serviceType === "from_airport" ? "active" : ""}`} onClick={() => chooseService("from_airport")}><strong>🛬 Z lotniska</strong></button>
-          <button className={`choice ${serviceType === "roundtrip" ? "active" : ""}`} onClick={() => chooseService("roundtrip")}><strong>🔁 W obie strony</strong></button>
+          <button type="button" className={`choice ${serviceType === "to_airport" ? "active" : ""}`} onClick={() => setServiceType("to_airport")}><strong>🛫 Na lotnisko</strong></button>
+          <button type="button" className={`choice ${serviceType === "from_airport" ? "active" : ""}`} onClick={() => setServiceType("from_airport")}><strong>🛬 Z lotniska</strong></button>
+          <button type="button" className={`choice ${serviceType === "roundtrip" ? "active" : ""}`} onClick={() => setServiceType("roundtrip")}><strong>🔁 W obie strony</strong></button>
         </div>
 
-        <h3>{serviceType === "from_airport" ? "Dokąd jedzie pasażer?" : "Skąd odbieramy pasażera?"}</h3>
+        <h3>{serviceType === "from_airport" ? "Skąd odbieramy pasażera?" : "Dokąd jedziemy?"}</h3>
         <div className="grid">
           <label className={serviceType === "from_airport" ? "route-address second" : "route-address first"}>
             {serviceType === "from_airport" ? "Adres docelowy" : "Adres odbioru"}
-            <input
-              value={address}
-              onChange={(e) => {
-                setAddress(e.target.value);
-                setQuote(null);
-              }}
-              autoComplete="off"
-            />
+            <input value={address} onChange={(e) => setAddress(e.target.value)} autoComplete="off" />
             {suggestions.length > 0 && (
               <div className="address-suggestions">
                 {suggestions.slice(0, 5).map((s: any, i: number) => (
-                  <button
-                    key={s.placeId ?? i}
-                    type="button"
-                    onClick={() => {
-                      const value = s.text ?? "";
-                      setAddress(value);
-                      setSuggestions([]);
-                      refreshQuote(value);
-                    }}
-                  >
-                    {s.text}
-                  </button>
+                  <button key={s.placeId ?? i} type="button" onClick={() => {
+                    const value = s.text ?? "";
+                    setAddress(value);
+                    setSuggestions([]);
+                    setTimeout(() => quoteFor(value), 0);
+                  }}>{s.text}</button>
                 ))}
               </div>
             )}
@@ -339,7 +325,7 @@ export default function CompanyBookingForm({
 
           <label className={serviceType === "from_airport" ? "route-airport first" : "route-airport second"}>
             {serviceType === "from_airport" ? "Z jakiego lotniska?" : "Lotnisko"}
-            <select value={airport} onChange={(e) => chooseAirport(e.target.value as keyof typeof PRICES)}>
+            <select value={airport} onChange={(e) => setAirport(e.target.value as keyof typeof PRICES)}>
               {Object.entries(PRICES).map(([key, value]) => (
                 <option key={key} value={key}>{value.label}</option>
               ))}
@@ -347,24 +333,20 @@ export default function CompanyBookingForm({
           </label>
         </div>
 
-        <div className={`route-status ${quote ? "ok" : ""}`}>{routeMessage}</div>
-        {address && !quote && (
-          <button type="button" className="btn secondary" disabled={quoteBusy} onClick={() => refreshQuote()}>
-            {quoteBusy ? "OBLICZANIE..." : "OBLICZ WYCENĘ B2B"}
-          </button>
-        )}
+        <div className={`route-status ${quote ? "ok" : ""}`}>
+          {quoteBusy
+            ? "Obliczanie odległości od siedziby kontrahenta i wyceny..."
+            : quote
+            ? `✓ ${quote.distanceKm.toFixed(1)} km od siedziby kontrahenta · ${quote.billableKm.toFixed(1)} km płatne`
+            : quoteError || "Wybierz dokładny adres, aby pobrać indywidualną wycenę."}
+        </div>
 
         <h3>Termin</h3>
         <div className="grid">
-          <label>Data<input type="date" value={travelDate} onChange={(e) => chooseTravelDate(e.target.value)} /></label>
+          <label>Data<input type="date" value={travelDate} onChange={(e) => setTravelDate(e.target.value)} /></label>
           <label>Godzina<input type="time" value={travelTime} onChange={(e) => setTravelTime(e.target.value)} /></label>
           <label>Numer lotu<input value={flightNumber} onChange={(e) => setFlightNumber(e.target.value)} /></label>
-          <label>
-            Pasażerowie
-            <select value={passengers} onChange={(e) => setPassengers(Number(e.target.value))}>
-              {[1,2,3,4,5,6,7,8].map((n) => <option key={n}>{n}</option>)}
-            </select>
-          </label>
+          <label>Pasażerowie<select value={passengers} onChange={(e) => setPassengers(Number(e.target.value))}>{[1,2,3,4,5,6,7,8].map((x) => <option key={x}>{x}</option>)}</select></label>
           {serviceType === "roundtrip" && (
             <>
               <label>Data powrotu<input type="date" value={returnDate} onChange={(e) => setReturnDate(e.target.value)} /></label>
@@ -376,78 +358,51 @@ export default function CompanyBookingForm({
 
         <h3>Pojazd</h3>
         <div className="choice-grid vehicle-grid">
-          <button className={`choice ${vehicle === "car" ? "active" : ""}`} disabled={passengers > 3} onClick={() => chooseVehicle("car")}>
-            <strong>Samochód osobowy</strong><small>Do 3 pasażerów</small>
-          </button>
-          <button className={`choice ${vehicle === "bus" ? "active" : ""}`} onClick={() => chooseVehicle("bus")}>
-            <strong>Bus do 8 osób</strong><small>Grupy / większy bagaż</small>
-          </button>
+          <button type="button" className={`choice ${vehicle === "car" ? "active" : ""}`} disabled={passengers > 3} onClick={() => setVehicle("car")}><strong>Samochód osobowy</strong><small>Do 3 pasażerów</small></button>
+          <button type="button" className={`choice ${vehicle === "bus" ? "active" : ""}`} onClick={() => setVehicle("bus")}><strong>Bus do 8 osób</strong><small>Grupy / większy bagaż</small></button>
         </div>
 
         <h3>Płatność</h3>
         <div className="choice-grid">
-          <button type="button" className={`choice ${paymentMethod === "company_transfer" ? "active" : ""}`} onClick={() => { setPaymentTouched(true); setPaymentMethod("company_transfer"); }}>
-            <strong>🏢 Przelew firmowy</strong><small>Rozliczenie zgodnie z warunkami firmy</small>
-          </button>
-          <button type="button" className={`choice ${paymentMethod === "employee_payment" ? "active" : ""}`} onClick={() => { setPaymentTouched(true); setPaymentMethod("employee_payment"); }}>
-            <strong>👤 Płatność pracownika</strong><small>Pracownik płaci kwotę BRUTTO</small>
-          </button>
+          <button type="button" className={`choice ${paymentMethod === "company_transfer" ? "active" : ""}`} onClick={() => { setPaymentMethod("company_transfer"); setPaymentInitialized(true); }}><strong>🏢 Przelew firmowy</strong><small>Rozliczenie zgodnie z warunkami firmy</small></button>
+          <button type="button" className={`choice ${paymentMethod === "employee_payment" ? "active" : ""}`} onClick={() => { setPaymentMethod("employee_payment"); setPaymentInitialized(true); }}><strong>👤 Płatność pracownika</strong><small>Pracownik płaci kwotę BRUTTO</small></button>
         </div>
 
-        <label style={{ marginTop: 18 }}>
-          Uwagi
-          <textarea rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} />
-        </label>
+        <label style={{ marginTop: 18 }}>Uwagi<textarea rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} /></label>
       </div>
 
-      <aside className="card summary b2b-summary">
-        <h3>Podsumowanie B2B PRO</h3>
-        <div className="row">
-          <span>Pasażer</span>
-          <strong>
-            {passengerMode === "existing"
-              ? employee
-                ? `${employee.first_name} ${employee.last_name}`
-                : "—"
-              : `${newEmployee.firstName} ${newEmployee.lastName}`.trim() || "—"}
-          </strong>
-        </div>
+      <aside className="card summary">
+        <span className="badge">TWOJE WARUNKI</span>
+        <h3>Podsumowanie B2B</h3>
+        <div className="row"><span>Pasażer</span><strong>{passengerMode === "existing" ? (employee ? `${employee.first_name} ${employee.last_name}` : "—") : `${newEmployee.firstName} ${newEmployee.lastName}`.trim() || "—"}</strong></div>
 
         {quote ? (
           <>
-            <div className="b2b-terms-mini">
-              <strong>Twoje warunki</strong>
-              <span>Siedziba: {quote.headquartersAddress}</span>
-              <span>Bez dopłaty: {Number(quote.freeKm).toFixed(1)} km od siedziby</span>
-              <span>Powyżej: {Number(quote.extraKmRateNet).toFixed(2)} zł netto/km</span>
-              <span>Cennik: {quote.pricingMode === "custom" ? "indywidualny" : "standardowy MATT"}</span>
-              <span>Ważne od: {quote.termsEffectiveFrom}</span>
-            </div>
-
-            <div className="row"><span>Cena bazowa netto</span><strong>{Number(quote.baseNet).toFixed(2)} zł</strong></div>
-            <div className="row"><span>Odległość od siedziby</span><strong>{Number(quote.distanceFromHeadquartersKm).toFixed(1)} km</strong></div>
-            <div className="row"><span>Km ponad limit</span><strong>{Number(quote.billableKm).toFixed(1)} km</strong></div>
-            <div className="row"><span>Dopłata netto</span><strong>{Number(quote.extraNet).toFixed(2)} zł</strong></div>
-            {Number(quote.discountNet) > 0 && (
-              <div className="row"><span>Rabat</span><strong>-{Number(quote.discountNet).toFixed(2)} zł</strong></div>
-            )}
-            <div className="row"><span>Razem netto</span><strong>{Number(quote.net).toFixed(2)} zł</strong></div>
-            <div className="row"><span>VAT {Number(quote.vatRate).toFixed(0)}%</span><strong>{Number(quote.vat).toFixed(2)} zł</strong></div>
-            <div className="row total"><span>Razem brutto</span><strong>{Number(quote.gross).toFixed(2)} zł</strong></div>
+            <div className="row"><span>Warunki ważne od</span><strong>{quote.effectiveFrom || "—"}</strong></div>
+            <div className="row"><span>Siedziba kontrahenta</span><strong style={{ textAlign: "right", maxWidth: "60%" }}>{quote.originAddress}</strong></div>
+            <div className="row"><span>Odległość od siedziby</span><strong>{quote.distanceKm.toFixed(1)} km</strong></div>
+            <div className="row"><span>Limit bez dopłaty</span><strong>{quote.freeKm.toFixed(1)} km</strong></div>
+            <div className="row"><span>Km płatne</span><strong>{quote.billableKm.toFixed(1)} km</strong></div>
+            <div className="row"><span>Stawka ponad limit</span><strong>{quote.extraKmRateNet.toFixed(2)} zł netto/km</strong></div>
+            <div className="row"><span>Cena 1 strony</span><strong>{quote.baseOneWayNet.toFixed(2)} zł netto</strong></div>
+            {quote.multiplier > 1 && <div className="row"><span>Mnożnik przejazdu</span><strong>× {quote.multiplier}</strong></div>}
+            <div className="row"><span>Cena bazowa</span><strong>{quote.basePriceNet.toFixed(2)} zł netto</strong></div>
+            <div className="row"><span>Dopłata km</span><strong>{quote.extraPriceNet.toFixed(2)} zł netto</strong></div>
+            <div className="row total"><span>RAZEM NETTO</span><strong>{quote.net.toFixed(2)} zł</strong></div>
+            <div className="row"><span>VAT {quote.vatRate.toFixed(0)}%</span><strong>{quote.vat.toFixed(2)} zł</strong></div>
+            <div className="row total"><span>RAZEM BRUTTO</span><strong>{quote.gross.toFixed(2)} zł</strong></div>
+            <p className="muted" style={{ marginTop: 12 }}>
+              {quote.pricingSource === "custom" ? "Indywidualny cennik kontrahenta." : "Cena standardowa MATT dla tej pozycji."}<br />
+              Wszystkie ceny B2B są cenami NETTO + 8% VAT.
+            </p>
           </>
         ) : (
-          <p className="muted">Wybierz adres i oblicz wycenę. Serwer policzy dystans od siedziby Twojej firmy.</p>
+          <p className="muted">Wycena pojawi się po wskazaniu dokładnego adresu pasażera.</p>
         )}
 
-        <button
-          className="btn"
-          style={{ width: "100%", marginTop: 16 }}
-          disabled={saving || quoteBusy || !quote}
-          onClick={submit}
-        >
+        <button className="btn" style={{ width: "100%", marginTop: 16 }} disabled={saving || quoteBusy || !quote} onClick={submit}>
           {saving ? "ZAMAWIANIE..." : "ZAMÓW TRANSPORT"}
         </button>
-
         {message && <div className="admin-save-message">{message}</div>}
       </aside>
     </div>

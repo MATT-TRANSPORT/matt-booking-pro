@@ -1,0 +1,47 @@
+MATT Booking PRO v3.3.1 — B2B PORTAL PRO
+CHECKLISTA WDROŻENIA
+
+1. SQL
+- BRAK nowego SQL.
+- Nie uruchamiaj ponownie migracji v3.3.0.
+
+2. ENV
+- BRAK nowych zmiennych środowiskowych.
+
+3. Wdrożenie
+- Wgraj zawartość paczki ONLY FILES do repozytorium.
+- Commit / push do main.
+- Poczekaj na zielony deploy Vercel.
+
+4. Test 1 — Cennik i warunki
+- Firma -> Cennik i warunki.
+- Sprawdź siedzibę kontrahenta, limit km, stawkę/km, datę ważności.
+- Sprawdź ceny samochód/bus i oznaczenia INDYWIDUALNA / STANDARD MATT.
+- Sprawdź informację NETTO + VAT 8%.
+
+5. Test 2 — Nowa rezerwacja
+- Firma -> Nowa rezerwacja.
+- Sprawdź banner warunków firmy.
+- Wybierz dokładny adres pasażera.
+- Wycena musi pokazać: odległość od siedziby, limit, płatne km, cenę 1 strony, netto, VAT i brutto.
+- Utwórz rezerwację i sprawdź, czy cena po zapisie jest identyczna z wyceną.
+
+6. Test 3 — Rezerwacja i dokumenty
+- Otwórz szczegóły B2B.
+- Sprawdź poprawny kierunek trasy, NETTO/VAT/BRUTTO i snapshot ceny.
+- Jeśli rezerwacja ma dokument, lista rezerwacji powinna pokazać FAKTURA / DOKUMENT.
+
+7. Test 4 — Anulowanie przez firmę
+- Na testowej rezerwacji pending/confirmed/assigned kliknij ANULUJ REZERWACJĘ.
+- Potwierdź drugi krok.
+- Status powinien przejść na ANULOWANA.
+- Wydarzenie powinno zniknąć z Google Calendar.
+- Firma i MATT powinny dostać e-mail.
+- Dla opłaconej rezerwacji płatność ma przejść na DO WERYFIKACJI, bez automatycznego zwrotu.
+
+8. Test mobilny
+- Dashboard firmy, Cennik, Rezerwacje i szczegóły sprawdź na telefonie.
+
+UWAGA
+Pełny lokalny next build nie został wykonany — npm install przekroczył limit czasu.
+Kontrola statyczna: 145 plików TS/TSX, 0 błędów składniowych, 0 brakujących importów @/, 0 niedozwolonych .catch() na builderach Supabase.

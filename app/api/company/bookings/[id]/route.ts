@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import {
-  b2bBookingPriceFields,
-  calculateB2BQuote
-} from "@/lib/b2bPricing";
 import { sendMattEmail } from "@/lib/email";
 import { expireCheckoutSession } from "@/lib/stripeServer";
 import { syncBookingCalendar } from "@/lib/googleCalendar";
+import { bookingPricingFields, calculateCompanyQuote } from "@/lib/companyPricing";
 
 const EDITABLE_STATUSES = ["pending", "confirmed", "assigned"];
 
@@ -58,10 +55,100 @@ export async function POST(
     .single();
 
   if (!current) {
-    return NextResponse.json(
-      { error: "Nie znaleziono rezerwacji." },
-      { status: 404 }
-    );
+    return NextResponse.json({ error: "Nie znaleziono rezerwacji." }, { status: 404 });
+  }
+
+  if (body.action === "cancel") {
+    if (!EDITABLE_STATUSES.includes(current.status)) {
+      return NextResponse.json(
+        { error: current.status === "cancelled" ? "Ta rezerwacja jest już anulowana." : "Rezerwacji w realizacji lub zakończonej nie można anulować w portalu firmy." },
+        { status: 409 }
+      );
+    }
+
+    const wasPaid =
+      current.payment_status === "paid" ||
+      current.payment_status === "review";
+
+    if (!wasPaid && current.payment_checkout_session_id) {
+      try {
+        await expireCheckoutSession(current.payment_checkout_session_id);
+      } catch (error) {
+        console.error("B2B cancel Stripe session:", error);
+      }
+    }
+
+    const update: any = {
+      status: "cancelled",
+      updated_at: new Date().toISOString()
+    };
+
+    if (wasPaid) {
+      update.payment_status = "review";
+      update.payment_review_reason =
+        "Firma anulowała rezerwację w portalu B2B. Sprawdź warunki anulacji i ewentualny zwrot.";
+      update.payment_last_error = null;
+    } else if (current.payment_method === "employee_payment") {
+      update.payment_link = null;
+      update.payment_checkout_session_id = null;
+      update.payment_last_error = null;
+    }
+
+    const { data: cancelled, error: cancelError } = await admin
+      .from("bookings")
+      .update(update)
+      .eq("id", id)
+      .select("*")
+      .single();
+
+    if (cancelError || !cancelled) {
+      return NextResponse.json(
+        { error: cancelError?.message || "Nie udało się anulować rezerwacji." },
+        { status: 500 }
+      );
+    }
+
+    await admin.from("booking_history").insert({
+      booking_id: id,
+      event: wasPaid
+        ? "Firma ANULOWAŁA rezerwację w portalu B2B. Płatność oznaczono DO WERYFIKACJI."
+        : "Firma ANULOWAŁA rezerwację w portalu B2B.",
+      created_by: user.id
+    });
+
+    await syncBookingCalendar(admin, cancelled);
+
+    const { data: companyForMail } = await admin
+      .from("companies")
+      .select("name,email")
+      .eq("id", membership.company_id)
+      .single();
+
+    const cancellationText = wasPaid
+      ? "Rezerwacja została anulowana. Płatność była już zaksięgowana — MATT TRANSPORT zweryfikuje ewentualny zwrot zgodnie z warunkami anulacji."
+      : "Rezerwacja została anulowana i nie będzie realizowana.";
+
+    if (companyForMail?.email) {
+      await sendMattEmail({
+        to: companyForMail.email,
+        subject: `Anulowano rezerwację ${cancelled.booking_number}`,
+        html: htmlUpdate(cancelled.booking_number, cancellationText)
+      });
+    }
+
+    await sendMattEmail({
+      to: "kontakt@matt-transport.pl",
+      subject: `B2B · ANULOWANA PRZEZ FIRMĘ · ${cancelled.booking_number}`,
+      html: htmlUpdate(
+        cancelled.booking_number,
+        `${companyForMail?.name || "Kontrahent"} anulował rezerwację w portalu B2B. ${wasPaid ? "UWAGA: płatność wymaga weryfikacji ewentualnego zwrotu." : ""}`
+      )
+    });
+
+    return NextResponse.json({
+      ...cancelled,
+      payment_requires_review: wasPaid
+    });
   }
 
   if (body.action === "repeat") {
@@ -74,22 +161,17 @@ export async function POST(
 
     let quote;
     try {
-      quote = await calculateB2BQuote(admin, {
+      // Powtórzona rezerwacja korzysta z AKTUALNYCH warunków handlowych.
+      quote = await calculateCompanyQuote(admin, {
         companyId: membership.company_id,
-        travelDate: body.travelDate,
-        serviceType: current.service_type,
-        airport: current.airport_key,
+        pickupAddress: current.pickup_address,
+        airportKey: current.airport_key,
         vehicleType: current.vehicle_type,
-        pickupAddress: current.pickup_address
+        serviceType: current.service_type
       });
     } catch (error) {
       return NextResponse.json(
-        {
-          error:
-            error instanceof Error
-              ? error.message
-              : "Nie udało się ponownie wycenić kursu."
-        },
+        { error: error instanceof Error ? error.message : "Nie udało się wycenić nowej rezerwacji." },
         { status: 400 }
       );
     }
@@ -122,17 +204,12 @@ export async function POST(
       payment_refunded_at: null,
       payment_last_error: null,
       payment_review_reason: null,
-      customer_last_edited_at: null,
       google_calendar_event_id: null,
       google_calendar_return_event_id: null,
       google_calendar_synced_at: null,
       google_calendar_sync_error: null,
-      ...b2bBookingPriceFields(quote)
+      ...bookingPricingFields(quote)
     };
-
-    for (const key of Object.keys(copy)) {
-      if (copy[key] === undefined) delete copy[key];
-    }
 
     const { data, error } = await admin
       .from("bookings")
@@ -141,17 +218,14 @@ export async function POST(
       .single();
 
     if (error || !data) {
-      return NextResponse.json(
-        { error: error?.message || "Nie udało się powtórzyć rezerwacji." },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: error?.message || "Błąd zapisu." }, { status: 500 });
     }
 
     await admin.from("booking_history").insert({
       booking_id: data.id,
       event:
-        `Powtórzono rezerwację ${current.booking_number} · ` +
-        `nowa wycena ${quote.net.toFixed(2)} zł netto / ${quote.gross.toFixed(2)} zł brutto`,
+        `Powtórzono rezerwację ${current.booking_number} wg aktualnych warunków B2B · ` +
+        `${quote.net.toFixed(2)} zł netto + VAT = ${quote.gross.toFixed(2)} zł brutto`,
       created_by: user.id
     });
 
@@ -162,12 +236,9 @@ export async function POST(
     return NextResponse.json({ error: "Nieznana operacja." }, { status: 400 });
   }
 
-  if (current.payment_status === "paid") {
+  if (["paid", "review"].includes(current.payment_status)) {
     return NextResponse.json(
-      {
-        error:
-          "Opłaconej rezerwacji nie można edytować w portalu firmy. Skontaktuj się z MATT TRANSPORT."
-      },
+      { error: "Rezerwacji z zaksięgowaną lub weryfikowaną płatnością nie można edytować w portalu firmy. Skontaktuj się z MATT TRANSPORT." },
       { status: 409 }
     );
   }
@@ -179,76 +250,56 @@ export async function POST(
     );
   }
 
-  const passengers = Math.max(
-    1,
-    Math.min(8, Number(body.passengers ?? current.passengers))
-  );
-  const vehicle =
-    passengers > 3
-      ? "bus"
-      : body.vehicleType === "bus"
-      ? "bus"
-      : "car";
+  const vehicle = body.vehicleType === "bus" ? "bus" : "car";
   const serviceType = body.serviceType || current.service_type;
-  const address = String(body.address ?? current.pickup_address).trim();
-  const airport = body.airport || current.airport_key;
-  const travelDate = body.travelDate || current.travel_date;
+  const address = String(body.address || current.pickup_address || "");
+  const airport = String(body.airport || current.airport_key || "");
 
   let quote;
   try {
-    quote = await calculateB2BQuote(admin, {
+    // Edycja zachowuje wersję warunków, według której rezerwacja została zawarta.
+    quote = await calculateCompanyQuote(admin, {
       companyId: membership.company_id,
-      travelDate,
-      serviceType,
-      airport,
-      vehicleType: vehicle,
       pickupAddress: address,
-      termsId:
-        String(travelDate) === String(current.travel_date)
-          ? current.b2b_terms_id || null
-          : null
+      airportKey: airport,
+      vehicleType: vehicle,
+      serviceType,
+      termsId: current.company_pricing_terms_id || null
     });
-  } catch (pricingError) {
+  } catch (error) {
     return NextResponse.json(
-      {
-        error:
-          pricingError instanceof Error
-            ? pricingError.message
-            : "Nie udało się obliczyć nowej wyceny."
-      },
+      { error: error instanceof Error ? error.message : "Nie udało się przeliczyć rezerwacji." },
       { status: 400 }
     );
   }
 
   const changes: string[] = [];
-  const compare = (label: string, oldValue: any, newValue: any) => {
-    if (String(oldValue ?? "") !== String(newValue ?? "")) {
-      changes.push(`${label}: ${oldValue ?? "—"} → ${newValue ?? "—"}`);
+  const compare = (label: string, oldV: any, newV: any) => {
+    if (String(oldV ?? "") !== String(newV ?? "")) {
+      changes.push(`${label}: ${oldV ?? "—"} → ${newV ?? "—"}`);
     }
   };
 
   compare("adres", current.pickup_address, address);
-  compare("data", current.travel_date, travelDate);
-  compare("godzina", current.travel_time, body.travelTime ?? current.travel_time);
-  compare("lot", current.flight_number, body.flightNumber ?? current.flight_number);
-  compare("liczba pasażerów", current.passengers, passengers);
+  compare("data", current.travel_date, body.travelDate);
+  compare("godzina", current.travel_time, body.travelTime);
+  compare("lot", current.flight_number, body.flightNumber);
+  compare("liczba pasażerów", current.passengers, body.passengers);
   compare("pojazd", current.vehicle_type, vehicle);
 
-  const oldGross = Number(current.b2b_gross ?? current.total_price ?? 0);
+  const oldGross = Number(current.price_gross ?? current.total_price ?? 0);
   if (Math.round(oldGross * 100) !== Math.round(quote.gross * 100)) {
-    changes.push(
-      `kwota brutto: ${oldGross.toFixed(2)} → ${quote.gross.toFixed(2)} zł`
-    );
+    changes.push(`brutto: ${oldGross.toFixed(2)} → ${quote.gross.toFixed(2)} zł`);
   }
 
   const materialChange =
     String(current.pickup_address ?? "") !== address ||
-    String(current.travel_date ?? "") !== String(travelDate ?? "") ||
-    String(current.travel_time ?? "") !== String(body.travelTime ?? current.travel_time ?? "") ||
-    String(current.airport_key ?? "") !== String(airport ?? "") ||
+    String(current.travel_date ?? "") !== String(body.travelDate ?? "") ||
+    String(current.travel_time ?? "") !== String(body.travelTime ?? "") ||
+    String(current.airport_key ?? "") !== airport ||
     String(current.service_type ?? "") !== String(serviceType ?? "") ||
     String(current.vehicle_type ?? "") !== String(vehicle ?? "") ||
-    Number(current.passengers || 0) !== passengers ||
+    Number(current.passengers || 0) !== Number(body.passengers || 0) ||
     Math.round(oldGross * 100) !== Math.round(quote.gross * 100);
 
   if (materialChange) {
@@ -258,17 +309,17 @@ export async function POST(
   const { data, error } = await admin
     .from("bookings")
     .update({
-      service_type: quote.serviceType,
-      pickup_address: quote.pickupAddress,
+      service_type: serviceType,
+      pickup_address: address,
       airport_key: quote.airportKey,
       airport_label: quote.airportLabel,
-      travel_date: travelDate,
-      travel_time: body.travelTime ?? current.travel_time,
-      passengers,
-      vehicle_type: quote.vehicleType,
+      travel_date: body.travelDate,
+      travel_time: body.travelTime,
+      passengers: Number(body.passengers),
+      vehicle_type: vehicle,
       flight_number: body.flightNumber || null,
       notes: body.notes || null,
-      ...b2bBookingPriceFields(quote),
+      ...bookingPricingFields(quote),
       status: materialChange
         ? "pending"
         : current.status === "assigned"
@@ -293,17 +344,12 @@ export async function POST(
     .single();
 
   if (error || !data) {
-    return NextResponse.json(
-      { error: error?.message || "Nie udało się zapisać zmian." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error?.message || "Błąd zapisu." }, { status: 500 });
   }
 
   await admin.from("booking_history").insert({
     booking_id: id,
-    event:
-      `Edycja przez firmę: ${changes.join("; ") || "zapisano dane"} · ` +
-      `wycena ${quote.net.toFixed(2)} zł netto + VAT ${quote.vat.toFixed(2)} zł = ${quote.gross.toFixed(2)} zł brutto`,
+    event: `Edycja przez firmę: ${changes.join("; ") || "zapisano dane"}`,
     created_by: user.id
   });
 
@@ -316,14 +362,15 @@ export async function POST(
     .single();
 
   if (companyForMail?.email && changes.length) {
-    await sendMattEmail({
-      to: companyForMail.email,
-      subject: `Zmieniono rezerwację ${data.booking_number}`,
-      html: htmlUpdate(
-        data.booking_number,
-        `Zaktualizowano: ${changes.join(", ")}. Nowa cena: ${quote.net.toFixed(2)} zł netto + VAT ${quote.vat.toFixed(2)} zł = ${quote.gross.toFixed(2)} zł brutto.`
-      )
-    }).catch(() => null);
+    try {
+      await sendMattEmail({
+        to: companyForMail.email,
+        subject: `Zmieniono rezerwację ${data.booking_number}`,
+        html: htmlUpdate(data.booking_number, `Zaktualizowano: ${changes.join(", ")}`)
+      });
+    } catch (error) {
+      console.error("E-mail po edycji B2B:", error);
+    }
   }
 
   return NextResponse.json(data);

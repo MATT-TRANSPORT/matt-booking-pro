@@ -1796,123 +1796,35 @@
   .customer-push-actions .btn,.communication-lite-actions .btn{width:100%}
 }
 
-/* ===== v3.3.0 B2B PRO ===== */
-.b2b-vat-note{
-  margin:12px 0 16px;
-  padding:13px 15px;
-  border:1px solid rgba(213,174,93,.35);
-  border-radius:12px;
-  background:rgba(213,174,93,.08);
-  color:#e9dfca;
-  line-height:1.5;
-}
-.b2b-price-editor{
-  margin-top:16px;
-  border:1px solid #343b49;
-  border-radius:14px;
-  overflow:hidden;
-}
-.b2b-price-editor-head,
-.b2b-price-editor-row{
-  display:grid;
-  grid-template-columns:minmax(180px,1fr) minmax(120px,.55fr) minmax(120px,.55fr);
-  gap:10px;
-  align-items:center;
-  padding:11px 13px;
-}
-.b2b-price-editor-head{
-  background:#10141b;
-  color:#f1d28b;
-  font-size:12px;
-  text-transform:uppercase;
-  letter-spacing:.04em;
-}
-.b2b-price-editor-row{
-  border-top:1px solid #2c3340;
-}
-.b2b-price-editor-row small{
-  display:block;
-  margin-top:3px;
-  color:#8f98a6;
-}
-.b2b-price-editor-row input{
-  min-width:0;
-}
-.b2b-terms-history{
-  margin-top:18px;
-  padding-top:16px;
-  border-top:1px solid #343b49;
-}
-.b2b-terms-history>div{
-  display:flex;
-  justify-content:space-between;
-  gap:16px;
-  padding:8px 0;
-  border-bottom:1px solid #252c37;
-}
-.b2b-terms-history span{
-  color:#aab1bc;
-  text-align:right;
-}
-.b2b-terms-mini{
-  display:grid;
-  gap:5px;
-  margin:12px 0 16px;
-  padding:14px;
-  border-radius:12px;
-  background:#10141b;
-  border:1px solid #343b49;
-}
-.b2b-terms-mini strong{color:#f1d28b;margin-bottom:4px}
-.b2b-terms-mini span{font-size:13px;color:#aab1bc;line-height:1.45}
-.b2b-summary .row.total strong{font-size:20px;color:#f1d28b}
-.b2b-edit-quote{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:8px;
-  margin-top:12px;
-  padding:12px;
-  border:1px solid #343b49;
-  border-radius:12px;
-  background:#10141b;
-}
-.b2b-edit-quote>div{display:flex;flex-direction:column;gap:4px}
-.b2b-edit-quote span,.b2b-edit-quote small{color:#aab1bc;font-size:12px}
-.b2b-edit-quote small{grid-column:1/-1}
-.b2b-price-card{margin-bottom:16px}
-.b2b-snapshot-badge{
-  font-size:11px;
-  color:#cbd2dc;
-  border:1px solid #46505f;
-  border-radius:999px;
-  padding:6px 9px;
-  white-space:nowrap;
-}
-.b2b-price-compact{display:flex;flex-direction:column;gap:2px}
-.b2b-price-compact span{font-size:12px;color:#aab1bc}
-.booking-document-list{display:grid;gap:10px;margin-top:16px}
-.booking-document-row{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:16px;
-  padding:12px;
-  border:1px solid #343b49;
-  border-radius:12px;
-  background:#10141b;
-}
-.booking-document-row>div:first-child{display:flex;flex-direction:column;gap:3px;min-width:0}
-.booking-document-row span{color:#d5d9df;overflow-wrap:anywhere}
-.booking-document-row small{color:#8f98a6}
-.booking-document-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-@media(max-width:760px){
-  .b2b-price-editor-head{display:none}
-  .b2b-price-editor-row{grid-template-columns:1fr 1fr}
-  .b2b-price-editor-row>div{grid-column:1/-1}
-  .b2b-terms-history>div,.booking-document-row{flex-direction:column;align-items:stretch}
-  .b2b-terms-history span{text-align:left}
-  .booking-document-actions{justify-content:stretch}
-  .booking-document-actions>*{flex:1;text-align:center}
-  .b2b-edit-quote{grid-template-columns:1fr}
-  .b2b-edit-quote small{grid-column:auto}
-}
+
+/* MATT Booking PRO v3.3.1 — B2B PORTAL PRO */
+.company-stats-pro{grid-template-columns:repeat(6,minmax(0,1fr));margin-bottom:0}
+.company-stats-pro .stat{padding:14px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.025)}
+.company-stats-pro .stat span{display:block;color:var(--muted);font-size:11px;margin-top:5px}
+.b2b-terms-card{border-color:rgba(213,174,93,.34)}
+.b2b-terms-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.b2b-terms-head h2{margin:8px 0 0}
+.b2b-terms-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:16px}
+.b2b-terms-grid>div{padding:13px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025);min-width:0}
+.b2b-terms-grid span,.b2b-terms-grid strong{display:block}.b2b-terms-grid span{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}.b2b-terms-grid strong{font-size:13px;overflow-wrap:anywhere}
+.b2b-commercial-note{display:flex;flex-direction:column;gap:5px;margin-top:12px;padding:13px;border:1px solid rgba(213,174,93,.24);border-radius:12px;background:rgba(213,174,93,.04)}
+.b2b-commercial-note span{color:var(--muted);line-height:1.5}
+.b2b-upcoming-terms{margin-top:12px;padding:11px 12px;border-radius:10px;border:1px solid rgba(93,151,255,.28);background:rgba(93,151,255,.06);color:#cfe3ff;font-size:12px}
+.b2b-net-note{margin:12px 0 0}
+.b2b-booking-terms-banner{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;margin:16px 0 22px;padding:15px;border:1px solid rgba(213,174,93,.32);border-radius:14px;background:rgba(213,174,93,.05)}
+.b2b-booking-terms-banner>div{display:flex;flex-direction:column;gap:5px}.b2b-booking-terms-banner small{font-size:9px;color:var(--gold2);font-weight:900;letter-spacing:.06em}.b2b-booking-terms-banner strong{font-size:13px}.b2b-booking-terms-banner span{font-size:11px;color:var(--muted)}.b2b-booking-terms-banner a{font-size:11px;font-weight:900;white-space:nowrap}
+.b2b-price-table{min-width:900px}.b2b-price-table td small.pricing-source-tag{display:block;width:max-content;margin-top:6px}
+.pricing-source-tag{font-size:8px!important;font-style:normal;font-weight:900;padding:4px 6px;border:1px solid var(--line);border-radius:999px;color:var(--muted);white-space:nowrap}
+.pricing-source-tag.custom{color:#bcebd0;border-color:rgba(79,189,125,.4);background:rgba(79,189,125,.07)}
+.pricing-source-tag.standard{color:#ffe0a0;border-color:rgba(213,174,93,.32);background:rgba(213,174,93,.05)}
+.b2b-price-cards{display:none;gap:10px}.b2b-price-card{padding:14px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.02)}.b2b-price-card h3{margin:0 0 12px;color:var(--gold2)}.b2b-price-card-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.b2b-price-card-grid>div{display:flex;flex-direction:column;gap:5px;padding:11px;border:1px solid var(--line);border-radius:10px}.b2b-price-card-grid span,.b2b-price-card-grid small{color:var(--muted);font-size:10px}.b2b-price-card-grid strong{font-size:13px}.b2b-price-card-grid .pricing-source-tag{width:max-content;margin-top:4px}
+.b2b-pricing-explainer{margin-top:16px;padding:16px;border:1px solid rgba(213,174,93,.28);border-radius:14px;background:rgba(213,174,93,.04)}.b2b-pricing-explainer h3{margin-top:0}.b2b-pricing-explainer p{color:var(--muted);line-height:1.6}.b2b-pricing-explainer>strong{color:var(--gold2)}
+.b2b-terms-history{display:grid;gap:9px;margin-top:14px}.b2b-terms-history>div{display:grid;grid-template-columns:110px 140px 1fr;gap:10px;align-items:center;padding:11px;border-bottom:1px solid var(--line)}.b2b-terms-history span{font-size:9px;font-weight:900;color:var(--gold2)}.b2b-terms-history small{color:var(--muted)}
+.document-status{display:inline-flex;padding:5px 7px;border-radius:8px;border:1px solid var(--line);font-size:9px;font-weight:900;white-space:nowrap}.document-status.invoice{color:#bcebd0;border-color:rgba(79,189,125,.35)}.document-status.other{color:#cfe3ff;border-color:rgba(93,151,255,.3)}
+.b2b-bookings-pro-table{min-width:1200px}
+.company-detail-title{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.company-detail-title h2{margin-top:0}.company-detail-title p{margin-bottom:0}.company-detail-title .status{flex:0 0 auto}
+.b2b-detail-financials{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}.b2b-detail-financials>div{padding:14px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025)}.b2b-detail-financials span,.b2b-detail-financials strong{display:block}.b2b-detail-financials span{font-size:10px;color:var(--muted);margin-bottom:5px}.b2b-detail-financials strong{font-size:18px}.b2b-detail-financials .gross{border-color:rgba(213,174,93,.4);background:rgba(213,174,93,.05)}.b2b-detail-financials .gross strong{color:var(--gold2);font-size:22px}
+.company-cancel-btn{border-color:rgba(220,74,74,.45)!important;color:#ffb9bf!important}.company-cancel-confirm{margin-top:10px;padding:14px;border:1px solid rgba(220,74,74,.45);border-radius:12px;background:rgba(220,74,74,.06)}.company-cancel-confirm>strong{color:#ffb9bf}.company-cancel-confirm>div{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:11px}.company-cancel-confirm-btn{background:#8b343b!important;color:#fff!important}
+@media(max-width:1100px){.company-stats-pro{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:800px){.company-stats-pro{grid-template-columns:1fr 1fr}.b2b-terms-head,.b2b-booking-terms-banner,.company-detail-title{flex-direction:column}.b2b-terms-grid{grid-template-columns:1fr 1fr}.b2b-price-table{display:none}.b2b-price-cards{display:grid}.b2b-terms-history>div{grid-template-columns:1fr;gap:5px}.b2b-detail-financials{grid-template-columns:1fr}.company-cancel-confirm>div{grid-template-columns:1fr}.b2b-booking-terms-banner a{white-space:normal}}
+@media(max-width:560px){.company-stats-pro,.b2b-terms-grid,.b2b-price-card-grid{grid-template-columns:1fr}}

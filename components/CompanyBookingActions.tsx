@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PRICES } from "@/lib/pricing";
 
@@ -13,8 +13,9 @@ export default function CompanyBookingActions({ booking }: { booking: any }) {
   const [repeatDate, setRepeatDate] = useState("");
   const [repeatTime, setRepeatTime] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [quote, setQuote] = useState<any>(null);
+  const [editQuote, setEditQuote] = useState<any>(null);
   const [quoteBusy, setQuoteBusy] = useState(false);
+  const [cancelConfirm, setCancelConfirm] = useState(false);
   const [form, setForm] = useState({
     serviceType: booking.service_type,
     address: booking.pickup_address,
@@ -27,68 +28,62 @@ export default function CompanyBookingActions({ booking }: { booking: any }) {
     notes: booking.notes ?? ""
   });
 
+  useEffect(() => {
+    if (!editing || form.address.trim().length < 5) return;
+    const timer = setTimeout(() => loadQuote(form), 600);
+    return () => clearTimeout(timer);
+  }, [editing, form.address, form.airport, form.vehicleType, form.serviceType]);
+
+  async function loadQuote(next: typeof form) {
+    setQuoteBusy(true);
+    try {
+      const r = await fetch("/api/company/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          address: next.address,
+          airport: next.airport,
+          vehicleType: next.vehicleType,
+          serviceType: next.serviceType,
+          termsId: booking.company_pricing_terms_id || null
+        })
+      });
+      const d = await r.json();
+      setEditQuote(r.ok ? d : null);
+      if (!r.ok) setMessage(d.error || "Nie udało się przeliczyć ceny.");
+    } catch {
+      setEditQuote(null);
+    }
+    setQuoteBusy(false);
+  }
+
   async function addressChanged(value: string) {
     setForm({ ...form, address: value });
-    setQuote(null);
     if (value.trim().length < 3) {
       setSuggestions([]);
       return;
     }
-
     const response = await fetch(`/api/places?q=${encodeURIComponent(value)}`);
     const data = await response.json();
     setSuggestions(data.suggestions ?? []);
   }
 
-  async function refreshQuote(next = form) {
-    if (!next.address) return;
-    setQuoteBusy(true);
-    setMessage("Obliczanie wyceny od siedziby kontrahenta...");
-
-    const response = await fetch("/api/company/quote", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        address: next.address,
-        serviceType: next.serviceType,
-        airport: next.airport,
-        travelDate: next.travelDate,
-        vehicleType: next.vehicleType
-      })
-    });
-    const data = await response.json();
-    setQuoteBusy(false);
-
-    if (!response.ok) {
-      setQuote(null);
-      setMessage(data.error ?? "Nie udało się obliczyć wyceny.");
-      return;
-    }
-
-    setQuote(data);
-    setMessage("");
-  }
-
-  async function chooseAddress(value: string) {
+  function chooseAddress(value: string) {
     const next = { ...form, address: value };
     setForm(next);
     setSuggestions([]);
-    await refreshQuote(next);
+    loadQuote(next);
   }
 
   async function save() {
     setSaving(true);
-    setMessage("Zapisywanie zmian i ponowne liczenie ceny...");
+    setMessage("Zapisywanie zmian...");
 
     const response = await fetch(`/api/company/bookings/${booking.id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "update",
-        ...form
-      })
+      body: JSON.stringify({ action: "update", ...form })
     });
-
     const data = await response.json();
 
     if (!response.ok) {
@@ -97,9 +92,37 @@ export default function CompanyBookingActions({ booking }: { booking: any }) {
       return;
     }
 
-    setMessage("✓ Rezerwacja została zaktualizowana i przeliczona.");
+    setMessage("✓ Rezerwacja została zaktualizowana i przeliczona na serwerze.");
     setSaving(false);
     setEditing(false);
+    router.refresh();
+  }
+
+  async function cancelBooking() {
+    if (saving) return;
+    setSaving(true);
+    setMessage("Anulowanie rezerwacji...");
+
+    const response = await fetch(`/api/company/bookings/${booking.id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "cancel" })
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      setMessage(data.error ?? "Nie udało się anulować rezerwacji.");
+      setSaving(false);
+      return;
+    }
+
+    setMessage(
+      data.payment_requires_review
+        ? "✓ Rezerwacja anulowana. Płatność była zaksięgowana i wymaga weryfikacji ewentualnego zwrotu przez MATT TRANSPORT."
+        : "✓ Rezerwacja została anulowana."
+    );
+    setSaving(false);
+    setCancelConfirm(false);
     router.refresh();
   }
 
@@ -108,20 +131,14 @@ export default function CompanyBookingActions({ booking }: { booking: any }) {
       setMessage("Podaj datę i godzinę nowego przejazdu.");
       return;
     }
-
     setSaving(true);
-    setMessage("Tworzenie nowej rezerwacji według warunków obowiązujących w nowym terminie...");
+    setMessage("Tworzenie nowej rezerwacji wg aktualnych warunków B2B...");
 
     const response = await fetch(`/api/company/bookings/${booking.id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "repeat",
-        travelDate: repeatDate,
-        travelTime: repeatTime
-      })
+      body: JSON.stringify({ action: "repeat", travelDate: repeatDate, travelTime: repeatTime })
     });
-
     const data = await response.json();
 
     if (!response.ok) {
@@ -129,44 +146,45 @@ export default function CompanyBookingActions({ booking }: { booking: any }) {
       setSaving(false);
       return;
     }
-
     window.location.href = `/firma/rezerwacje/${data.id}`;
   }
 
-  const editable = ["pending", "confirmed", "assigned"].includes(booking.status);
+  const cancellable = ["pending", "confirmed", "assigned"].includes(booking.status);
+  const editable = cancellable && !["paid", "review"].includes(booking.payment_status);
 
   return (
     <div className="card company-actions">
       <h2>Akcje</h2>
-
-      <button
-        className="btn"
-        style={{ width: "100%" }}
-        disabled={!editable}
-        onClick={() => setEditing(!editing)}
-      >
+      <button className="btn" style={{ width: "100%" }} disabled={!editable} onClick={() => setEditing(!editing)}>
         {editing ? "ZAMKNIJ EDYCJĘ" : "EDYTUJ REZERWACJĘ"}
       </button>
 
-      {!editable && (
-        <p className="muted">
-          Rezerwacja w realizacji lub zakończona nie może być edytowana przez portal firmy.
-        </p>
+      {!editable && <p className="muted">{["paid", "review"].includes(booking.payment_status) && cancellable ? "Rezerwacji z zaksięgowaną lub weryfikowaną płatnością nie można samodzielnie edytować. Możesz ją anulować albo skontaktować się z MATT TRANSPORT." : "Rezerwacja w realizacji lub zakończona nie może być edytowana przez portal firmy."}</p>}
+
+      {cancellable && !cancelConfirm && (
+        <button className="btn secondary company-cancel-btn" style={{ width: "100%", marginTop: 10 }} disabled={saving} onClick={() => setCancelConfirm(true)}>
+          ANULUJ REZERWACJĘ
+        </button>
       )}
 
-      <button
-        className="btn secondary"
-        style={{ width: "100%", marginTop: 10 }}
-        onClick={() => setRepeatOpen(!repeatOpen)}
-      >
+      {cancellable && cancelConfirm && (
+        <div className="company-cancel-confirm">
+          <strong>Czy na pewno anulować tę rezerwację?</strong>
+          <p className="muted">Kurs zostanie anulowany i usunięty z Google Calendar. {booking.payment_status === "paid" || booking.payment_status === "review" ? "Płatność nie zostanie automatycznie zwrócona — MATT zweryfikuje zwrot ręcznie." : "Niewykorzystany link płatności zostanie wygaszony."}</p>
+          <div>
+            <button className="btn secondary" disabled={saving} onClick={() => setCancelConfirm(false)}>NIE, ZOSTAW</button>
+            <button className="btn company-cancel-confirm-btn" disabled={saving} onClick={cancelBooking}>{saving ? "ANULOWANIE..." : "TAK, ANULUJ"}</button>
+          </div>
+        </div>
+      )}
+
+      <button className="btn secondary" style={{ width: "100%", marginTop: 10 }} onClick={() => setRepeatOpen(!repeatOpen)}>
         POWTÓRZ REZERWACJĘ
       </button>
 
       {repeatOpen && (
         <div className="repeat-box">
-          <p className="muted">
-            Cena nowego kursu zostanie policzona według wersji warunków obowiązującej w wybranym dniu.
-          </p>
+          <p className="muted">Nowy kurs zostanie wyceniony według warunków handlowych obowiązujących w dniu utworzenia.</p>
           <label>Nowa data<input type="date" value={repeatDate} onChange={(e) => setRepeatDate(e.target.value)} /></label>
           <label>Nowa godzina<input type="time" value={repeatTime} onChange={(e) => setRepeatTime(e.target.value)} /></label>
           <button className="btn" onClick={repeat} disabled={saving}>UTWÓRZ NOWY KURS</button>
@@ -175,9 +193,6 @@ export default function CompanyBookingActions({ booking }: { booking: any }) {
 
       {editing && (
         <div className="company-edit-form">
-          <div className="b2b-vat-note">
-            Edycja może zmienić cenę. Wszystkie ceny B2B: <strong>NETTO + 8% VAT</strong>.
-          </div>
           <label>
             Adres
             <input value={form.address} onChange={(e) => addressChanged(e.target.value)} />
@@ -191,71 +206,42 @@ export default function CompanyBookingActions({ booking }: { booking: any }) {
           </label>
           <label>
             Lotnisko
-            <select
-              value={form.airport}
-              onChange={(e) => {
-                const next = { ...form, airport: e.target.value };
-                setForm(next);
-                refreshQuote(next);
-              }}
-            >
-              {Object.entries(PRICES).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}
+            <select value={form.airport} onChange={(e) => setForm({ ...form, airport: e.target.value })}>
+              {Object.entries(PRICES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
             </select>
           </label>
           <div className="grid">
-            <label>
-              Data
-              <input
-                type="date"
-                value={form.travelDate}
-                onChange={(e) => {
-                  const next = { ...form, travelDate: e.target.value };
-                  setForm(next);
-                  refreshQuote(next);
-                }}
-              />
-            </label>
+            <label>Data<input type="date" value={form.travelDate} onChange={(e) => setForm({ ...form, travelDate: e.target.value })} /></label>
             <label>Godzina<input type="time" value={form.travelTime} onChange={(e) => setForm({ ...form, travelTime: e.target.value })} /></label>
             <label>Lot<input value={form.flightNumber} onChange={(e) => setForm({ ...form, flightNumber: e.target.value })} /></label>
             <label>
               Pasażerowie
               <select value={form.passengers} onChange={(e) => {
                 const count = Number(e.target.value);
-                const next = { ...form, passengers: count, vehicleType: count > 3 ? "bus" : form.vehicleType };
-                setForm(next);
-                refreshQuote(next);
+                setForm({ ...form, passengers: count, vehicleType: count > 3 ? "bus" : form.vehicleType });
               }}>
                 {[1,2,3,4,5,6,7,8].map((n) => <option key={n}>{n}</option>)}
               </select>
             </label>
             <label>
               Pojazd
-              <select value={form.vehicleType} onChange={(e) => {
-                const next = { ...form, vehicleType: e.target.value };
-                setForm(next);
-                refreshQuote(next);
-              }}>
+              <select value={form.vehicleType} onChange={(e) => setForm({ ...form, vehicleType: e.target.value })}>
                 <option value="car" disabled={form.passengers > 3}>Samochód osobowy</option>
                 <option value="bus">Bus do 8 osób</option>
               </select>
             </label>
           </div>
-          <label>Uwagi<textarea rows={4} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></label>
 
-          <button className="btn secondary" style={{ width: "100%", marginTop: 10 }} disabled={quoteBusy} onClick={() => refreshQuote()}>
-            {quoteBusy ? "OBLICZANIE..." : "PRZELICZ CENĘ"}
-          </button>
-
-          {quote && (
-            <div className="b2b-edit-quote">
-              <div><span>Netto</span><strong>{Number(quote.net).toFixed(2)} zł</strong></div>
-              <div><span>VAT 8%</span><strong>{Number(quote.vat).toFixed(2)} zł</strong></div>
-              <div><span>Brutto</span><strong>{Number(quote.gross).toFixed(2)} zł</strong></div>
-              <small>{Number(quote.distanceFromHeadquartersKm).toFixed(1)} km od siedziby · {Number(quote.billableKm).toFixed(1)} km ponad limit</small>
+          {quoteBusy && <p className="muted">Przeliczanie ceny...</p>}
+          {editQuote && (
+            <div style={{ marginTop: 12, padding: 12, border: "1px solid #4f4733", borderRadius: 10 }}>
+              <strong>Nowa wycena: {editQuote.net.toFixed(2)} zł netto + VAT {editQuote.vatRate.toFixed(0)}% = {editQuote.gross.toFixed(2)} zł brutto</strong>
+              <div className="muted">{editQuote.distanceKm.toFixed(1)} km od siedziby · {editQuote.billableKm.toFixed(1)} km płatne</div>
             </div>
           )}
 
-          <button className="btn" style={{ width: "100%", marginTop: 12 }} disabled={saving} onClick={save}>
+          <label>Uwagi<textarea rows={4} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></label>
+          <button className="btn" style={{ width: "100%", marginTop: 12 }} disabled={saving || quoteBusy} onClick={save}>
             {saving ? "ZAPISYWANIE..." : "ZAPISZ ZMIANY"}
           </button>
         </div>
