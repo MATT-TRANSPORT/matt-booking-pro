@@ -1,0 +1,21 @@
+MATT Booking PRO v3.3.1.1 — MISSING B2B DEPENDENCIES HOTFIX
+
+Naprawia błąd Vercel:
+Module not found: Can't resolve '@/lib/companyPricing'
+Module not found: Can't resolve '@/components/B2BPricingSnapshotCard'
+
+Dodatkowo dołączono trzeci brakujący komponent wykryty podczas pełnego skanu importów:
+@/components/BookingDocumentsCard
+
+Przyczyna:
+Paczka v3.3.1 ONLY FILES zawierała pliki odwołujące się do fundamentu v3.3.0,
+ale nie zawierała tych trzech zależności.
+
+Dołączone pliki:
+- lib/companyPricing.ts
+- components/B2BPricingSnapshotCard.tsx
+- components/BookingDocumentsCard.tsx
+- package.json
+
+SQL: brak.
+ENV: brak.
