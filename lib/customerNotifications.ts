@@ -5,6 +5,7 @@ export type CustomerNotificationKind =
   | "confirmed"
   | "assigned"
   | "reminder_120"
+  | "review_request"
   | "in_progress"
   | "arrived"
   | "completed"
@@ -20,7 +21,10 @@ type NotifyOptions = {
   vehicle?: any;
   alert?: any;
   flight?: any;
+  leg?: "primary" | "return";
   force?: boolean;
+  url?: string;
+  title?: string;
 };
 
 export type CustomerNotificationResult = {
@@ -68,11 +72,13 @@ export function customerMessagingConfigured() {
   };
 }
 
-function routeText(booking: any) {
+function routeText(booking: any, leg?: "primary" | "return") {
   if (booking.service_type === "from_airport") {
     return `${booking.airport_label} → ${booking.pickup_address}`;
   }
   if (booking.service_type === "roundtrip") {
+    if (leg === "return") return `${booking.airport_label} → ${booking.pickup_address}`;
+    if (leg === "primary") return `${booking.pickup_address} → ${booking.airport_label}`;
     return `${booking.pickup_address} ↔ ${booking.airport_label}`;
   }
   return `${booking.pickup_address} → ${booking.airport_label}`;
@@ -114,12 +120,13 @@ async function enrichBooking(admin: any, booking: any) {
 
 export function customerUpdateText(
   booking: any,
-  options: Pick<NotifyOptions, "kind" | "driver" | "vehicle" | "alert" | "flight">
+  options: Pick<NotifyOptions, "kind" | "driver" | "vehicle" | "alert" | "flight" | "leg">
 ) {
   const number = booking.booking_number;
-  const date = booking.travel_date;
-  const time = shortTime(booking.travel_time);
-  const route = routeText(booking);
+  const returnLeg = options.leg === "return" && booking.service_type === "roundtrip";
+  const date = returnLeg ? booking.return_date : booking.travel_date;
+  const time = shortTime(returnLeg ? booking.return_time : booking.travel_time);
+  const route = routeText(booking, options.leg);
   const driver = options.driver || booking._driver;
   const vehicle = options.vehicle || booking._vehicle;
   const alert = options.alert;
@@ -134,6 +141,8 @@ export function customerUpdateText(
       return `Do rezerwacji ${number} przypisano kierowcę ${driver?.full_name || "MATT TRANSPORT"}${driver?.phone ? `, tel. ${driver.phone}` : ""}${vehicle ? `. Pojazd: ${vehicle.name}${vehicle.registration ? `, ${vehicle.registration}` : ""}` : ""}.`;
     case "reminder_120":
       return `Przypomnienie: przejazd ${number} jest dzisiaj o ${time}. Trasa: ${route}.`;
+    case "review_request":
+      return `Dziękujemy za podróż z MATT TRANSPORT. Jeśli masz chwilę, oceń naszą obsługę w Google — Twoja opinia bardzo nam pomaga.`;
     case "in_progress":
       return `Kierowca ${driver?.full_name || "MATT TRANSPORT"} wyruszył na realizację rezerwacji ${number}${driver?.phone ? `. Kontakt: ${driver.phone}` : ""}.`;
     case "arrived":
@@ -238,8 +247,8 @@ export async function sendBookingNotification(
   configureWebPush();
   const booking = await enrichBooking(admin, bookingInput);
   const body = customerUpdateText(booking, options);
-  const url = portalUrl(booking);
-  const title = "MATT TRANSPORT";
+  const url = options.url || portalUrl(booking);
+  const title = options.title || (options.kind === "review_request" ? "⭐ Jak minęła podróż?" : "MATT TRANSPORT");
 
   const reserved = await reservePushLog(
     admin,

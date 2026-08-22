@@ -128,6 +128,19 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient();
 
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile || !["admin", "dispatcher"].includes(profile.role)) {
+    return NextResponse.json(
+      { error: "Brak uprawnień." },
+      { status: 403 }
+    );
+  }
+
   const { data: current, error: readError } = await admin
     .from("bookings")
     .select("*")
@@ -174,6 +187,11 @@ export async function POST(req: NextRequest) {
     if ("google_calendar_return_event_id" in copy) copy.google_calendar_return_event_id = null;
     if ("google_calendar_synced_at" in copy) copy.google_calendar_synced_at = null;
     if ("google_calendar_sync_error" in copy) copy.google_calendar_sync_error = null;
+    if ("completed_at" in copy) copy.completed_at = null;
+    if ("review_request_started_at" in copy) copy.review_request_started_at = null;
+    if ("review_request_sent_at" in copy) copy.review_request_sent_at = null;
+    if ("review_request_email_sent_at" in copy) copy.review_request_email_sent_at = null;
+    if ("review_request_push_sent_at" in copy) copy.review_request_push_sent_at = null;
 
     const { data: duplicated, error: duplicateError } = await admin
       .from("bookings")
@@ -329,10 +347,17 @@ export async function POST(req: NextRequest) {
     nextStatus = "assigned";
   }
 
+  const statusChangedAt = new Date().toISOString();
   const updateData: any = {
     status: nextStatus,
-    updated_at: new Date().toISOString()
+    updated_at: statusChangedAt
   };
+
+  if (nextStatus === "completed" && current.status !== "completed") {
+    updateData.completed_at = statusChangedAt;
+  } else if (current.status === "completed" && nextStatus !== "completed") {
+    updateData.completed_at = null;
+  }
 
   // Nie zeruj obsady przy akcjach, które zmieniają tylko status.
   if (hasDriverId) {

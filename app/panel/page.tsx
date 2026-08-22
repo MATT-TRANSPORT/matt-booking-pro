@@ -19,13 +19,15 @@ export default async function PanelPage() {
     { count: todayCount },
     { count: b2bPending },
     { data: bookings },
-    { data: weddings }
+    { data: weddings },
+    { data: vehicles }
   ] = await Promise.all([
     s.from("bookings").select("*", { count: "exact", head: true }).eq("status", "pending"),
     s.from("bookings").select("*", { count: "exact", head: true }).eq("travel_date", today).not("status", "in", "(completed,cancelled)"),
     s.from("bookings").select("*", { count: "exact", head: true }).not("company_id", "is", null).in("status", ["pending","confirmed","assigned"]),
     s.from("bookings").select("*,companies(name),drivers(full_name,color)").order("created_at", { ascending: false }).limit(120),
-    s.from("wedding_bookings").select("*").order("created_at", { ascending: false }).limit(30)
+    s.from("wedding_bookings").select("*").order("created_at", { ascending: false }).limit(30),
+    s.from("vehicles").select("id,name,registration,inspection_date,insurance_date,active").eq("active", true).order("name")
   ]);
 
   const allBookings = bookings ?? [];
@@ -99,6 +101,23 @@ export default async function PanelPage() {
       ["warning","critical"].includes(a.severity)
   ).length;
 
+  const todayMs = Date.parse(`${today}T00:00:00Z`);
+  const daysUntil = (value?: string | null) => {
+    if (!value) return null;
+    const target = Date.parse(`${String(value).slice(0,10)}T00:00:00Z`);
+    return Number.isFinite(target) ? Math.ceil((target - todayMs) / 86400000) : null;
+  };
+  const fleetAttention = (vehicles ?? []).filter((vehicle: any) => {
+    const inspection = daysUntil(vehicle.inspection_date);
+    const insurance = daysUntil(vehicle.insurance_date);
+    return [inspection, insurance].some((days) => days !== null && days <= 30);
+  });
+  const fleetUrgent = fleetAttention.filter((vehicle: any) => {
+    const inspection = daysUntil(vehicle.inspection_date);
+    const insurance = daysUntil(vehicle.insurance_date);
+    return [inspection, insurance].some((days) => days !== null && days <= 7);
+  }).length;
+
   const feed = [
     ...activeBookings.slice(0, 35).map((b: any) => ({
       kind: "airport",
@@ -137,7 +156,7 @@ export default async function PanelPage() {
           <span>Problemy, które mogą wymagać działania dyspozytora.</span>
         </div>
 
-        <div className="ops-alert-grid ops-alert-grid-six">
+        <div className="ops-alert-grid ops-alert-grid-seven">
           <a className={alertOverdue ? "alert-danger" : ""} href="/panel/dyspozytor">
             <strong>{alertOverdue}</strong>
             <span>Termin minął</span>
@@ -154,9 +173,13 @@ export default async function PanelPage() {
             <strong>{alertChanged}</strong>
             <span>Zmiany klientów</span>
           </a>
-          <a href="/panel/rezerwacje?view=active">
+          <a className={alertPayment ? "alert-danger" : ""} href="/panel/rezerwacje?view=active">
             <strong>{alertPayment}</strong>
-            <span>B2B bez linku płatności</span>
+            <span>Płatności do weryfikacji</span>
+          </a>
+          <a className={fleetUrgent ? "alert-danger" : ""} href="/panel/pojazdy">
+            <strong>{fleetAttention.length}</strong>
+            <span>Flota ≤30 dni</span>
           </a>
           <a href="/panel/wesela">
             <strong>{(weddings ?? []).filter((x: any) => x.status === "pending").length}</strong>

@@ -340,3 +340,32 @@ export function adminNewBookingEmail(b: BookingMail, customerEmail: string, cust
     )
   };
 }
+
+export function reviewRequestEmail(b: BookingMail, reviewUrl: string) {
+  return {
+    subject: `Jak minęła podróż? – ${b.booking_number}`,
+    html: shell(
+      "Dziękujemy za podróż z MATT TRANSPORT",
+      `<p style="color:#aab1bc;line-height:1.7">
+        Dziękujemy za skorzystanie z MATT TRANSPORT. Mamy nadzieję, że przejazd
+        przebiegł komfortowo i zgodnie z planem.
+      </p>
+      <p style="color:#aab1bc;line-height:1.7">
+        Jeśli masz chwilę, będziemy wdzięczni za krótką opinię w Google.
+        Twoja ocena pomaga innym klientom wybrać sprawdzony transport i pomaga nam rozwijać jakość usług.
+      </p>
+      <div style="margin:24px 0;text-align:center">
+        <a href="${esc(reviewUrl)}" style="display:inline-block;background:#d5ae5d;color:#111;padding:15px 24px;border-radius:11px;text-decoration:none;font-weight:900">
+          ⭐ OCEŃ MATT TRANSPORT
+        </a>
+      </div>
+      <div style="background:#10141b;border:1px solid #343b49;border-radius:14px;padding:16px;line-height:1.7">
+        <span style="color:#aab1bc">Rezerwacja:</span> <strong>${esc(b.booking_number)}</strong><br/>
+        <span style="color:#aab1bc">Trasa:</span> <strong>${esc(routeText(b))}</strong>
+      </div>
+      <p style="margin-top:18px;color:#aab1bc;font-size:12px;line-height:1.6">
+        Jeśli podczas przejazdu coś wymagało naszej uwagi, możesz też odpowiedzieć bezpośrednio na tę wiadomość.
+      </p>`
+    )
+  };
+}

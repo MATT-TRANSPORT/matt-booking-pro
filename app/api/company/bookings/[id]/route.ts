@@ -222,6 +222,11 @@ export async function POST(
       google_calendar_return_event_id: null,
       google_calendar_synced_at: null,
       google_calendar_sync_error: null,
+      completed_at: null,
+      review_request_started_at: null,
+      review_request_sent_at: null,
+      review_request_email_sent_at: null,
+      review_request_push_sent_at: null,
       ...bookingPricingFields(quote)
     };
 

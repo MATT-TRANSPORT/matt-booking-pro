@@ -187,6 +187,24 @@ export default async function Page({
             <div><span>Faktura VAT</span><strong>{booking.invoice_required ? "Tak" : "Nie"}</strong></div>
           </div>
 
+          {!booking.company_id && (
+            <>
+              <h2>Po zakończeniu kursu</h2>
+              <div className="detail-list">
+                <div>
+                  <span>Prośba o opinię Google</span>
+                  <strong>
+                    {booking.review_request_sent_at
+                      ? `✓ Wysłano ${new Date(booking.review_request_sent_at).toLocaleString("pl-PL")}`
+                      : booking.completed_at
+                      ? "Zaplanowana automatycznie"
+                      : "Oczekuje na zakończenie kursu"}
+                  </strong>
+                </div>
+              </div>
+            </>
+          )}
+
           <h2>Rozliczenie</h2>
           <div className="detail-list">
             <div><span>{booking.company_id ? "Cena bazowa netto" : "Cena bazowa"}</span><strong>{Number(booking.base_price).toFixed(2)} zł</strong></div>

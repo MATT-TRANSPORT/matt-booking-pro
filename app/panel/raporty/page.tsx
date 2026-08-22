@@ -1,6 +1,7 @@
 import PanelNav from "@/components/PanelNav";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import ReportsExport from "@/components/ReportsExport";
 
 export default async function ReportsPage() {
   const supabase = await createClient();
@@ -18,7 +19,8 @@ export default async function ReportsPage() {
 
   return <main className="container">
     <h1>Raporty</h1><PanelNav />
-    <div className="stats">
+    <ReportsExport />
+    <div className="stats" style={{ marginTop: 18 }}>
       <div className="stat"><strong>{rows.length}</strong><span>Rezerwacje</span></div>
       <div className="stat"><strong>{total.toFixed(0)} zł</strong><span>Łączna wartość</span></div>
     </div>

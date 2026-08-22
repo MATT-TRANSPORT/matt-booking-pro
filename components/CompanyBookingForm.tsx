@@ -31,11 +31,13 @@ function normalizeQuote(raw: any) {
 export default function CompanyBookingForm({
   employees,
   companyName,
-  commercialTerms
+  commercialTerms,
+  addresses = []
 }: {
   employees: any[];
   companyName?: string;
   commercialTerms?: any | null;
+  addresses?: any[];
 }) {
   const employeeRows = Array.isArray(employees) ? employees : [];
   const [passengerMode, setPassengerMode] = useState<"existing" | "new">(
@@ -333,6 +335,28 @@ export default function CompanyBookingForm({
         </div>
 
         <h3>{serviceType === "from_airport" ? "Skąd odbieramy pasażera?" : "Dokąd jedziemy?"}</h3>
+        {addresses.length > 0 && (
+          <label className="company-saved-address-select">
+            Zapisane adresy firmy
+            <select
+              value=""
+              onChange={(e) => {
+                const selected = addresses.find((item: any) => String(item.id) === e.target.value);
+                if (selected?.address) {
+                  const value = String(selected.address);
+                  setAddress(value);
+                  setSuggestions([]);
+                  setTimeout(() => quoteFor(value), 0);
+                }
+              }}
+            >
+              <option value="">— Wybierz zapisane miejsce —</option>
+              {addresses.map((item: any) => (
+                <option key={item.id} value={item.id}>{item.label} · {item.address}</option>
+              ))}
+            </select>
+          </label>
+        )}
         <div className="grid">
           <label className={serviceType === "from_airport" ? "route-address second" : "route-address first"}>
             {serviceType === "from_airport" ? "Adres docelowy" : "Adres odbioru"}

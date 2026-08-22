@@ -1,0 +1,61 @@
+MATT Booking PRO v4.0.0 — PRODUCTION FINAL
+============================================
+BAZA: stabilne v3.6.0 DRIVER PRO
+CEL: finalne domknięcie rdzenia systemu przed szerokim użyciem produkcyjnym.
+
+1. POST-TRIP REVIEW AUTOMATION
+- B2C: automatyczna prośba o opinię ok. 45 min po zakończeniu całej rezerwacji.
+- E-mail zawsze, jeśli rezerwacja ma adres e-mail.
+- Web Push dodatkowo, jeśli klient ma aktywną subskrypcję dla rezerwacji.
+- Roundtrip: prośba dopiero po zakończeniu POWROTU.
+- Brak wysyłki dla anulowanych i B2B.
+- Brak masowej wysyłki do historycznych rezerwacji po migracji.
+- Deduplikacja i blokada równoległego wysłania.
+- Historia rezerwacji zapisuje wynik e-mail / push.
+- Domyślny przycisk prowadzi do Google Maps MATT TRANSPORT.
+- Opcjonalny NEXT_PUBLIC_GOOGLE_REVIEW_URL pozwala ustawić bezpośredni link „Napisz opinię”.
+
+2. POWIADOMIENIA PRODUKCYJNE
+- Dotychczasowy cron co 15 min pozostaje jeden.
+- B2C: przypomnienie ok. 2h przed bieżącą nogą kursu.
+- Roundtrip: przypomnienie działa również przed kursem powrotnym.
+- Kierowca: Web Push ok. 60 min przed bieżącą nogą kursu.
+- Deduplikacja każdego przypomnienia przez eventKey.
+
+3. B2B — ZAPISANE ADRESY
+- company_addresses zostaje uruchomione w portalu firmy.
+- Administrator/manager firmy może dodawać, edytować i usuwać zapisane miejsca.
+- Wszyscy aktywni członkowie firmy mogą je odczytać.
+- Nowa rezerwacja B2B pozwala wybrać zapisany adres jednym kliknięciem.
+- RLS zostało uzupełnione dla company_addresses.
+
+4. RAPORTY / EKSPORT
+- Panel -> Raporty: eksport miesięczny CSV / Excel.
+- CSV UTF-8 z separatorem ;, gotowy do otwarcia w Excelu.
+- Dane: numer, termin, B2C/B2B, klient, firma, trasa, pojazd, kierowca,
+  status, płatność, NETTO/VAT/BRUTTO, faktura, źródło.
+- Eksport pomija anulowane kursy.
+- Ochrona przed CSV/Excel formula injection.
+- Dostęp: admin / dispatcher / accounting.
+
+5. FLOTA
+- Dashboard administratora pokazuje liczbę aktywnych pojazdów,
+  których przegląd lub ubezpieczenie wygasa w ciągu 30 dni albo jest po terminie.
+- Termin <= 7 dni / po terminie podnosi alert do czerwonego.
+- Szczegóły pozostają w Panel -> Pojazdy.
+
+6. SECURITY HARDENING
+- Krytyczna poprawka: /api/admin/bookings wymaga teraz roli admin lub dispatcher,
+  a nie wyłącznie dowolnej zalogowanej sesji.
+- Operacje B2B adresów sprawdzają członkostwo i rolę firmy po stronie backendu.
+- Eksport raportów sprawdza rolę po stronie backendu.
+- Powtórzenie/duplikacja rezerwacji zeruje completed_at i wszystkie flagi review,
+  aby nowy kurs nie dziedziczył historii poprzedniego.
+
+7. BAZA / ENV
+SQL: TAK — MATT_V4_0_PRODUCTION_FINAL_SQL.sql
+Nowy obowiązkowy ENV: BRAK.
+Opcjonalny ENV: NEXT_PUBLIC_GOOGLE_REVIEW_URL
+
+8. WERSJA
+package.json: 4.0.0

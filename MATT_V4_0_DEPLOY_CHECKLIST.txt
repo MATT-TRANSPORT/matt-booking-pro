@@ -1,0 +1,95 @@
+MATT Booking PRO v4.0.0 — PRODUCTION FINAL
+CHECKLISTA WDROŻENIA
+==========================================
+
+WAŻNE: KOLEJNOŚĆ JEST ISTOTNA.
+
+KROK 0 — CHECKPOINT
+- Zachowaj działające v3.6.0 jako rollback.
+- Nie usuwaj istniejących danych ani starych migracji.
+
+KROK 1 — SUPABASE SQL (PRZED KODEM)
+- Supabase -> SQL Editor.
+- Uruchom cały: MATT_V4_0_PRODUCTION_FINAL_SQL.sql
+- SQL jest rozszerzający i idempotentny.
+- Sprawdź brak błędów.
+- NIE backfillujemy completed_at dla starych kursów — to celowe.
+
+KROK 2 — LINK DO OPINII GOOGLE
+- System działa również bez nowego ENV i użyje bezpiecznego linku wyszukującego MATT TRANSPORT w Google Maps.
+- Zalecane: w Vercel dodaj NEXT_PUBLIC_GOOGLE_REVIEW_URL z bezpośrednim linkiem do formularza opinii Google firmy.
+- Jeśli dodasz ENV, zrób redeploy.
+
+KROK 3 — GITHUB / VERCEL
+- Użyj: MATT_V4_0_PRODUCTION_FINAL_ONLY_FILES_FLAT.zip
+- Paczka jest FLAT — app/, components/, lib/, package.json itd. są od razu w root.
+- Wgraj zawartość bezpośrednio do ROOT repozytorium i nadpisz istniejące pliki.
+- Commit / push do main.
+- Poczekaj na zielony deployment Vercel.
+- Ctrl+F5 na panelu / odśwież PWA kierowcy.
+
+KROK 4 — KONTROLA BAZY I CRONA
+- Uruchom: MATT_V4_0_VERIFY_PRODUCTION.sql
+- Oczekiwane: 5 kolumn review/completed.
+- Cron matt-customer-notifications-15m: active=true, */15 * * * *.
+- Ostatnie wykonania: succeeded.
+
+KROK 5 — TEST SECURITY
+- Zalogowany kierowca/firma nie może wywołać administracyjnej zmiany dowolnej rezerwacji.
+- Admin/dyspozytor może zmieniać status i obsadę jak wcześniej.
+
+KROK 6 — TEST B2B ADRESY
+- Firma -> Dane firmy -> Zapisane adresy.
+- Admin/manager: dodaj „TEST BIURO” + pełny adres.
+- Firma -> Nowa rezerwacja: wybierz zapisany adres z listy.
+- Wycena ma uruchomić się dla wybranego adresu.
+- Usuń testowy adres.
+- Employee/accounting może widzieć adresy, ale nie zarządzać nimi.
+
+KROK 7 — TEST RAPORTU
+- Panel -> Raporty.
+- Wybierz miesiąc -> POBIERZ CSV.
+- Otwórz plik w Excelu.
+- Sprawdź polskie znaki, numer rezerwacji, datę, trasę, kierowcę, pojazd,
+  płatność oraz NETTO/VAT/BRUTTO dla B2B.
+
+KROK 8 — TEST FLOTY
+- Panel główny -> Wymaga uwagi.
+- Pojazd z przeglądem/OC <=30 dni powinien podnieść licznik „Flota ≤30 dni”.
+- <=7 dni lub po terminie: kafel czerwony.
+
+KROK 9 — TEST KIEROWCY 60 MIN
+- Testowy kurs z kierowcą + pojazdem i aktywnym Push.
+- Termin ustaw ~60 min do przodu.
+- Po wykonaniu crona kierowca powinien dostać „KURS ZA OK. 60 MIN”.
+- Kliknięcie otwiera konkretny kurs w /kierowca.
+
+KROK 10 — TEST OPINII B2C
+Wariant normalny:
+- Utwórz testową rezerwację B2C.
+- Zakończ ją z Driver PRO lub panelu MATT.
+- completed_at musi zostać zapisane.
+- Po ok. 45–60 min cron wysyła e-mail z przyciskiem „OCEŃ MATT TRANSPORT”.
+- Jeśli klient ma Push, otrzymuje też Push.
+- review_request_sent_at zapisuje czas wysłania.
+- Kolejny cron NIE może wysłać drugiej prośby.
+
+Roundtrip:
+- Zakończenie WYJAZDU nie ustawia completed_at i nie wysyła prośby.
+- Dopiero zakończenie POWROTU ustawia completed_at.
+- Prośba idzie po finalnym powrocie.
+
+KROK 11 — REGRESJA
+- B2C: utworzenie / potwierdzenie / przydział / płatność / edycja / anulowanie.
+- B2B: nowa rezerwacja / cennik / pracownicy / rozliczenia / dokumenty.
+- Dispatcher PRO: konflikty, Następne 3h, statusy.
+- Driver PRO: pełny workflow + roundtrip.
+- Google Calendar: create/update/delete.
+- Flight Monitor: status/ETA/alert.
+- Web Push klienta i kierowcy.
+
+KONTROLA PAKIETU
+- 152 pliki TS/TSX: 0 błędów składniowych.
+- 0 brakujących importów lokalnych @/.
+- Test progu review: 46 min = DUE, 40 min = NOT DUE.
+- Pełny next build nie został wykonany: npm install zależności przekroczył limit czasu środowiska roboczego.

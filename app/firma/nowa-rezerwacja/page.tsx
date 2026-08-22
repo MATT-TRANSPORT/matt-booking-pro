@@ -6,7 +6,7 @@ export default async function Page() {
   const { s, company } = await companyClient();
   const today = new Date().toISOString().slice(0, 10);
 
-  const [{ data: employees }, { data: terms }] = await Promise.all([
+  const [{ data: employees }, { data: terms }, { data: addresses }] = await Promise.all([
     s
       .from("company_employees")
       .select("*")
@@ -23,7 +23,13 @@ export default async function Page() {
       .order("effective_from", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(1)
-      .maybeSingle()
+      .maybeSingle(),
+    s
+      .from("company_addresses")
+      .select("id,label,address")
+      .eq("company_id", company.id)
+      .eq("active", true)
+      .order("label")
   ]);
 
   return (
@@ -34,6 +40,7 @@ export default async function Page() {
         employees={employees ?? []}
         companyName={company.name}
         commercialTerms={terms ?? null}
+        addresses={addresses ?? []}
       />
     </main>
   );

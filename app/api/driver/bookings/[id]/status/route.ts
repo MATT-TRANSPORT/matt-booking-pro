@@ -141,12 +141,18 @@ export async function POST(
   // w booking_history. Dopiero zakończenie POWROTU ustawia completed.
   const persistedStatus = isRoundtripPrimaryCompleted ? "assigned" : status;
 
+  const bookingPatch: any = {
+    status: persistedStatus,
+    updated_at: stepAt
+  };
+
+  if (status === "completed" && !isRoundtripPrimaryCompleted) {
+    bookingPatch.completed_at = stepAt;
+  }
+
   const { data: updated, error } = await admin
     .from("bookings")
-    .update({
-      status: persistedStatus,
-      updated_at: stepAt
-    })
+    .update(bookingPatch)
     .eq("id", id)
     .select("*")
     .single();
