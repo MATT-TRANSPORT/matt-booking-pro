@@ -1,7 +1,7 @@
 import CompanyNav from "@/components/CompanyNav";
 import CompanyPaymentCell from "@/components/CompanyPaymentCell";
 import { companyClient } from "@/lib/company";
-import { companyBookingMoney, companyRouteLabel } from "@/lib/companyPortal";
+import { companyBookingMoney, companyRouteLabel, sortCompanyBookings } from "@/lib/companyPortal";
 import { statusPl } from "@/lib/status";
 
 export default async function Page() {
@@ -11,15 +11,15 @@ export default async function Page() {
       .from("bookings")
       .select("*")
       .eq("company_id", company.id)
-      .order("created_at", { ascending: false })
-      .limit(200),
+      .order("travel_date", { ascending: true })
+      .limit(500),
     s
       .from("company_booking_documents")
       .select("booking_id,document_type")
       .eq("company_id", company.id)
   ]);
 
-  const rows = data ?? [];
+  const rows = sortCompanyBookings(data ?? []);
   const docMap = new Map<string, { count: number; invoice: boolean }>();
   for (const doc of documents ?? []) {
     const current = docMap.get(doc.booking_id) ?? { count: 0, invoice: false };

@@ -62,3 +62,83 @@ export function companyBookingMoney(booking: any) {
   const gross = money(net + vat);
   return { net, vatRate, vat, gross };
 }
+
+function dateTimeKey(dateValue?: string | null, timeValue?: string | null) {
+  const date = String(dateValue || "").slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return "";
+  const rawTime = String(timeValue || "00:00");
+  const match = rawTime.match(/^(\d{1,2}):(\d{2})/);
+  const hour = match ? match[1].padStart(2, "0") : "00";
+  const minute = match ? match[2] : "00";
+  return `${date}T${hour}:${minute}`;
+}
+
+export function companyWarsawNowKey(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en", {
+    timeZone: "Europe/Warsaw",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(now);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}`;
+}
+
+export function companyCurrentMonthRange(now = new Date()) {
+  const today = companyWarsawNowKey(now).slice(0, 10);
+  const year = Number(today.slice(0, 4));
+  const month = Number(today.slice(5, 7));
+  const nextYear = month === 12 ? year + 1 : year;
+  const nextMonth = month === 12 ? 1 : month + 1;
+  return {
+    start: `${year}-${String(month).padStart(2, "0")}-01`,
+    end: `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`
+  };
+}
+
+export function companyBookingScheduleInfo(booking: any, nowKey = companyWarsawNowKey()) {
+  const status = String(booking?.status || "").trim().toLowerCase();
+  const primary = dateTimeKey(booking?.travel_date, booking?.travel_time);
+  const returnLeg = booking?.service_type === "roundtrip"
+    ? dateTimeKey(booking?.return_date, booking?.return_time)
+    : "";
+  const legs = [primary, returnLeg].filter(Boolean).sort();
+  const liveStatuses = new Set(["in_progress", "arrived", "picked_up"]);
+
+  if (status === "completed") {
+    return { archived: true, reason: "completed" as const, group: 2, sortKey: legs.at(-1) || "" };
+  }
+  if (status === "cancelled") {
+    return { archived: true, reason: "cancelled" as const, group: 2, sortKey: legs.at(-1) || "" };
+  }
+  if (liveStatuses.has(status)) {
+    return { archived: false, reason: "active" as const, group: 0, sortKey: legs[0] || nowKey };
+  }
+
+  const upcomingLeg = legs.find((key) => key >= nowKey);
+  if (upcomingLeg) {
+    return { archived: false, reason: "upcoming" as const, group: 1, sortKey: upcomingLeg };
+  }
+  if (!legs.length) {
+    return { archived: false, reason: "upcoming" as const, group: 1, sortKey: "9999-12-31T23:59" };
+  }
+  return { archived: true, reason: "expired" as const, group: 2, sortKey: legs.at(-1) || "" };
+}
+
+export function sortCompanyBookings<T = any>(bookings: T[], nowKey = companyWarsawNowKey()) {
+  return [...bookings].sort((a: any, b: any) => {
+    const left = companyBookingScheduleInfo(a, nowKey);
+    const right = companyBookingScheduleInfo(b, nowKey);
+    if (left.group !== right.group) return left.group - right.group;
+    if (left.sortKey !== right.sortKey) {
+      return left.group === 2
+        ? right.sortKey.localeCompare(left.sortKey)
+        : left.sortKey.localeCompare(right.sortKey);
+    }
+    return String(b?.created_at || "").localeCompare(String(a?.created_at || ""));
+  });
+}
+

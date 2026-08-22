@@ -1,5 +1,6 @@
 import CompanyNav from "@/components/CompanyNav";
 import { companyClient } from "@/lib/company";
+import { companyBookingMoney, companyCurrentMonthRange } from "@/lib/companyPortal";
 
 function settlementStatusPl(value?: string | null) {
   const map: Record<string, string> = {
@@ -26,8 +27,9 @@ const DOC_LABELS: Record<string, string> = {
 
 export default async function Page() {
   const { s, company } = await companyClient();
+  const month = companyCurrentMonthRange();
 
-  const [{ data: settlements }, { data: documents }] = await Promise.all([
+  const [{ data: settlements }, { data: documents }, { data: monthRows }] = await Promise.all([
     s
       .from("company_settlements")
       .select("*")
@@ -38,15 +40,50 @@ export default async function Page() {
       .select("*,bookings(booking_number,travel_date,customer_name)")
       .eq("company_id", company.id)
       .order("created_at", { ascending: false })
-      .limit(100)
+      .limit(100),
+    s
+      .from("bookings")
+      .select("total_price,price_net,vat_price,price_gross,vat_rate,pricing_source,pricing_snapshot,base_price,extra_price,status,travel_date")
+      .eq("company_id", company.id)
+      .gte("travel_date", month.start)
+      .lt("travel_date", month.end)
+      .neq("status", "cancelled")
   ]);
+
+  const monthSummary = (monthRows ?? []).reduce(
+    (acc: { count: number; net: number; vat: number; gross: number }, booking: any) => {
+      const money = companyBookingMoney(booking);
+      acc.count += 1;
+      acc.net += money.net;
+      acc.vat += money.vat;
+      acc.gross += money.gross;
+      return acc;
+    },
+    { count: 0, net: 0, vat: 0, gross: 0 }
+  );
 
   return (
     <main className="container">
-      <h1>Faktury i dokumenty</h1>
+      <h1>Rozliczenia</h1>
       <CompanyNav />
 
-      <div className="card">
+      <div className="card company-settlement-summary">
+        <div className="company-section-head">
+          <div>
+            <span className="badge">BIEŻĄCY MIESIĄC</span>
+            <h2>Podsumowanie transportów i kosztów</h2>
+            <p className="muted">Podsumowanie obejmuje wyłącznie nieanulowane transporty z bieżącego miesiąca.</p>
+          </div>
+        </div>
+        <div className="stats company-stats-pro company-settlement-stats">
+          <div className="stat"><strong>{monthSummary.count}</strong><span>Transporty</span></div>
+          <div className="stat"><strong>{monthSummary.net.toFixed(2)} zł</strong><span>Netto</span></div>
+          <div className="stat"><strong>{monthSummary.vat.toFixed(2)} zł</strong><span>VAT</span></div>
+          <div className="stat"><strong>{monthSummary.gross.toFixed(2)} zł</strong><span>Brutto</span></div>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 18 }}>
         <span className="badge">B2B PRO</span>
         <h2>Dokumenty przy rezerwacjach</h2>
         <p className="muted">

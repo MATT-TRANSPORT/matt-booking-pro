@@ -1828,3 +1828,20 @@
 @media(max-width:1100px){.company-stats-pro{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:800px){.company-stats-pro{grid-template-columns:1fr 1fr}.b2b-terms-head,.b2b-booking-terms-banner,.company-detail-title{flex-direction:column}.b2b-terms-grid{grid-template-columns:1fr 1fr}.b2b-price-table{display:none}.b2b-price-cards{display:grid}.b2b-terms-history>div{grid-template-columns:1fr;gap:5px}.b2b-detail-financials{grid-template-columns:1fr}.company-cancel-confirm>div{grid-template-columns:1fr}.b2b-booking-terms-banner a{white-space:normal}}
 @media(max-width:560px){.company-stats-pro,.b2b-terms-grid,.b2b-price-card-grid{grid-template-columns:1fr}}
+
+/* MATT Booking PRO v3.4.0 — B2B UX & OPERATIONS */
+.company-dashboard-transport-card{margin-top:18px}
+.company-dashboard-empty{display:flex;flex-direction:column;gap:6px;padding:24px 4px 8px;color:var(--muted)}
+.company-dashboard-empty strong{color:var(--text)}
+.company-booking-archive-divider td{padding-top:24px!important;padding-bottom:10px!important;color:var(--muted);font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;background:transparent!important;border-bottom-color:rgba(255,255,255,.08)!important}
+.company-booking-row-archive{opacity:.68}
+.company-booking-row-archive:hover{opacity:1}
+.company-booking-cards-divider{padding:9px 2px 2px;color:var(--muted);font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}
+.company-booking-card-archive{opacity:.72;background:rgba(255,255,255,.012)}
+.company-booking-card-archive:hover{opacity:1}
+.company-expired-note{margin-top:10px;padding:7px 9px;border-radius:9px;border:1px solid rgba(213,174,93,.2);background:rgba(213,174,93,.04);color:var(--muted);font-size:10px;font-weight:800}
+.company-settlement-summary{border-color:rgba(213,174,93,.28)}
+.company-settlement-stats{grid-template-columns:repeat(4,minmax(0,1fr));margin-top:16px}
+@media(max-width:800px){.company-settlement-stats{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.company-settlement-stats{grid-template-columns:1fr}}
+
