@@ -30,14 +30,13 @@ export default async function Page() {
     const { data } = await s
       .from("booking_flights")
       .select("*")
-      .in("booking_id", bookingIds)
-      .eq("leg", "primary");
+      .in("booking_id", bookingIds);
 
     flightRows = data ?? [];
   }
 
-  const flightByBooking = new Map(
-    flightRows.map((f: any) => [f.booking_id, f])
+  const flightByBookingLeg = new Map(
+    flightRows.map((f: any) => [`${f.booking_id}:${f.leg || "primary"}`, f])
   );
 
   let alertRows: any[] = [];
@@ -53,15 +52,16 @@ export default async function Page() {
     alertRows = data ?? [];
   }
 
-  const alertByBooking = new Map<string, any>();
+  const alertByBookingLeg = new Map<string, any>();
 
   for (const alert of alertRows) {
-    const current = alertByBooking.get(alert.booking_id);
+    const key = `${alert.booking_id}:${alert.leg || "primary"}`;
+    const current = alertByBookingLeg.get(key);
     const rank = alert.severity === "critical" ? 3 : alert.severity === "warning" ? 2 : 1;
     const currentRank = current?.severity === "critical" ? 3 : current?.severity === "warning" ? 2 : current ? 1 : 0;
 
     if (!current || rank > currentRank) {
-      alertByBooking.set(alert.booking_id, alert);
+      alertByBookingLeg.set(key, alert);
     }
   }
 
@@ -74,16 +74,18 @@ export default async function Page() {
 
   const bookingsWithFlights = bookingRows.map((b: any) => ({
     ...b,
-    flight: flightByBooking.get(b.id) ?? null,
-    flightAlert: alertByBooking.get(b.id) ?? null
+    flight: flightByBookingLeg.get(`${b.id}:primary`) ?? null,
+    returnFlight: flightByBookingLeg.get(`${b.id}:return`) ?? null,
+    flightAlert: alertByBookingLeg.get(`${b.id}:primary`) ?? null,
+    returnFlightAlert: alertByBookingLeg.get(`${b.id}:return`) ?? null
   }));
 
   return (
     <main className="container">
-      <span className="badge">MATT DISPATCHER</span>
-      <h1>Plan kursów</h1>
+      <span className="badge">MATT DISPATCHER PRO</span>
+      <h1>Dyspozytornia</h1>
       <p className="muted">
-        Dzień, tydzień, kursy bez obsady i zaległe — w jednym miejscu.
+        Priorytety operacyjne, najbliższe kursy, obsada, konflikty i loty — w jednym miejscu.
       </p>
       <PanelNav />
       <FlightAutomationStatus lastRun={lastRun} />

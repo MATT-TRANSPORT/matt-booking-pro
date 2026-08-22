@@ -1,0 +1,63 @@
+MATT Booking PRO v3.5.0 — DISPATCHER PRO / OPERATIONS 2.0
+CHECKLISTA WDROŻENIA
+
+1. SQL
+- BRAK nowej migracji SQL.
+- Nie uruchamiaj ponownie migracji v3.3.x / v3.4.0.
+
+2. ENV
+- BRAK nowych zmiennych środowiskowych.
+
+3. WDROŻENIE
+- Użyj paczki ONLY FILES FLAT.
+- Jej zawartość wgraj bezpośrednio do ROOT repozytorium (app/, components/, lib/, package.json...).
+- Nie twórz dodatkowego katalogu matt-booking-pro wewnątrz repo.
+- Commit / push do main.
+- Poczekaj na zielony deploy Vercel.
+- Po deployu zrób Ctrl+F5.
+
+4. TEST — WYMAGA UWAGI
+- Panel -> Dyspozytor.
+- Na górze ma być sekcja „Wymaga uwagi”.
+- Sprawdź kafle: Następne 3 godziny / Bez pełnej obsady / Konflikty zasobów / Termin minął.
+- Kurs bez kierowcy lub pojazdu, którego termin jest blisko, powinien dostać alert.
+
+5. TEST — NASTĘPNE 3 GODZINY
+- Kliknij „NASTĘPNE 3 H”.
+- Widok ma pokazać tylko kursy do 3 godzin oraz kurs aktualnie w realizacji.
+- Kolejność: aktywna realizacja najpierw, potem chronologicznie najbliższe.
+
+6. TEST — KONFLIKT OBSADY
+- Przydziel kierowcę/pojazd do dwóch kursów oddalonych o mniej niż 180 minut.
+- Drugi zapis powinien zostać zablokowany komunikatem o konflikcie.
+- Po istniejącym konflikcie Dyspozytornia powinna pokazać czerwony alert konfliktu.
+
+7. TEST — ROUNDTRIP
+- Otwórz rezerwację w obie strony.
+- Dyspozytornia ma pokazać WYJAZD i POWRÓT.
+- JUTRO ma uwzględnić rezerwację, jeśli jutro jest termin powrotu, nawet gdy wyjazd był wcześniej.
+- Konflikt zasobu z terminem powrotu ma zostać wykryty.
+
+8. TEST — STATUSY
+- Oczekuje -> POTWIERDŹ.
+- Potwierdzona / przypisana -> KIEROWCA WYRUSZYŁ.
+- W realizacji -> NA MIEJSCU.
+- Na miejscu -> PASAŻER ODEBRANY.
+- Odebrany -> ZAKOŃCZ.
+- Próba rozpoczęcia realizacji bez pełnej obsady ma być zablokowana w interfejsie.
+- Sprawdź, że Google Calendar, e-mail/Web Push i historia zmian działają jak wcześniej.
+
+9. TEST — LOT
+- Rezerwacja z numerem lotu powinna pokazać status i ETA.
+- Roundtrip z lotem powrotnym powinien pokazać także sekcję POWRÓT.
+- Aktywny warning/critical z Flight Monitor powinien pojawić się w „Wymaga uwagi”.
+
+10. TEST MOBILE
+- Dyspozytor na telefonie: sekcja uwagi, filtry, karty kursów, WYJAZD/POWRÓT.
+- Sprawdź zmianę obsady i kolejnego statusu z karty.
+
+KONTROLA PAKIETU
+- dispatcherOps: testy logiki konfliktów/roundtrip/Następne 3 h — OK.
+- 145 plików TS/TSX: 0 błędów składniowych.
+- 145 plików TS/TSX: 0 brakujących importów lokalnych @/.
+- Pełny next build nie był wykonywany, ponieważ paczka źródłowa nie zawiera node_modules.

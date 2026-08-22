@@ -1,0 +1,50 @@
+MATT Booking PRO v3.5.0 — DISPATCHER PRO / OPERATIONS 2.0
+
+BAZA:
+- stabilny checkpoint v3.4.0 B2B UX & OPERATIONS
+
+NOWE — CENTRUM OPERACYJNE:
+- sekcja „Wymaga uwagi” na samej górze Dyspozytorni,
+- priorytety: konflikt obsady, niepełna obsada przed kursem, termin minął, alert lotniczy,
+- kafle operacyjne: Następne 3 godziny / Bez pełnej obsady / Konflikty zasobów / Termin minął,
+- osobny widok „NASTĘPNE 3 H”.
+
+NOWE — KONFLIKTY KIEROWCY / POJAZDU:
+- kontrola 3-godzinnego okna operacyjnego,
+- konflikt kierowcy i konflikt pojazdu są widoczne bezpośrednio w Dyspozytorni,
+- API blokuje zapis kolidującej obsady komunikatem HTTP 409,
+- kontrola obejmuje zarówno WYJAZD, jak i POWRÓT rezerwacji roundtrip,
+- wykrywany jest również konflikt POWRÓT ↔ WYJAZD innej rezerwacji.
+
+NOWE — ROUNDTRIP:
+- Dyspozytornia pokazuje osobno WYJAZD i POWRÓT,
+- DZISIAJ/JUTRO/7 DNI uwzględniają oba etapy rezerwacji,
+- jeśli wyjazd minął, ale powrót jest jeszcze przed nami, rezerwacja pozostaje aktywna,
+- sortowanie bierze pod uwagę najbliższy aktualny etap.
+
+NOWE — SZYBKI WORKFLOW STATUSÓW:
+- Oczekuje -> POTWIERDŹ,
+- Potwierdzona / Kierowca przypisany -> KIEROWCA WYRUSZYŁ,
+- W realizacji -> NA MIEJSCU,
+- Kierowca na miejscu -> PASAŻER ODEBRANY,
+- Pasażer odebrany -> ZAKOŃCZ,
+- status można zmieniać bez otwierania szczegółów rezerwacji,
+- rozpoczęcie realizacji wymaga pełnej obsady: kierowca + pojazd.
+
+NOWE — LOTY:
+- Dyspozytornia pokazuje główny lot i lot powrotny,
+- status / ETA pozostają dostępne bez otwierania rezerwacji,
+- aktywne alerty lotnicze podnoszą rezerwację do „Wymaga uwagi”.
+
+UX / MOBILE:
+- mocniejsze oznaczenia niepełnej obsady i konfliktów,
+- czytelny podział etapów WYJAZD / POWRÓT,
+- szybki zapis obsady i szybka akcja statusu na kartach mobilnych,
+- istniejące szybkie akcje OTWÓRZ / TEL. / MAPA pozostają.
+
+BACKEND:
+- naprawione wykrywanie zmiany zasobów przy akcjach status-only,
+- kontrola konfliktów korzysta z obu etapów roundtrip.
+
+SQL: brak.
+ENV: brak.

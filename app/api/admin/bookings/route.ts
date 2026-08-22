@@ -5,6 +5,7 @@ import { sendMattEmail } from "@/lib/email";
 import { sendDriverPush } from "@/lib/pushServer";
 import { syncBookingCalendar } from "@/lib/googleCalendar";
 import { sendBookingNotification } from "@/lib/customerNotifications";
+import { bookingLegs, findResourceConflicts } from "@/lib/dispatcherOps";
 import {
   confirmedEmail,
   assignedEmail,
@@ -255,60 +256,67 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Konflikty operacyjne: ten sam kierowca lub pojazd w oknie 3 godzin.
+  // Konflikty operacyjne v3.5: sprawdzamy oba etapy roundtrip.
   if (effectiveDriverId || effectiveVehicleId) {
-    const { data: sameDay } = await admin
-      .from("bookings")
-      .select("id,booking_number,travel_time,driver_id,vehicle_id")
-      .eq("travel_date", current.travel_date)
-      .neq("id", id)
-      .not("status", "in", "(completed,cancelled)");
-
-    const toMinutes = (value: string) => {
-      const [h, m] = String(value || "00:00")
-        .slice(0, 5)
-        .split(":")
-        .map(Number);
-      return h * 60 + m;
+    const candidate = {
+      ...current,
+      driver_id: effectiveDriverId,
+      vehicle_id: effectiveVehicleId,
+      status: nextStatus
     };
 
-    const currentMinutes = toMinutes(current.travel_time);
+    const operationDates = Array.from(
+      new Set(bookingLegs(candidate).map((leg) => leg.date).filter(Boolean))
+    );
 
-    const conflict = (sameDay ?? []).find((row: any) => {
-      const close =
-        Math.abs(toMinutes(row.travel_time) - currentMinutes) < 180;
+    if (operationDates.length) {
+      const selection =
+        "id,booking_number,travel_date,travel_time,return_date,return_time,service_type,driver_id,vehicle_id,status";
 
-      return (
-        close &&
-        ((effectiveDriverId && row.driver_id === effectiveDriverId) ||
-          (effectiveVehicleId && row.vehicle_id === effectiveVehicleId))
+      const [primaryResult, returnResult] = await Promise.all([
+        admin
+          .from("bookings")
+          .select(selection)
+          .in("travel_date", operationDates)
+          .neq("id", id)
+          .not("status", "in", "(completed,cancelled)"),
+        admin
+          .from("bookings")
+          .select(selection)
+          .in("return_date", operationDates)
+          .neq("id", id)
+          .not("status", "in", "(completed,cancelled)")
+      ]);
+
+      const nearby = new Map<string, any>();
+      for (const row of [...(primaryResult.data ?? []), ...(returnResult.data ?? [])]) {
+        nearby.set(row.id, row);
+      }
+
+      const conflicts = findResourceConflicts([candidate, ...nearby.values()]).filter(
+        (conflict) => conflict.bookingId === id || conflict.otherBookingId === id
       );
-    });
 
-    if (conflict) {
-      const driverConflict =
-        effectiveDriverId && conflict.driver_id === effectiveDriverId;
-      const vehicleConflict =
-        effectiveVehicleId && conflict.vehicle_id === effectiveVehicleId;
+      if (conflicts.length) {
+        const first = conflicts[0];
+        const targetIsFirst = first.bookingId === id;
+        const otherNumber = targetIsFirst ? first.otherBookingNumber : first.bookingNumber;
+        const resourceLabel = first.resource === "driver" ? "kierowca" : "pojazd";
+        const legLabel = targetIsFirst ? first.leg : first.otherLeg;
+        const otherLegLabel = targetIsFirst ? first.otherLeg : first.leg;
 
-      const what =
-        driverConflict && vehicleConflict
-          ? "kierowca i pojazd"
-          : driverConflict
-          ? "kierowca"
-          : "pojazd";
-
-      return NextResponse.json(
-        {
-          error:
-            `Konflikt: ten ${what} jest już przypisany do ` +
-            `${conflict.booking_number} o ${String(conflict.travel_time).slice(0,5)}. ` +
-            `Sprawdź Plan kursów.`,
-          conflict,
-          conflict_type: what
-        },
-        { status: 409 }
-      );
+        return NextResponse.json(
+          {
+            error:
+              `Konflikt: ten ${resourceLabel} koliduje z ${otherNumber}. ` +
+              `${legLabel === "return" ? "Powrót" : "Wyjazd"} i ` +
+              `${otherLegLabel === "return" ? "powrót" : "wyjazd"} są oddalone o ` +
+              `${first.minutesApart} min (minimalne okno operacyjne: 180 min).`,
+            conflicts
+          },
+          { status: 409 }
+        );
+      }
     }
   }
 
@@ -354,8 +362,8 @@ export async function POST(req: NextRequest) {
 
   const statusChanged = current.status !== nextStatus;
   const resourcesChanged =
-    current.driver_id !== (driverId || null) ||
-    current.vehicle_id !== (vehicleId || null);
+    current.driver_id !== effectiveDriverId ||
+    current.vehicle_id !== effectiveVehicleId;
 
   await admin.from("booking_history").insert({
     booking_id: id,
