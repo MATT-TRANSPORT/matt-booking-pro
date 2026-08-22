@@ -417,7 +417,7 @@ export async function POST(req: NextRequest) {
         body:
           `${updated.travel_date} ${String(updated.travel_time).slice(0,5)} · ` +
           `${updated.customer_name} · ${routeText}`,
-        url: "/kierowca",
+        url: `/kierowca?booking=${updated.id}`,
         tag: `booking-${updated.id}`,
         bookingId: updated.id,
         eventKey:

@@ -1,0 +1,67 @@
+MATT Booking PRO v3.6.0 — DRIVER PRO
+CHECKLISTA WDROŻENIA
+
+1. SQL
+- BRAK nowej migracji SQL.
+- NIE uruchamiaj ponownie starych migracji.
+
+2. ENV
+- BRAK nowych zmiennych środowiskowych.
+- Korzystamy z istniejących NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY i VAPID_SUBJECT.
+
+3. WDROŻENIE
+- Użyj: MATT_V3_6_0_DRIVER_PRO_ONLY_FILES_FLAT.zip
+- Paczka jest FLAT: po rozpakowaniu od razu widać app/, components/, lib/, package.json.
+- Wgraj zawartość bezpośrednio do ROOT repozytorium i nadpisz istniejące pliki.
+- Commit / push do main.
+- Poczekaj na zielony deploy Vercel.
+- Na telefonie kierowcy odśwież PWA / stronę.
+
+4. TEST — MÓJ NASTĘPNY KURS
+- Panel kierowcy powinien zaczynać się sekcją Mój następny kurs.
+- Sprawdź licznik czasu do kursu.
+- Sprawdź Dzisiaj / Jutro / Kolejne / Wszystkie.
+- Sprawdź widok na telefonie.
+
+5. TEST — WORKFLOW
+Na testowym kursie z przypisanym kierowcą i pojazdem:
+- ROZPOCZNIJ KURS -> status W drodze.
+- JESTEM NA MIEJSCU -> status Na miejscu.
+- PASAŻER ODEBRANY -> status Pasażer odebrany.
+- ZAKOŃCZ KURS -> status Zakończony.
+- Próba pominięcia etapu przez API ma zostać odrzucona.
+- Bez pojazdu przycisk startu ma być zablokowany.
+
+6. TEST — NAWIGACJA
+- Przed odebraniem pasażera główny przycisk ma prowadzić DO ODBIORU.
+- Po statusie Pasażer odebrany główny przycisk ma prowadzić DO CELU.
+- Sprawdź telefon do pasażera.
+
+7. TEST — ROUNDTRIP
+- Utwórz/przypisz kurs w obie strony.
+- Przejdź cały workflow WYJAZDU i kliknij ZAKOŃCZ KURS.
+- Rezerwacja NIE może dostać globalnego completed.
+- Panel powinien przełączyć aktywny etap na POWRÓT.
+- Trasa powrotna: lotnisko -> adres pasażera.
+- Przejdź workflow POWROTU.
+- Dopiero ZAKOŃCZ KURS dla powrotu ma ustawić completed.
+- Sprawdź booking_history: osobne wpisy MATT DRIVER · WYJAZD / POWRÓT z czasami.
+
+8. TEST — LOT
+- Dla odbioru z lotniska sprawdź lot, ETA, terminal/gate/bagaże (jeśli provider je zwraca).
+- Dla roundtrip po przejściu na powrót panel ma używać return_flight_number i flight leg=return.
+- Alerty lotu mają być pokazane dla aktualnego etapu.
+
+9. TEST — WEB PUSH
+- Zmień/przypisz kierowcę lub pojazd w panelu MATT: Push powinien otworzyć konkretny kurs.
+- Zmień przypisany kurs przez portal klienta B2C: kierowca powinien dostać Push.
+- Zmień przypisany kurs przez portal firmy B2B: kierowca powinien dostać Push.
+- Anuluj przypisany kurs przez B2C/B2B: kierowca powinien dostać Push o anulowaniu.
+
+10. KONTROLA PAKIETU
+- 147 plików TS/TSX sprawdzonych parserem TypeScript: 0 błędów składniowych.
+- Lokalne importy @/: 0 braków.
+- Testy helpera DriverOps: 11/11 OK.
+- Zmienione pliki bazowe: 10 + nowy lib/driverOps.ts.
+- Brak zmian w plikach SQL / migracjach.
+- Pełny next build nie został wykonany: npm install przekroczył limit środowiska roboczego.

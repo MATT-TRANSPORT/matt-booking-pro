@@ -1,0 +1,36 @@
+MATT Booking PRO v3.6.0 — DRIVER PRO
+BAZA: v3.5.0 — DISPATCHER PRO / OPERATIONS 2.0
+
+ZAKRES
+- Nowy ekran „Mój następny kurs” jako pierwsza sekcja panelu kierowcy.
+- Widoki: Dzisiaj / Jutro / Kolejne / Wszystkie.
+- Panel zoptymalizowany pod PWA i obsługę jedną ręką na telefonie.
+- Dynamiczny licznik czasu do następnego kursu.
+- Wymaga uwagi: brak pojazdu, bliski/przekroczony termin, alert lotniczy, oczekiwanie na potwierdzenie.
+- Duży workflow: ROZPOCZNIJ KURS -> JESTEM NA MIEJSCU -> PASAŻER ODEBRANY -> ZAKOŃCZ KURS.
+- Backend blokuje pomijanie statusów i rozpoczęcie kursu bez przypisanego pojazdu.
+- Każda zmiana etapu zapisuje dokładny czas w istniejącym booking_history.
+- Nawigacja kontekstowa: przed odbiorem prowadzi do miejsca odbioru, po odebraniu pasażera do celu.
+- Szybki telefon do pasażera i dodatkowy skrót do celu.
+- Lepszy podgląd lotu: ETA, terminal, gate, bagaże i alerty dla aktualnej nogi kursu.
+- Web Push po przydzieleniu/zmianie obsady prowadzi bezpośrednio do konkretnego kursu.
+- Web Push do kierowcy po edycji kursu przez klienta B2C lub firmę B2B.
+- Web Push do kierowcy po anulowaniu przypisanego kursu przez klienta/B2B.
+
+ROUNDTRIP — KLUCZOWA POPRAWKA
+- Wyjazd i powrót mają osobny postęp kierowcy zapisany w booking_history.
+- Zakończenie WYJAZDU nie ustawia całej rezerwacji jako completed.
+- Po zakończeniu wyjazdu rezerwacja pozostaje aktywna i przechodzi do POWROTU.
+- Dopiero zakończenie POWROTU ustawia globalny status rezerwacji na completed.
+- Panel pokazuje osobno datę/godzinę/trasy WYJAZDU i POWROTU.
+- Roundtrip z wyjazdem w przeszłości i przyszłym powrotem nadal pojawia się w panelu kierowcy.
+
+TECHNICZNE
+- Nowy helper: lib/driverOps.ts.
+- Zmienione: app/kierowca/page.tsx, components/DriverTrips.tsx,
+  app/api/driver/bookings/[id]/status/route.ts, app/globals.css.
+- Rozszerzone pushe: admin booking assignment, B2C self-edit/cancel, B2B edit/cancel.
+- package.json: 3.6.0.
+- SQL: BRAK.
+- Nowe ENV: BRAK.
+- Wykorzystywane istniejące VAPID / Web Push z v2.8+.

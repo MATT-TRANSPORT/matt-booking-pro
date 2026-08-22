@@ -1,2 +1,24 @@
-import { NextRequest, NextResponse } from "next/server";import { createClient } from "@/lib/supabase/server";
-export async function POST(req:NextRequest){const s=await createClient();const {data:{user}}=await s.auth.getUser();if(!user)return NextResponse.json({error:"Brak autoryzacji"},{status:401});const {id,status}=await req.json();const allowed=["assigned","in_progress","picked_up","completed"];if(!allowed.includes(status))return NextResponse.json({error:"Nieprawidłowy status"},{status:400});const {data,error}=await s.from("bookings").update({status,updated_at:new Date().toISOString()}).eq("id",id).select().single();if(error)return NextResponse.json({error:error.message},{status:500});await s.from("booking_history").insert({booking_id:id,event:`Status kierowcy: ${status}`,created_by:user.id});return NextResponse.json(data)}
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+
+// v3.6.0: stary endpoint pozostaje tylko jako bezpieczny bezpiecznik dla
+// urządzeń z cache poprzedniej wersji. Nowy workflow wymaga informacji o
+// etapie WYJAZD/POWRÓT i działa przez /api/driver/bookings/[id]/status.
+export async function POST() {
+  const supabase = await createClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Brak autoryzacji." }, { status: 401 });
+  }
+
+  return NextResponse.json(
+    {
+      error:
+        "Panel kierowcy został zaktualizowany do DRIVER PRO. Odśwież aplikację, aby użyć nowego workflow statusów."
+    },
+    { status: 409 }
+  );
+}

@@ -5,6 +5,7 @@ import { sendMattEmail } from "@/lib/email";
 import { expireCheckoutSession } from "@/lib/stripeServer";
 import { syncBookingCalendar } from "@/lib/googleCalendar";
 import { bookingPricingFields, calculateCompanyQuote } from "@/lib/companyPricing";
+import { sendDriverPush } from "@/lib/pushServer";
 
 const EDITABLE_STATUSES = ["pending", "confirmed", "assigned"];
 
@@ -117,6 +118,19 @@ export async function POST(
     });
 
     await syncBookingCalendar(admin, cancelled);
+
+    if (current.driver_id) {
+      await sendDriverPush(admin, current.driver_id, {
+        title: "⛔ KURS B2B ANULOWANY",
+        body: `${current.travel_date} ${String(current.travel_time || "").slice(0, 5)} · ${current.customer_name}`,
+        url: `/kierowca?booking=${current.id}`,
+        tag: `booking-${current.id}`,
+        bookingId: current.id,
+        eventKey: `company-cancel:${current.id}:${cancelled.updated_at}`
+      }).catch((pushError) => {
+        console.error("Driver push po anulowaniu B2B:", pushError);
+      });
+    }
 
     const { data: companyForMail } = await admin
       .from("companies")
@@ -354,6 +368,26 @@ export async function POST(
   });
 
   await syncBookingCalendar(admin, data);
+
+  if (current.driver_id && changes.length) {
+    const routeText =
+      data.service_type === "from_airport"
+        ? `${data.airport_label} → ${data.pickup_address}`
+        : `${data.pickup_address} → ${data.airport_label}`;
+
+    await sendDriverPush(admin, current.driver_id, {
+      title: "⚠ ZMIANA W KURSIE B2B",
+      body:
+        `${data.travel_date} ${String(data.travel_time || "").slice(0, 5)} · ` +
+        `${data.customer_name} · ${routeText}`,
+      url: `/kierowca?booking=${data.id}`,
+      tag: `booking-${data.id}`,
+      bookingId: data.id,
+      eventKey: `company-edit:${data.id}:${data.updated_at}`
+    }).catch((pushError) => {
+      console.error("Driver push po edycji B2B:", pushError);
+    });
+  }
 
   const { data: companyForMail } = await admin
     .from("companies")

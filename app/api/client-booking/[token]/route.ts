@@ -7,6 +7,7 @@ import { syncBookingCalendar } from "@/lib/googleCalendar";
 import { sendBookingNotification } from "@/lib/customerNotifications";
 import { cancelledEmail } from "@/lib/emailTemplates";
 import { bookingPricingFields, calculateCompanyQuote } from "@/lib/companyPricing";
+import { sendDriverPush } from "@/lib/pushServer";
 
 const EDITABLE_STATUSES = ["pending", "confirmed", "assigned"];
 
@@ -213,6 +214,37 @@ export async function PATCH(
 
   await syncBookingCalendar(admin, updated);
 
+  const driverRelevantChange =
+    routeChanged ||
+    dateChanged ||
+    vehicleChanged ||
+    String(booking.flight_number || "") !== String(updated.flight_number || "") ||
+    String(booking.return_date || "") !== String(updated.return_date || "") ||
+    String(booking.return_time || "") !== String(updated.return_time || "") ||
+    String(booking.return_flight_number || "") !== String(updated.return_flight_number || "") ||
+    String(booking.notes || "") !== String(updated.notes || "") ||
+    Number(booking.passengers || 0) !== Number(updated.passengers || 0);
+
+  if (booking.driver_id && driverRelevantChange) {
+    const routeText =
+      updated.service_type === "from_airport"
+        ? `${updated.airport_label} → ${updated.pickup_address}`
+        : `${updated.pickup_address} → ${updated.airport_label}`;
+
+    await sendDriverPush(admin, booking.driver_id, {
+      title: "⚠ KURS ZMIENIONY PRZEZ KLIENTA",
+      body:
+        `${updated.travel_date} ${String(updated.travel_time || "").slice(0, 5)} · ` +
+        `${updated.customer_name} · ${routeText}`,
+      url: `/kierowca?booking=${updated.id}`,
+      tag: `booking-${updated.id}`,
+      bookingId: updated.id,
+      eventKey: `client-edit:${updated.id}:${updated.updated_at}`
+    }).catch((pushError) => {
+      console.error("Driver push po edycji klienta:", pushError);
+    });
+  }
+
   const panelBase = process.env.NEXT_PUBLIC_APP_URL || "https://panel.matt-transport.pl";
   const adminUrl = `${panelBase.replace(/\/$/, "")}/panel/rezerwacje/${booking.id}`;
 
@@ -358,6 +390,19 @@ export async function DELETE(
 
   const calendarResult =
     await syncBookingCalendar(admin, updated);
+
+  if (booking.driver_id) {
+    await sendDriverPush(admin, booking.driver_id, {
+      title: "⛔ KURS ANULOWANY",
+      body: `${booking.travel_date} ${String(booking.travel_time || "").slice(0, 5)} · ${booking.customer_name}`,
+      url: `/kierowca?booking=${booking.id}`,
+      tag: `booking-${booking.id}`,
+      bookingId: booking.id,
+      eventKey: `client-cancel:${booking.id}:${updated.updated_at}`
+    }).catch((pushError) => {
+      console.error("Driver push po anulowaniu klienta:", pushError);
+    });
+  }
 
   if (calendarResult.configured && calendarResult.synced) {
     await admin.from("booking_history").insert({
