@@ -8,7 +8,7 @@ export default async function Page({
 }: {
   searchParams: Promise<{ q?: string; view?: string }>;
 }) {
-  const { q = "", view = "all" } = await searchParams;
+  const { q = "", view = "active" } = await searchParams;
   const { s } = await panelClient();
 
   let query = s

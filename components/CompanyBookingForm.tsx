@@ -394,10 +394,10 @@ export default function CompanyBookingForm({
         </div>
 
         <h3>Termin</h3>
-        <p className="muted flight-time-hint">Podaj godzinę wylotu / przylotu z rozkładu lotu. Czas zajętości kierowcy w Google Calendar zostanie wyliczony automatycznie.</p>
+        <p className="muted flight-time-hint">Dla wyjazdu na lotnisko podaj godzinę wyjazdu spod wskazanego adresu. Przy odbiorze z lotniska podaj godzinę przylotu z rozkładu lotu.</p>
         <div className="grid">
           <label>Data<input type="date" value={travelDate} onChange={(e) => setTravelDate(e.target.value)} /></label>
-          <label>{serviceType === "from_airport" ? "Godzina przylotu" : "Godzina wylotu"}<input type="time" value={travelTime} onChange={(e) => setTravelTime(e.target.value)} /></label>
+          <label>{serviceType === "from_airport" ? "Godzina przylotu" : "Godzina wyjazdu na lotnisko"}<input type="time" value={travelTime} onChange={(e) => setTravelTime(e.target.value)} /></label>
           <label>Numer lotu<input value={flightNumber} onChange={(e) => setFlightNumber(e.target.value)} /></label>
           <label>Pasażerowie<select value={passengers} onChange={(e) => setPassengers(Number(e.target.value))}>{[1,2,3,4,5,6,7,8].map((x) => <option key={x}>{x}</option>)}</select></label>
           {serviceType === "roundtrip" && (

@@ -57,12 +57,14 @@ export function isAirportPickupLeg(booking: any, leg: BookingLegKind) {
 }
 
 export function bookingLegWindowOffsets(booking: any, leg: BookingLegKind) {
-  // MATT v4.1.0:
-  // NA LOTNISKO: start 3 h 30 min przed godziną wylotu, zajętość 4 h.
-  // Z LOTNISKA: start 30 min przed godziną przylotu, zajętość 3 h 30 min.
+  // MATT v4.1.2:
+  // NA LOTNISKO: klient podaje godzinę WYJAZDU na lotnisko.
+  // Zajętość kierowcy zaczyna się 30 min wcześniej i trwa 4 h.
+  // Z LOTNISKA: klient podaje godzinę PRZYLOTU.
+  // Zajętość zaczyna się 30 min wcześniej i trwa 3 h 30 min.
   return isAirportPickupLeg(booking, leg)
     ? { startOffsetMinutes: -30, durationMinutes: 210, endOffsetMinutes: 180 }
-    : { startOffsetMinutes: -210, durationMinutes: 240, endOffsetMinutes: 30 };
+    : { startOffsetMinutes: -30, durationMinutes: 240, endOffsetMinutes: 210 };
 }
 
 export function bookingLegOperationalWindow(booking: any, leg: BookingLegKind) {

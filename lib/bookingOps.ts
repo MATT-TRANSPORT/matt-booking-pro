@@ -25,10 +25,10 @@ export function addDays(date: string, days: number) {
 }
 
 export function isArchivedBooking(booking: any) {
-  return (
-    String(booking.travel_date || "") < warsawToday() &&
-    CLOSED_STATUSES.includes(String(booking.status || ""))
-  );
+  // v4.1.2: archiwum = wyłącznie rezerwacje zamknięte.
+  // Aktywna rezerwacja ma pozostać widoczna niezależnie od daty utworzenia
+  // i nawet wtedy, gdy jej planowany termin już minął.
+  return CLOSED_STATUSES.includes(String(booking.status || ""));
 }
 
 export function isOverdueBooking(booking: any) {

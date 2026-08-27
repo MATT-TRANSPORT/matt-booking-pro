@@ -131,7 +131,7 @@ export default function ClientBookingPortal({ token }: { token:string }) {
           <label>Data
             <input disabled={!editable} type="date" value={form.travelDate} onChange={e=>setForm({...form,travelDate:e.target.value})}/>
           </label>
-          <label>{form.serviceType === "from_airport" ? "Godzina przylotu" : "Godzina wylotu"}
+          <label>{form.serviceType === "from_airport" ? "Godzina przylotu" : "Godzina wyjazdu na lotnisko"}
             <input disabled={!editable} type="time" value={form.travelTime} onChange={e=>setForm({...form,travelTime:e.target.value})}/>
           </label>
           <label>Numer lotu
