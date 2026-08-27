@@ -8,7 +8,7 @@ export default async function Page({
 }: {
   searchParams: Promise<{ q?: string; view?: string }>;
 }) {
-  const { q = "", view = "active" } = await searchParams;
+  const { q = "", view = "all" } = await searchParams;
   const { s } = await panelClient();
 
   let query = s
@@ -33,6 +33,10 @@ export default async function Page({
     return !isArchivedBooking(b);
   });
 
+  const activeCount = all.filter((b: any) => !isArchivedBooking(b)).length;
+  const archiveCount = all.filter((b: any) => isArchivedBooking(b)).length;
+  const allCount = all.length;
+
   return (
     <main className="container">
       <h1>Rezerwacje</h1>
@@ -40,13 +44,13 @@ export default async function Page({
 
       <div className="booking-view-tabs">
         <a className={view === "active" ? "active" : ""} href={`/panel/rezerwacje?view=active&q=${encodeURIComponent(q)}`}>
-          AKTYWNE
+          AKTYWNE ({activeCount})
         </a>
         <a className={view === "archive" ? "active" : ""} href={`/panel/rezerwacje?view=archive&q=${encodeURIComponent(q)}`}>
-          ARCHIWUM
+          ARCHIWUM ({archiveCount})
         </a>
         <a className={view === "all" ? "active" : ""} href={`/panel/rezerwacje?view=all&q=${encodeURIComponent(q)}`}>
-          WSZYSTKIE
+          WSZYSTKIE ({allCount})
         </a>
       </div>
 

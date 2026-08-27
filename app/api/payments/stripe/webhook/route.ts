@@ -13,6 +13,7 @@ import {
   getStripe,
   getStripeWebhookSecret
 } from "@/lib/stripeServer";
+import { syncBookingCalendar } from "@/lib/googleCalendar";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -42,6 +43,16 @@ async function bookingById(admin: any, id: string) {
     .single();
 
   return data;
+}
+
+async function syncCalendarAfterPayment(admin: any, bookingId: string) {
+  // Google Calendar jest warstwą operacyjną. Błąd synchronizacji
+  // nigdy nie może cofnąć ani zablokować zaksięgowania Stripe.
+  try {
+    await syncBookingCalendar(admin, bookingId);
+  } catch {
+    // syncBookingCalendar zapisuje własny błąd w bookings, jeśli może.
+  }
 }
 
 async function markPaid(
@@ -110,6 +121,8 @@ async function markPaid(
       `
     }).catch(() => null);
 
+    await syncCalendarAfterPayment(admin, booking.id);
+
     return;
   }
 
@@ -159,6 +172,8 @@ async function markPaid(
       }).catch(() => null);
     }
   }
+
+  await syncCalendarAfterPayment(admin, booking.id);
 }
 
 async function markFailed(
@@ -184,6 +199,8 @@ async function markFailed(
     event: `Płatność online nieudana: ${reason}`,
     created_by: null
   });
+
+  await syncCalendarAfterPayment(admin, booking.id);
 }
 
 export async function POST(req: NextRequest) {
@@ -357,6 +374,8 @@ export async function POST(req: NextRequest) {
               html: template.html
             }).catch(() => null);
           }
+
+          await syncCalendarAfterPayment(admin, booking.id);
         }
       }
     }

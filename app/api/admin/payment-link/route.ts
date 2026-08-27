@@ -6,6 +6,7 @@ import { apiAdmin } from "@/lib/apiAdmin";
 import { sendMattEmail } from "@/lib/email";
 import { onlinePaymentEligible } from "@/lib/payment";
 import { expireCheckoutSession } from "@/lib/stripeServer";
+import { syncBookingCalendar } from "@/lib/googleCalendar";
 
 export async function POST(req: NextRequest) {
   const session = await apiAdmin();
@@ -81,6 +82,8 @@ export async function POST(req: NextRequest) {
       created_by: session.user.id
     });
 
+    await syncBookingCalendar(session.admin, bookingId).catch(() => null);
+
     return NextResponse.json({
       ok: true,
       payment_status: "paid"
@@ -125,6 +128,8 @@ export async function POST(req: NextRequest) {
       event: "Cofnięto ręczne oznaczenie płatności",
       created_by: session.user.id
     });
+
+    await syncBookingCalendar(session.admin, bookingId).catch(() => null);
 
     return NextResponse.json({
       ok: true,

@@ -17,6 +17,88 @@ const WARSAW_TIME_ZONE =
   process.env.GOOGLE_CALENDAR_TIME_ZONE ||
   "Europe/Warsaw";
 
+function paymentMethodLabel(booking: any) {
+  if (booking.company_id) {
+    return booking.payment_method === "employee_payment"
+      ? "Płatność online firmy"
+      : "Przelew firmowy";
+  }
+
+  if (
+    booking.payment_method === "online" ||
+    Boolean(booking.online_payment_requested)
+  ) {
+    return "Płatność online";
+  }
+
+  if (booking.payment_method === "bank_transfer") {
+    return "Przelew tradycyjny";
+  }
+
+  return "Gotówka u kierowcy";
+}
+
+function paymentStatusCalendarLabel(booking: any) {
+  const status = String(booking.payment_status || "pending").toLowerCase();
+
+  if (status === "paid") return "✅ OPŁACONO";
+  if (status === "refunded") return "↩ ZWROT";
+  if (status === "review") return "⚠ DO WERYFIKACJI";
+  if (status === "failed") return "❌ PŁATNOŚĆ NIEUDANA";
+
+  if (booking.company_id) {
+    return booking.payment_method === "employee_payment"
+      ? "⏳ OCZEKUJE NA PŁATNOŚĆ ONLINE"
+      : "🏢 ROZLICZENIE FIRMOWE";
+  }
+
+  if (
+    booking.payment_method === "online" ||
+    Boolean(booking.online_payment_requested)
+  ) {
+    return "⏳ OCZEKUJE NA PŁATNOŚĆ ONLINE";
+  }
+
+  if (booking.payment_method === "bank_transfer") {
+    return "🏦 OCZEKUJE NA PRZELEW";
+  }
+
+  return "💵 PŁATNOŚĆ U KIEROWCY";
+}
+
+function paymentAmountLabel(booking: any) {
+  const cents = Number(booking.payment_amount_cents);
+  const amount =
+    Number.isFinite(cents) && cents > 0
+      ? cents / 100
+      : Number(
+          booking.company_id
+            ? booking.price_gross ?? booking.total_price ?? 0
+            : booking.total_price ?? 0
+        );
+
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+
+  return new Intl.NumberFormat("pl-PL", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(amount) + " zł";
+}
+
+function paymentDateLabel(value: unknown) {
+  if (!value) return null;
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) return null;
+
+  return new Intl.DateTimeFormat("pl-PL", {
+    timeZone: WARSAW_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
+}
 
 type CalendarResult = {
   configured: boolean;
@@ -366,6 +448,17 @@ function bookingEventBody(
     `${leg === "return" || booking.service_type === "from_airport" ? "Przylot" : "Wylot"}: ${operational.scheduledDate} ${operational.scheduledTime}`,
     `Pasażerowie: ${booking.passengers || "—"}`,
     `Lot: ${flight || "—"}`,
+    `Płatność: ${paymentMethodLabel(booking)}`,
+    `Status płatności: ${paymentStatusCalendarLabel(booking)}`,
+    paymentAmountLabel(booking)
+      ? `Kwota: ${paymentAmountLabel(booking)}`
+      : null,
+    booking.payment_status === "paid" && paymentDateLabel(booking.payment_paid_at)
+      ? `Opłacono: ${paymentDateLabel(booking.payment_paid_at)}`
+      : null,
+    booking.payment_status === "refunded" && paymentDateLabel(booking.payment_refunded_at)
+      ? `Zwrot: ${paymentDateLabel(booking.payment_refunded_at)}`
+      : null,
     `Kierowca: ${assignment.driverName || "—"}`,
     `Telefon kierowcy: ${assignment.driverPhone || "—"}`,
     `Pojazd: ${
