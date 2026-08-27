@@ -245,6 +245,17 @@ export async function PATCH(
     });
   }
 
+  if (booking.return_driver_id && booking.return_driver_id !== booking.driver_id && driverRelevantChange) {
+    await sendDriverPush(admin, booking.return_driver_id, {
+      title: "⚠ KURS POWROTNY ZMIENIONY PRZEZ KLIENTA",
+      body: `${updated.return_date || updated.travel_date} ${String(updated.return_time || updated.travel_time || "").slice(0, 5)} · ${updated.customer_name}`,
+      url: `/kierowca?booking=${updated.id}`,
+      tag: `booking-${updated.id}-return`,
+      bookingId: updated.id,
+      eventKey: `client-edit-return:${updated.id}:${updated.updated_at}`
+    }).catch((pushError) => console.error("Return driver push po edycji klienta:", pushError));
+  }
+
   const panelBase = process.env.NEXT_PUBLIC_APP_URL || "https://panel.matt-transport.pl";
   const adminUrl = `${panelBase.replace(/\/$/, "")}/panel/rezerwacje/${booking.id}`;
 
@@ -402,6 +413,17 @@ export async function DELETE(
     }).catch((pushError) => {
       console.error("Driver push po anulowaniu klienta:", pushError);
     });
+  }
+
+  if (booking.return_driver_id && booking.return_driver_id !== booking.driver_id) {
+    await sendDriverPush(admin, booking.return_driver_id, {
+      title: "⛔ KURS POWROTNY ANULOWANY",
+      body: `${booking.return_date || booking.travel_date} ${String(booking.return_time || booking.travel_time || "").slice(0, 5)} · ${booking.customer_name}`,
+      url: `/kierowca?booking=${booking.id}`,
+      tag: `booking-${booking.id}-return`,
+      bookingId: booking.id,
+      eventKey: `client-cancel-return:${booking.id}:${updated.updated_at}`
+    }).catch((pushError) => console.error("Return driver push po anulowaniu klienta:", pushError));
   }
 
   if (calendarResult.configured && calendarResult.synced) {

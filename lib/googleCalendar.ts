@@ -1,3 +1,4 @@
+import { bookingLegOperationalWindow } from "@/lib/bookingOperationalWindow";
 import {
   createPrivateKey,
   createSign
@@ -16,13 +17,6 @@ const WARSAW_TIME_ZONE =
   process.env.GOOGLE_CALENDAR_TIME_ZONE ||
   "Europe/Warsaw";
 
-const DEFAULT_DURATION_MINUTES = Math.max(
-  30,
-  Number(
-    process.env.GOOGLE_CALENDAR_EVENT_DURATION_MINUTES ||
-      180
-  )
-);
 
 type CalendarResult = {
   configured: boolean;
@@ -239,44 +233,26 @@ function localDateTime(
   return `${date}T${hhmm}:00`;
 }
 
-function addMinutesToLocal(
-  date: string,
-  time: string,
-  minutes: number
-) {
-  const [year, month, day] =
-    String(date).split("-").map(Number);
+function assignmentForLeg(booking: any, leg: "primary" | "return") {
+  if (leg === "return") {
+    return {
+      driverId: booking.return_driver_id || null,
+      vehicleId: booking.return_vehicle_id || null,
+      driverName: booking.return_driver_name || null,
+      driverPhone: booking.return_driver_phone || null,
+      vehicleName: booking.return_vehicle_name || null,
+      vehicleRegistration: booking.return_vehicle_registration || null
+    };
+  }
 
-  const [hour, minute] =
-    String(time || "00:00")
-      .slice(0, 5)
-      .split(":")
-      .map(Number);
-
-  const value = new Date(
-    Date.UTC(
-      year,
-      month - 1,
-      day,
-      hour,
-      minute
-    )
-  );
-
-  value.setUTCMinutes(
-    value.getUTCMinutes() + minutes
-  );
-
-  const pad = (x: number) =>
-    String(x).padStart(2, "0");
-
-  return (
-    `${value.getUTCFullYear()}-` +
-    `${pad(value.getUTCMonth() + 1)}-` +
-    `${pad(value.getUTCDate())}T` +
-    `${pad(value.getUTCHours())}:` +
-    `${pad(value.getUTCMinutes())}:00`
-  );
+  return {
+    driverId: booking.driver_id || null,
+    vehicleId: booking.vehicle_id || null,
+    driverName: booking.driver_name || null,
+    driverPhone: booking.driver_phone || null,
+    vehicleName: booking.vehicle_name || null,
+    vehicleRegistration: booking.vehicle_registration || null
+  };
 }
 
 function statusLabel(status: string) {
@@ -365,6 +341,11 @@ function bookingEventBody(
   const route =
     routeFor(booking, leg);
 
+  const assignment = assignmentForLeg(booking, leg);
+  const operational = bookingLegOperationalWindow(booking, leg);
+  const startDateTime = `${operational.startKey}:00`;
+  const endDateTime = `${operational.endKey}:00`;
+
   const summary =
     `MATT · ${String(
       booking.booking_number || ""
@@ -381,15 +362,17 @@ function bookingEventBody(
     `Klient: ${booking.customer_name || "—"}`,
     `Telefon: ${booking.phone || "—"}`,
     `Trasa: ${route}`,
+    `Okno operacyjne: ${operational.startDate} ${operational.startTime} – ${operational.endDate} ${operational.endTime}`,
+    `${leg === "return" || booking.service_type === "from_airport" ? "Przylot" : "Wylot"}: ${operational.scheduledDate} ${operational.scheduledTime}`,
     `Pasażerowie: ${booking.passengers || "—"}`,
     `Lot: ${flight || "—"}`,
-    `Kierowca: ${booking.driver_name || "—"}`,
-    `Telefon kierowcy: ${booking.driver_phone || "—"}`,
+    `Kierowca: ${assignment.driverName || "—"}`,
+    `Telefon kierowcy: ${assignment.driverPhone || "—"}`,
     `Pojazd: ${
-      booking.vehicle_name
-        ? `${booking.vehicle_name}${
-            booking.vehicle_registration
-              ? ` · ${booking.vehicle_registration}`
+      assignment.vehicleName
+        ? `${assignment.vehicleName}${
+            assignment.vehicleRegistration
+              ? ` · ${assignment.vehicleRegistration}`
               : ""
           }`
         : "—"
@@ -414,17 +397,11 @@ function bookingEventBody(
     ),
     description,
     start: {
-      dateTime:
-        localDateTime(date, time),
+      dateTime: startDateTime,
       timeZone: WARSAW_TIME_ZONE
     },
     end: {
-      dateTime:
-        addMinutesToLocal(
-          date,
-          time,
-          DEFAULT_DURATION_MINUTES
-        ),
+      dateTime: endDateTime,
       timeZone: WARSAW_TIME_ZONE
     },
     extendedProperties: {
@@ -600,50 +577,42 @@ async function enrichBooking(
 ) {
   let driver = null;
   let vehicle = null;
+  let returnDriver = null;
+  let returnVehicle = null;
   let company = null;
 
   if (booking.driver_id) {
-    const { data } = await admin
-      .from("drivers")
-      .select("full_name,phone")
-      .eq("id", booking.driver_id)
-      .maybeSingle();
-
+    const { data } = await admin.from("drivers").select("full_name,phone").eq("id", booking.driver_id).maybeSingle();
     driver = data;
   }
-
   if (booking.vehicle_id) {
-    const { data } = await admin
-      .from("vehicles")
-      .select("name,registration")
-      .eq("id", booking.vehicle_id)
-      .maybeSingle();
-
+    const { data } = await admin.from("vehicles").select("name,registration").eq("id", booking.vehicle_id).maybeSingle();
     vehicle = data;
   }
-
+  if (booking.return_driver_id) {
+    const { data } = await admin.from("drivers").select("full_name,phone").eq("id", booking.return_driver_id).maybeSingle();
+    returnDriver = data;
+  }
+  if (booking.return_vehicle_id) {
+    const { data } = await admin.from("vehicles").select("name,registration").eq("id", booking.return_vehicle_id).maybeSingle();
+    returnVehicle = data;
+  }
   if (booking.company_id) {
-    const { data } = await admin
-      .from("companies")
-      .select("name")
-      .eq("id", booking.company_id)
-      .maybeSingle();
-
+    const { data } = await admin.from("companies").select("name").eq("id", booking.company_id).maybeSingle();
     company = data;
   }
 
   return {
     ...booking,
-    driver_name:
-      driver?.full_name || null,
-    driver_phone:
-      driver?.phone || null,
-    vehicle_name:
-      vehicle?.name || null,
-    vehicle_registration:
-      vehicle?.registration || null,
-    company_name:
-      company?.name || null
+    driver_name: driver?.full_name || null,
+    driver_phone: driver?.phone || null,
+    vehicle_name: vehicle?.name || null,
+    vehicle_registration: vehicle?.registration || null,
+    return_driver_name: returnDriver?.full_name || null,
+    return_driver_phone: returnDriver?.phone || null,
+    return_vehicle_name: returnVehicle?.name || null,
+    return_vehicle_registration: returnVehicle?.registration || null,
+    company_name: company?.name || null
   };
 }
 
@@ -731,93 +700,26 @@ export async function syncBookingCalendar(
       };
     }
 
-    // Bez pełnej obsady nie tworzymy wydarzenia.
-    // Jeżeli wcześniej istniało, czyścimy je jako nieaktualne.
-    if (
-      !booking.driver_id ||
-      !booking.vehicle_id
-    ) {
-      const hadCalendarEvent =
-        Boolean(
-          booking.google_calendar_event_id ||
-          booking.google_calendar_return_event_id
-        );
+    const enriched = await enrichBooking(admin, booking);
+    const primaryAssigned = Boolean(booking.driver_id && booking.vehicle_id);
+    const returnRequired = Boolean(booking.service_type === "roundtrip" && booking.return_date && booking.return_time);
+    const returnAssigned = Boolean(booking.return_driver_id && booking.return_vehicle_id);
 
-      if (hadCalendarEvent) {
-        await deleteEvent(
-          config.calendarId,
-          primaryId
-        );
+    let syncedPrimaryId: string | null = null;
+    let syncedReturnId: string | null = null;
 
-        await deleteEvent(
-          config.calendarId,
-          returnId
-        );
-      }
-
-      await admin
-        .from("bookings")
-        .update({
-          google_calendar_event_id: null,
-          google_calendar_return_event_id: null,
-          google_calendar_synced_at:
-            hadCalendarEvent
-              ? new Date().toISOString()
-              : booking.google_calendar_synced_at || null,
-          google_calendar_sync_error: null
-        })
-        .eq("id", booking.id);
-
-      return {
-        configured: true,
-        synced: false,
-        deleted: hadCalendarEvent,
-        waitingForAssignment: true,
-        missingDriver: !booking.driver_id,
-        missingVehicle: !booking.vehicle_id,
-        primaryEventId: null,
-        returnEventId: null
-      };
+    if (primaryAssigned) {
+      await upsertEvent(config.calendarId, primaryId, bookingEventBody(enriched, "primary"));
+      syncedPrimaryId = primaryId;
+    } else {
+      await deleteEvent(config.calendarId, primaryId);
     }
 
-    const enriched =
-      await enrichBooking(
-        admin,
-        booking
-      );
-
-    await upsertEvent(
-      config.calendarId,
-      primaryId,
-      bookingEventBody(
-        enriched,
-        "primary"
-      )
-    );
-
-    let syncedReturnId:
-      string | null = null;
-
-    if (
-      booking.service_type === "roundtrip" &&
-      booking.return_date &&
-      booking.return_time
-    ) {
-      await upsertEvent(
-        config.calendarId,
-        returnId,
-        bookingEventBody(
-          enriched,
-          "return"
-        )
-      );
-
+    if (returnRequired && returnAssigned) {
+      await upsertEvent(config.calendarId, returnId, bookingEventBody(enriched, "return"));
       syncedReturnId = returnId;
     } else {
-      await deleteEvent(
-        config.calendarId,
-        returnId
-      );
+      await deleteEvent(config.calendarId, returnId);
     }
 
     const syncedAt =
@@ -827,7 +729,7 @@ export async function syncBookingCalendar(
       .from("bookings")
       .update({
         google_calendar_event_id:
-          primaryId,
+          syncedPrimaryId,
         google_calendar_return_event_id:
           syncedReturnId,
         google_calendar_synced_at:
@@ -839,8 +741,11 @@ export async function syncBookingCalendar(
 
     return {
       configured: true,
-      synced: true,
-      primaryEventId: primaryId,
+      synced: Boolean(syncedPrimaryId || syncedReturnId),
+      waitingForAssignment: !primaryAssigned || (returnRequired && !returnAssigned),
+      missingDriver: !booking.driver_id || (returnRequired && !booking.return_driver_id),
+      missingVehicle: !booking.vehicle_id || (returnRequired && !booking.return_vehicle_id),
+      primaryEventId: syncedPrimaryId,
       returnEventId: syncedReturnId
     };
   } catch (error) {

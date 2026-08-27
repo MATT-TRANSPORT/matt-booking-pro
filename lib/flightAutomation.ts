@@ -3,6 +3,8 @@ import {
   flightEta,
   suggestedPickupTime
 } from "@/lib/flightDisplay";
+import { bookingLegs, dispatcherLegWindow } from "@/lib/dispatcherOps";
+import { shiftLocalDateTime } from "@/lib/bookingOperationalWindow";
 
 function minutesBetween(a: Date, b: Date) {
   return Math.round((b.getTime() - a.getTime()) / 60000);
@@ -183,52 +185,83 @@ async function detectDriverConflict(
   flight: any,
   leg: "primary" | "return"
 ) {
-  if (!booking.driver_id) return null;
+  const driverId = leg === "return" ? booking.return_driver_id : booking.driver_id;
+  if (!driverId) return null;
 
-  const pickup =
-    suggestedPickupTime(flight, 25);
-
+  const pickup = suggestedPickupTime(flight, 25);
   if (!pickup) return null;
 
-  const match = pickup.match(
-    /(\d{4}-\d{2}-\d{2}) · (\d{2}):(\d{2})/
-  );
-
+  const match = pickup.match(/(\d{4}-\d{2}-\d{2}) · (\d{2}):(\d{2})/);
   if (!match) return null;
 
   const date = match[1];
-  const readyMinutes =
-    Number(match[2]) * 60 + Number(match[3]);
+  const readyMinutesOfDay = Number(match[2]) * 60 + Number(match[3]);
+  const [y, m, d] = date.split("-").map(Number);
+  const readyAbsolute = Math.floor(Date.UTC(y, m - 1, d, Number(match[2]), Number(match[3])) / 60000);
 
-  const { data } = await admin
-    .from("bookings")
-    .select("id,booking_number,travel_date,travel_time,status")
-    .eq("driver_id", booking.driver_id)
-    .eq("travel_date", date)
-    .neq("id", booking.id)
-    .not("status", "in", "(completed,cancelled)");
+  const selection =
+    "id,booking_number,travel_date,travel_time,return_date,return_time,service_type,driver_id,vehicle_id,return_driver_id,return_vehicle_id,status";
+  const operationDates = [
+    shiftLocalDateTime(date, "12:00", -1440).date,
+    date,
+    shiftLocalDateTime(date, "12:00", 1440).date
+  ];
 
-  const conflict = (data ?? [])
-    .map((row: any) => {
-      const [h, m] = String(row.travel_time || "00:00")
-        .slice(0,5)
-        .split(":")
-        .map(Number);
+  const [primary, returns] = await Promise.all([
+    admin
+      .from("bookings")
+      .select(selection)
+      .eq("driver_id", driverId)
+      .in("travel_date", operationDates)
+      .neq("id", booking.id)
+      .not("status", "in", "(completed,cancelled)"),
+    admin
+      .from("bookings")
+      .select(selection)
+      .eq("return_driver_id", driverId)
+      .in("return_date", operationDates)
+      .neq("id", booking.id)
+      .not("status", "in", "(completed,cancelled)")
+  ]);
 
-      const diff = h * 60 + m - readyMinutes;
-      return { ...row, diff };
-    })
-    .filter((row: any) => row.diff > -30 && row.diff < 180)
-    .sort((a: any, b: any) => a.diff - b.diff)[0];
+  const others = new Map<string, any>();
+  for (const row of [...(primary.data ?? []), ...(returns.data ?? [])]) others.set(row.id, row);
 
+  // Alert lotniczy patrzy na realną gotowość pasażera. Dajemy 30 min wstecz
+  // i 180 min do przodu; porównujemy z rzeczywistymi oknami zajętości v4.1.
+  const readyWindowStart = readyAbsolute - 30;
+  const readyWindowEnd = readyAbsolute + 180;
+  const candidates: any[] = [];
+
+  for (const row of others.values()) {
+    for (const otherLeg of bookingLegs(row)) {
+      if (String(otherLeg.driverId || "") !== String(driverId)) continue;
+      const window = dispatcherLegWindow(row, otherLeg);
+      const overlap = Math.min(readyWindowEnd, window.endMinutes) - Math.max(readyWindowStart, window.startMinutes);
+      if (overlap <= 0) continue;
+      const [hh, mm] = otherLeg.time.split(":").map(Number);
+      candidates.push({
+        ...row,
+        leg: otherLeg.kind,
+        legDate: otherLeg.date,
+        legTime: otherLeg.time,
+        diff: hh * 60 + mm - readyMinutesOfDay,
+        overlap
+      });
+    }
+  }
+
+  const conflict = candidates.sort((a, b) => a.diff - b.diff)[0];
   if (!conflict) return null;
 
   return {
     booking_number: conflict.booking_number,
-    travel_date: conflict.travel_date,
-    travel_time: String(conflict.travel_time).slice(0,5),
+    travel_date: conflict.legDate,
+    travel_time: conflict.legTime,
     diff_minutes: conflict.diff,
-    suggested_ready: pickup
+    suggested_ready: pickup,
+    conflicting_leg: conflict.leg,
+    overlap_minutes: conflict.overlap
   };
 }
 

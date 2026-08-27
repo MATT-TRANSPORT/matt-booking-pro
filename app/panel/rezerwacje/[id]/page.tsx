@@ -214,7 +214,7 @@ export default async function Page({
               <span>Sposób płatności</span>
               <strong>
                 {booking.company_id
-                  ? (booking.payment_method === "employee_payment" ? "Płatność pracownika online" : "Przelew firmowy")
+                  ? (booking.payment_method === "employee_payment" ? "Płatność online firmy" : "Przelew firmowy")
                   : (booking.payment_method === "online" || booking.online_payment_requested)
                   ? "Płatność online"
                   : booking.payment_method === "bank_transfer"
@@ -250,6 +250,9 @@ export default async function Page({
             initialStatus={booking.status}
             initialDriverId={booking.driver_id}
             initialVehicleId={booking.vehicle_id}
+            initialReturnDriverId={booking.return_driver_id}
+            initialReturnVehicleId={booking.return_vehicle_id}
+            isRoundtrip={booking.service_type === "roundtrip"}
             drivers={drivers ?? []}
             vehicles={vehicles ?? []}
           />

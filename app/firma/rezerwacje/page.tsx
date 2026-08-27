@@ -5,7 +5,8 @@ import { companyBookingMoney, companyRouteLabel, sortCompanyBookings } from "@/l
 import { statusPl } from "@/lib/status";
 
 export default async function Page() {
-  const { s, company } = await companyClient();
+  const { s, company, membership } = await companyClient();
+  const canPayOnline = ["admin", "manager", "accounting"].includes(String(membership.role || ""));
   const [{ data }, { data: documents }] = await Promise.all([
     s
       .from("bookings")
@@ -60,7 +61,7 @@ export default async function Page() {
                     <td>{money.net.toFixed(2)} zł</td>
                     <td>{money.gross.toFixed(2)} zł</td>
                     <td>{docs ? <span className={`document-status ${docs.invoice ? "invoice" : "other"}`}>{docs.invoice ? "FAKTURA" : "DOKUMENT"} · {docs.count}</span> : <span className="muted">—</span>}</td>
-                    <td><CompanyPaymentCell booking={b} /></td>
+                    <td><CompanyPaymentCell booking={b} canPay={canPayOnline} /></td>
                     <td><span className={`status ${String(b.status).toLowerCase()}`}>{statusPl(b.status)}</span></td>
                   </tr>
                 );
@@ -74,9 +75,9 @@ export default async function Page() {
             const money = companyBookingMoney(b);
             const docs = docMap.get(b.id);
             return (
-              <a className="company-booking-card company-booking-card-link" href={`/firma/rezerwacje/${b.id}`} key={b.id}>
+              <article className="company-booking-card" key={b.id}>
                 <div className="company-card-head">
-                  <strong>{b.booking_number}</strong>
+                  <a href={`/firma/rezerwacje/${b.id}`}><strong>{b.booking_number}</strong></a>
                   <span className={`status ${String(b.status).toLowerCase()}`}>{statusPl(b.status)}</span>
                 </div>
                 <div className="company-card-data">
@@ -86,9 +87,10 @@ export default async function Page() {
                   <div><span>Netto</span><strong>{money.net.toFixed(2)} zł</strong></div>
                   <div><span>Brutto</span><strong>{money.gross.toFixed(2)} zł</strong></div>
                   <div><span>Dokument</span><strong>{docs ? `${docs.invoice ? "Faktura" : "Dokument"} · ${docs.count}` : "—"}</strong></div>
-                  <div className="wide"><span>Płatność</span><CompanyPaymentCell booking={b} /></div>
+                  <div className="wide"><span>Płatność</span><CompanyPaymentCell booking={b} canPay={canPayOnline} /></div>
                 </div>
-              </a>
+                <a className="company-card-open" href={`/firma/rezerwacje/${b.id}`}>OTWÓRZ REZERWACJĘ →</a>
+              </article>
             );
           })}
         </div>

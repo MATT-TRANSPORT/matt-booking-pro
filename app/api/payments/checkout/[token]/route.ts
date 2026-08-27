@@ -32,6 +32,13 @@ export async function POST(
     );
   }
 
+  if (booking.company_id) {
+    return NextResponse.json(
+      { error: "Płatność B2B uruchamia administrator firmy bezpośrednio w portalu firmowym." },
+      { status: 400 }
+    );
+  }
+
   if (!onlinePaymentEligible(booking)) {
     return NextResponse.json(
       {

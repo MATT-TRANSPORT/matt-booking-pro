@@ -131,7 +131,7 @@ export default function ClientBookingPortal({ token }: { token:string }) {
           <label>Data
             <input disabled={!editable} type="date" value={form.travelDate} onChange={e=>setForm({...form,travelDate:e.target.value})}/>
           </label>
-          <label>Godzina
+          <label>{form.serviceType === "from_airport" ? "Godzina przylotu" : "Godzina wylotu"}
             <input disabled={!editable} type="time" value={form.travelTime} onChange={e=>setForm({...form,travelTime:e.target.value})}/>
           </label>
           <label>Numer lotu
@@ -150,7 +150,7 @@ export default function ClientBookingPortal({ token }: { token:string }) {
           </label>
           {b.service_type==="roundtrip"&&<>
             <label>Data powrotu<input disabled={!editable} type="date" value={form.returnDate} onChange={e=>setForm({...form,returnDate:e.target.value})}/></label>
-            <label>Godzina powrotu<input disabled={!editable} type="time" value={form.returnTime} onChange={e=>setForm({...form,returnTime:e.target.value})}/></label>
+            <label>Godzina przylotu powrotnego<input disabled={!editable} type="time" value={form.returnTime} onChange={e=>setForm({...form,returnTime:e.target.value})}/></label>
             <label>Lot powrotny<input disabled={!editable} value={form.returnFlightNumber} onChange={e=>setForm({...form,returnFlightNumber:e.target.value})}/></label>
           </>}
         </div>
@@ -230,7 +230,7 @@ export default function ClientBookingPortal({ token }: { token:string }) {
         </> : <div><span>Kwota</span><strong>{Number(b.total_price).toFixed(2)} zł</strong></div>}
         <div><span>Status</span><strong>{STATUS[b.status]||b.status}</strong></div>
         <div><span>Płatność</span><strong>{b.company_id
-          ? (b.payment_method === "employee_payment" ? "Płatność pracownika online" : "Przelew firmowy")
+          ? (b.payment_method === "employee_payment" ? "Płatność online firmy" : "Przelew firmowy")
           : (b.payment_method === "online" || b.online_payment_requested)
           ? "Płatność online po potwierdzeniu"
           : b.payment_method === "bank_transfer"

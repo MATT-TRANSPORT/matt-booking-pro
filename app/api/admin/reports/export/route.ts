@@ -37,7 +37,7 @@ function paymentText(value: string) {
     transfer: "Przelew",
     online: "Online",
     company_transfer: "Przelew firmowy",
-    employee_payment: "Płatność pracownika"
+    employee_payment: "Płatność online firmy"
   };
   return map[value] || value || "—";
 }

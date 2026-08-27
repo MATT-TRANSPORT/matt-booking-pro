@@ -30,6 +30,10 @@ type BookingMail = {
   driver_phone?: string | null;
   vehicle_name?: string | null;
   vehicle_registration?: string | null;
+  return_driver_name?: string | null;
+  return_driver_phone?: string | null;
+  return_vehicle_name?: string | null;
+  return_vehicle_registration?: string | null;
   company_id?: string | null;
   payment_method?: string | null;
   payment_status?: string | null;
@@ -56,7 +60,7 @@ function adminUrl(b: BookingMail) {
 function paymentPreferenceText(b: BookingMail) {
   if (b.company_id) {
     return b.payment_method === "employee_payment"
-      ? "Płatność pracownika online"
+      ? "Płatność online firmy"
       : "Przelew firmowy";
   }
 
@@ -122,20 +126,21 @@ function paymentButton(b: BookingMail) {
       </div>`;
   }
 
-  const url =
-    b.payment_link ||
-    (b.customer_access_token
-      ? `${appBaseUrl()}/rezerwacja/${b.customer_access_token}?pay=1`
-      : null);
+  const url = b.company_id
+    ? (b.id ? `${appBaseUrl()}/firma/rezerwacje/${b.id}` : null)
+    : (b.payment_link ||
+      (b.customer_access_token
+        ? `${appBaseUrl()}/rezerwacja/${b.customer_access_token}?pay=1`
+        : null));
 
   if (!url) return "";
 
   return `
     <div style="margin-top:20px;padding:18px;border-radius:14px;background:#10141b;border:1px solid #4f4733">
       <div style="font-weight:800;color:#f1d28b;margin-bottom:8px">Płatność online</div>
-      <div style="color:#aab1bc;margin-bottom:14px">Kwota do zapłaty: <strong style="color:#fff">${Number(b.total_price).toFixed(2)} zł</strong></div>
+      <div style="color:#aab1bc;margin-bottom:14px">Kwota do zapłaty: <strong style="color:#fff">${Number(b.company_id ? (b.price_gross ?? b.total_price) : b.total_price).toFixed(2)} zł</strong></div>
       <a href="${url}" style="display:inline-block;background:#d5ae5d;color:#111;padding:14px 20px;border-radius:11px;text-decoration:none;font-weight:900">
-        OPŁAĆ REZERWACJĘ ONLINE
+        ${b.company_id ? "PRZEJDŹ DO PŁATNOŚCI W PORTALU FIRMY" : "OPŁAĆ REZERWACJĘ ONLINE"}
       </a>
     </div>`;
 }
@@ -176,7 +181,8 @@ function details(b: BookingMail, forAdmin = false) {
     <div style="background:#10141b;border:1px solid #343b49;border-radius:14px;padding:18px;line-height:1.8">
       <div><span style="color:#aab1bc">Numer rezerwacji:</span> ${number}</div>
       <div><span style="color:#aab1bc">Trasa:</span> <strong>${esc(routeText(b))}</strong></div>
-      <div><span style="color:#aab1bc">Termin:</span> <strong>${esc(b.travel_date)} ${esc(b.travel_time)}</strong></div>
+      <div><span style="color:#aab1bc">${b.service_type === "from_airport" ? "Przylot" : "Wylot"}:</span> <strong>${esc(b.travel_date)} ${esc(b.travel_time)}</strong></div>
+      ${b.service_type === "roundtrip" && b.return_date ? `<div><span style="color:#aab1bc">Przylot powrotny:</span> <strong>${esc(b.return_date)} ${esc(b.return_time || "—")}</strong></div>` : ""}
       <div><span style="color:#aab1bc">Pasażerowie:</span> <strong>${esc(b.passengers)}</strong></div>
       <div><span style="color:#aab1bc">Pojazd:</span> <strong>${esc(vehicle)}</strong></div>
       <div><span style="color:#aab1bc">Lot:</span> <strong>${esc(b.flight_number || "—")}</strong></div>
@@ -236,10 +242,18 @@ export function assignedEmail(b: BookingMail) {
       </p>
       ${details(b)}
       <div style="margin-top:18px;background:#10141b;border:1px solid #343b49;border-radius:14px;padding:18px;line-height:1.8">
+        <div style="font-weight:900;color:#f1d28b;margin-bottom:6px">→ WYJAZD / PIERWSZA NOGA</div>
         <div><span style="color:#aab1bc">Kierowca:</span> <strong>${esc(b.driver_name || "—")}</strong></div>
         <div><span style="color:#aab1bc">Telefon:</span> <strong>${esc(b.driver_phone || "—")}</strong></div>
         <div><span style="color:#aab1bc">Pojazd:</span> <strong>${esc(b.vehicle_name || "—")}</strong></div>
         <div><span style="color:#aab1bc">Rejestracja:</span> <strong>${esc(b.vehicle_registration || "—")}</strong></div>
+        ${b.service_type === "roundtrip" ? `
+          <div style="height:1px;background:#343b49;margin:14px 0"></div>
+          <div style="font-weight:900;color:#f1d28b;margin-bottom:6px">↩ POWRÓT</div>
+          <div><span style="color:#aab1bc">Kierowca:</span> <strong>${esc(b.return_driver_name || "Jeszcze nie przypisano")}</strong></div>
+          <div><span style="color:#aab1bc">Telefon:</span> <strong>${esc(b.return_driver_phone || "—")}</strong></div>
+          <div><span style="color:#aab1bc">Pojazd:</span> <strong>${esc(b.return_vehicle_name || "Jeszcze nie przypisano")}</strong></div>
+          <div><span style="color:#aab1bc">Rejestracja:</span> <strong>${esc(b.return_vehicle_registration || "—")}</strong></div>` : ""}
       </div>
       ${paymentButton(b)}
       ${customerPortalButton(b)}`

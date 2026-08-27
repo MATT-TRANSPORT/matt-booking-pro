@@ -68,12 +68,21 @@ export async function POST(
     .from("bookings")
     .select("*")
     .eq("id", id)
-    .eq("driver_id", driver.id)
     .single();
 
   if (!booking) {
     return NextResponse.json(
-      { error: "Ten kurs nie jest przypisany do Ciebie." },
+      { error: "Nie znaleziono kursu." },
+      { status: 404 }
+    );
+  }
+
+  const assignedDriverId = requestedLeg === "return" ? booking.return_driver_id : booking.driver_id;
+  const assignedVehicleId = requestedLeg === "return" ? booking.return_vehicle_id : booking.vehicle_id;
+
+  if (String(assignedDriverId || "") !== String(driver.id)) {
+    return NextResponse.json(
+      { error: requestedLeg === "return" ? "Kurs POWROTNY nie jest przypisany do Ciebie." : "Kurs WYJAZDOWY nie jest przypisany do Ciebie." },
       { status: 403 }
     );
   }
@@ -111,7 +120,7 @@ export async function POST(
     );
   }
 
-  if (status === "in_progress" && !booking.vehicle_id) {
+  if (status === "in_progress" && !assignedVehicleId) {
     return NextResponse.json(
       { error: "Nie można rozpocząć kursu bez przypisanego pojazdu." },
       { status: 409 }

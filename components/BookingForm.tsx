@@ -165,14 +165,15 @@ export default function BookingForm() {
 
       {step===3&&<section className="card wizard-card">
         <h1>Termin przejazdu</h1>
+        <p className="muted flight-time-hint">Podaj godzinę wylotu / przylotu z rozkładu lotu. MATT BOOKING sam wyznacza wcześniejszy czas zajętości kierowcy.</p>
         <div className="grid">
           <label>Data<input type="date" value={travelDate} onChange={e=>setTravelDate(e.target.value)}/></label>
-          <label>Godzina<input type="time" value={travelTime} onChange={e=>setTravelTime(e.target.value)}/></label>
+          <label>{serviceType === "from_airport" ? "Godzina przylotu" : "Godzina wylotu"}<input type="time" value={travelTime} onChange={e=>setTravelTime(e.target.value)}/></label>
           <label>Numer lotu<input value={flight} onChange={e=>setFlight(e.target.value)} placeholder="np. FR8214"/></label>
           <label>Pasażerowie<select value={passengers} onChange={e=>setPassengers(Number(e.target.value))}>{[1,2,3,4,5,6,7,8].map(n=><option key={n}>{n}</option>)}</select></label>
           {serviceType==="roundtrip"&&<>
             <label>Data powrotu<input type="date" value={returnDate} onChange={e=>setReturnDate(e.target.value)}/></label>
-            <label>Godzina powrotu<input type="time" value={returnTime} onChange={e=>setReturnTime(e.target.value)}/></label>
+            <label>Godzina przylotu powrotnego<input type="time" value={returnTime} onChange={e=>setReturnTime(e.target.value)}/></label>
             <label>Lot powrotny<input value={returnFlight} onChange={e=>setReturnFlight(e.target.value)}/></label>
           </>}
         </div>
@@ -249,9 +250,10 @@ export default function BookingForm() {
       </div>
       <OtherAirportBox/>
       <h3>Termin</h3>
+      <p className="muted flight-time-hint">Podaj godzinę wylotu / przylotu z rozkładu lotu. Czas operacyjny kierowcy liczony jest automatycznie.</p>
       <div className="grid">
         <label>Data<input type="date" value={travelDate} onChange={e=>setTravelDate(e.target.value)}/></label>
-        <label>Godzina<input type="time" value={travelTime} onChange={e=>setTravelTime(e.target.value)}/></label>
+        <label>{serviceType === "from_airport" ? "Godzina przylotu" : "Godzina wylotu"}<input type="time" value={travelTime} onChange={e=>setTravelTime(e.target.value)}/></label>
         <label>Numer lotu<input value={flight} onChange={e=>setFlight(e.target.value)}/></label>
         <label>Pasażerowie<select value={passengers} onChange={e=>setPassengers(Number(e.target.value))}>{[1,2,3,4,5,6,7,8].map(n=><option key={n}>{n}</option>)}</select></label>
       </div>

@@ -15,6 +15,7 @@ export default function PaymentLinkBox({
   const router = useRouter();
   const isEmployeePayment =
     booking.payment_method === "employee_payment";
+  const isCompanyOnline = Boolean(booking.company_id && isEmployeePayment);
 
   const [link, setLink] = useState(
     booking.payment_link ?? ""
@@ -32,7 +33,7 @@ export default function PaymentLinkBox({
   const stableLink = booking.customer_access_token
     ? `/rezerwacja/${booking.customer_access_token}?pay=1`
     : "";
-  const effectiveLink = link || stableLink;
+  const effectiveLink = isCompanyOnline ? "" : (link || stableLink);
   const paymentAvailable =
     ["confirmed", "assigned"].includes(booking.status) &&
     paymentStatus !== "paid";
@@ -144,8 +145,10 @@ export default function PaymentLinkBox({
   return (
     <div className="card payment-link-box">
       <h2>
-        {isEmployeePayment
-          ? "Płatność pracownika"
+        {isCompanyOnline
+          ? "Płatność online firmy"
+          : isEmployeePayment
+          ? "Płatność online"
           : "Płatność klienta"}
       </h2>
 
@@ -195,7 +198,7 @@ export default function PaymentLinkBox({
         </div>
       )}
 
-      {isEmployeePayment && (
+      {isEmployeePayment && !isCompanyOnline && (
         <details className="manual-payment-link-details">
           <summary>Awaryjny / własny link płatności</summary>
           <p className="muted">
@@ -214,6 +217,10 @@ export default function PaymentLinkBox({
             ZAPISZ WŁASNY LINK
           </button>
         </details>
+      )}
+
+      {isCompanyOnline && paymentStatus !== "paid" && (
+        <p className="muted">Administrator firmy uruchamia płatność bezpośrednio w portalu B2B. Status ze Stripe pojawi się tutaj automatycznie.</p>
       )}
 
       {paymentStatus !== "paid" && (

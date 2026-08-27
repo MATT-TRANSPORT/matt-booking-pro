@@ -170,7 +170,7 @@ export default function CompanyBookingActions({ booking }: { booking: any }) {
       {cancellable && cancelConfirm && (
         <div className="company-cancel-confirm">
           <strong>Czy na pewno anulować tę rezerwację?</strong>
-          <p className="muted">Kurs zostanie anulowany i usunięty z Google Calendar. {booking.payment_status === "paid" || booking.payment_status === "review" ? "Płatność nie zostanie automatycznie zwrócona — MATT zweryfikuje zwrot ręcznie." : "Niewykorzystany link płatności zostanie wygaszony."}</p>
+          <p className="muted">Kurs zostanie anulowany i usunięty z Google Calendar. {booking.payment_status === "paid" || booking.payment_status === "review" ? "Płatność nie zostanie automatycznie zwrócona — MATT zweryfikuje zwrot ręcznie." : "Niewykorzystana sesja płatności Stripe zostanie wygaszona."}</p>
           <div>
             <button className="btn secondary" disabled={saving} onClick={() => setCancelConfirm(false)}>NIE, ZOSTAW</button>
             <button className="btn company-cancel-confirm-btn" disabled={saving} onClick={cancelBooking}>{saving ? "ANULOWANIE..." : "TAK, ANULUJ"}</button>
@@ -186,7 +186,7 @@ export default function CompanyBookingActions({ booking }: { booking: any }) {
         <div className="repeat-box">
           <p className="muted">Nowy kurs zostanie wyceniony według warunków handlowych obowiązujących w dniu utworzenia.</p>
           <label>Nowa data<input type="date" value={repeatDate} onChange={(e) => setRepeatDate(e.target.value)} /></label>
-          <label>Nowa godzina<input type="time" value={repeatTime} onChange={(e) => setRepeatTime(e.target.value)} /></label>
+          <label>{booking.service_type === "from_airport" ? "Nowa godzina przylotu" : "Nowa godzina wylotu"}<input type="time" value={repeatTime} onChange={(e) => setRepeatTime(e.target.value)} /></label>
           <button className="btn" onClick={repeat} disabled={saving}>UTWÓRZ NOWY KURS</button>
         </div>
       )}
@@ -212,7 +212,7 @@ export default function CompanyBookingActions({ booking }: { booking: any }) {
           </label>
           <div className="grid">
             <label>Data<input type="date" value={form.travelDate} onChange={(e) => setForm({ ...form, travelDate: e.target.value })} /></label>
-            <label>Godzina<input type="time" value={form.travelTime} onChange={(e) => setForm({ ...form, travelTime: e.target.value })} /></label>
+            <label>{booking.service_type === "from_airport" ? "Godzina przylotu" : "Godzina wylotu"}<input type="time" value={form.travelTime} onChange={(e) => setForm({ ...form, travelTime: e.target.value })} /></label>
             <label>Lot<input value={form.flightNumber} onChange={(e) => setForm({ ...form, flightNumber: e.target.value })} /></label>
             <label>
               Pasażerowie

@@ -11,7 +11,8 @@ import {
 import { statusPl } from "@/lib/status";
 
 export default async function Page() {
-  const { s, company } = await companyClient();
+  const { s, company, membership } = await companyClient();
+  const canPayOnline = ["admin", "manager", "accounting"].includes(String(membership.role || ""));
   const { data } = await s
     .from("bookings")
     .select("*")
@@ -33,7 +34,7 @@ export default async function Page() {
         <td>{b.customer_name}</td>
         <td className="company-route-cell">{companyRouteLabel(b)}</td>
         <td>{money.net.toFixed(2)} zł</td>
-        <td><CompanyPaymentCell booking={b} /></td>
+        <td><CompanyPaymentCell booking={b} canPay={canPayOnline} /></td>
         <td><span className={`status ${String(b.status).toLowerCase()}`}>{statusPl(b.status)}</span></td>
       </tr>
     );
@@ -54,7 +55,7 @@ export default async function Page() {
           <div className="wide"><span>Trasa</span><strong>{companyRouteLabel(b)}</strong></div>
           <div><span>Netto</span><strong>{money.net.toFixed(2)} zł</strong></div>
           <div><span>Brutto</span><strong>{money.gross.toFixed(2)} zł</strong></div>
-          <div className="wide"><span>Płatność</span><CompanyPaymentCell booking={b} /></div>
+          <div className="wide"><span>Płatność</span><CompanyPaymentCell booking={b} canPay={canPayOnline} /></div>
         </div>
         {schedule.reason === "expired" && <div className="company-expired-note">Termin przejazdu minął</div>}
         <a className="company-card-open" href={`/firma/rezerwacje/${b.id}`}>OTWÓRZ REZERWACJĘ →</a>

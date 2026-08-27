@@ -151,7 +151,7 @@ export default function OnlinePaymentCard({
     }
   }
 
-  if (!eligible) return null;
+  if (!eligible || booking.company_id) return null;
 
   return (
     <div

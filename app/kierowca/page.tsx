@@ -14,7 +14,7 @@ export default async function Page() {
   toDate.setDate(toDate.getDate() + 30);
   const to = toDate.toISOString().slice(0, 10);
 
-  const selection = "*,companies(name),vehicles(name,registration,color)";
+  const selection = "*,companies(name),vehicles(name,registration,color),return_vehicle:vehicles!bookings_return_vehicle_id_fkey(name,registration,color)";
 
   // Osobne zapytania są celowe: roundtrip może mieć wyjazd dawno temu,
   // a powrót nadal przed kierowcą. Łączymy oba zbiory po id rezerwacji.
@@ -29,7 +29,7 @@ export default async function Page() {
     admin
       .from("bookings")
       .select(selection)
-      .eq("driver_id", driver.id)
+      .eq("return_driver_id", driver.id)
       .eq("service_type", "roundtrip")
       .gte("return_date", from)
       .lte("return_date", to)
@@ -96,14 +96,51 @@ export default async function Page() {
     historyByBooking.set(history.booking_id, list);
   }
 
-  const bookingsForDriver = bookingRows.map((booking: any) => ({
-    ...booking,
-    flights: flightsByBooking.get(booking.id) ?? {},
-    flightAlerts: alertsByBooking.get(booking.id) ?? [],
-    driverProgress: driverProgressFromHistory(
-      historyByBooking.get(booking.id) ?? []
-    )
-  }));
+  const bookingsForDriver = bookingRows
+    .map((booking: any) => {
+      const progress = driverProgressFromHistory(historyByBooking.get(booking.id) ?? []);
+      const primaryAssigned = String(booking.driver_id || "") === String(driver.id);
+      const returnAssigned =
+        booking.service_type === "roundtrip" &&
+        String(booking.return_driver_id || "") === String(driver.id);
+      const primaryCompleted = progress.primary?.status === "completed";
+
+      let driverLeg: "primary" | "return" = "primary";
+      let driverLegLocked = false;
+      let assignedToCurrentDriver = primaryAssigned;
+
+      if (booking.service_type === "roundtrip") {
+        if (primaryCompleted) {
+          // Po zakończeniu wyjazdu rezerwację widzi już kierowca POWROTU.
+          driverLeg = "return";
+          assignedToCurrentDriver = returnAssigned;
+        } else if (primaryAssigned) {
+          // Jeżeli ten sam kierowca ma również powrót, do czasu zakończenia
+          // wyjazdu pokazujemy mu aktywną pierwszą nogę.
+          driverLeg = "primary";
+          assignedToCurrentDriver = true;
+        } else if (returnAssigned) {
+          // Inny kierowca powrotny musi widzieć swój przyszły kurs od razu,
+          // ale workflow pozostaje zablokowany do zakończenia WYJAZDU.
+          driverLeg = "return";
+          driverLegLocked = true;
+          assignedToCurrentDriver = true;
+        } else {
+          assignedToCurrentDriver = false;
+        }
+      }
+
+      return {
+        ...booking,
+        flights: flightsByBooking.get(booking.id) ?? {},
+        flightAlerts: alertsByBooking.get(booking.id) ?? [],
+        driverProgress: progress,
+        _driverLeg: driverLeg,
+        _driverLegLocked: driverLegLocked,
+        _assignedToCurrentDriver: assignedToCurrentDriver
+      };
+    })
+    .filter((booking: any) => booking._assignedToCurrentDriver);
 
   return (
     <main className="container driver-app-shell driver-pro-shell">

@@ -132,6 +132,17 @@ export async function POST(
       });
     }
 
+    if (current.return_driver_id && current.return_driver_id !== current.driver_id) {
+      await sendDriverPush(admin, current.return_driver_id, {
+        title: "⛔ KURS POWROTNY B2B ANULOWANY",
+        body: `${current.return_date || current.travel_date} ${String(current.return_time || current.travel_time || "").slice(0, 5)} · ${current.customer_name}`,
+        url: `/kierowca?booking=${current.id}`,
+        tag: `booking-${current.id}-return`,
+        bookingId: current.id,
+        eventKey: `company-cancel-return:${current.id}:${cancelled.updated_at}`
+      }).catch((pushError) => console.error("Return driver push po anulowaniu B2B:", pushError));
+    }
+
     const { data: companyForMail } = await admin
       .from("companies")
       .select("name,email")
@@ -199,6 +210,8 @@ export async function POST(
       updated_at: undefined,
       driver_id: null,
       vehicle_id: null,
+      return_driver_id: null,
+      return_vehicle_id: null,
       status: "pending",
       travel_date: body.travelDate,
       travel_time: body.travelTime,
@@ -392,6 +405,17 @@ export async function POST(
     }).catch((pushError) => {
       console.error("Driver push po edycji B2B:", pushError);
     });
+  }
+
+  if (current.return_driver_id && current.return_driver_id !== current.driver_id && changes.length) {
+    await sendDriverPush(admin, current.return_driver_id, {
+      title: "⚠ ZMIANA KURSU POWROTNEGO B2B",
+      body: `${data.return_date || data.travel_date} ${String(data.return_time || data.travel_time || "").slice(0, 5)} · ${data.customer_name}`,
+      url: `/kierowca?booking=${data.id}`,
+      tag: `booking-${data.id}-return`,
+      bookingId: data.id,
+      eventKey: `company-edit-return:${data.id}:${data.updated_at}`
+    }).catch((pushError) => console.error("Return driver push po edycji B2B:", pushError));
   }
 
   const { data: companyForMail } = await admin

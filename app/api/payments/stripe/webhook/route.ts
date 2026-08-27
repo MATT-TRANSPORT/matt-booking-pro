@@ -53,7 +53,7 @@ async function markPaid(
 
   const paidAmount = Number(session.amount_total || 0);
   const expectedAmount = Math.round(
-    Number(booking.total_price || 0) * 100
+    Number(booking.company_id ? (booking.price_gross ?? booking.total_price ?? 0) : (booking.total_price ?? 0)) * 100
   );
   const status = String(booking.status || "");
 

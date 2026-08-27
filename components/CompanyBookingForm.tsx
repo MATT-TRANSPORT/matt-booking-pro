@@ -394,15 +394,16 @@ export default function CompanyBookingForm({
         </div>
 
         <h3>Termin</h3>
+        <p className="muted flight-time-hint">Podaj godzinę wylotu / przylotu z rozkładu lotu. Czas zajętości kierowcy w Google Calendar zostanie wyliczony automatycznie.</p>
         <div className="grid">
           <label>Data<input type="date" value={travelDate} onChange={(e) => setTravelDate(e.target.value)} /></label>
-          <label>Godzina<input type="time" value={travelTime} onChange={(e) => setTravelTime(e.target.value)} /></label>
+          <label>{serviceType === "from_airport" ? "Godzina przylotu" : "Godzina wylotu"}<input type="time" value={travelTime} onChange={(e) => setTravelTime(e.target.value)} /></label>
           <label>Numer lotu<input value={flightNumber} onChange={(e) => setFlightNumber(e.target.value)} /></label>
           <label>Pasażerowie<select value={passengers} onChange={(e) => setPassengers(Number(e.target.value))}>{[1,2,3,4,5,6,7,8].map((x) => <option key={x}>{x}</option>)}</select></label>
           {serviceType === "roundtrip" && (
             <>
               <label>Data powrotu<input type="date" value={returnDate} onChange={(e) => setReturnDate(e.target.value)} /></label>
-              <label>Godzina powrotu<input type="time" value={returnTime} onChange={(e) => setReturnTime(e.target.value)} /></label>
+              <label>Godzina przylotu powrotnego<input type="time" value={returnTime} onChange={(e) => setReturnTime(e.target.value)} /></label>
               <label>Lot powrotny<input value={returnFlightNumber} onChange={(e) => setReturnFlightNumber(e.target.value)} /></label>
             </>
           )}
@@ -417,7 +418,7 @@ export default function CompanyBookingForm({
         <h3>Płatność</h3>
         <div className="choice-grid">
           <button type="button" className={`choice ${paymentMethod === "company_transfer" ? "active" : ""}`} onClick={() => { setPaymentMethod("company_transfer"); setPaymentInitialized(true); }}><strong>🏢 Przelew firmowy</strong><small>Rozliczenie zgodnie z warunkami firmy</small></button>
-          <button type="button" className={`choice ${paymentMethod === "employee_payment" ? "active" : ""}`} onClick={() => { setPaymentMethod("employee_payment"); setPaymentInitialized(true); }}><strong>👤 Płatność pracownika</strong><small>Pracownik płaci kwotę BRUTTO</small></button>
+          <button type="button" className={`choice ${paymentMethod === "employee_payment" ? "active" : ""}`} onClick={() => { setPaymentMethod("employee_payment"); setPaymentInitialized(true); }}><strong>💳 Płatność online firmy</strong><small>Administrator firmy płaci kartą / Stripe kwotę BRUTTO</small></button>
         </div>
 
         <label style={{ marginTop: 18 }}>Uwagi<textarea rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} /></label>

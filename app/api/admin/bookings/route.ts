@@ -97,6 +97,13 @@ export async function POST(req: NextRequest) {
     action
   } = requestBody;
 
+  const requestedLeg =
+    requestBody.leg === "return"
+      ? "return"
+      : requestBody.leg === "primary"
+      ? "primary"
+      : null;
+
   const hasDriverId =
     Object.prototype.hasOwnProperty.call(
       requestBody,
@@ -118,6 +125,11 @@ export async function POST(req: NextRequest) {
     hasVehicleId
       ? requestBody.vehicleId
       : undefined;
+
+  const hasReturnDriverId = Object.prototype.hasOwnProperty.call(requestBody, "returnDriverId");
+  const hasReturnVehicleId = Object.prototype.hasOwnProperty.call(requestBody, "returnVehicleId");
+  const returnDriverId = hasReturnDriverId ? requestBody.returnDriverId : undefined;
+  const returnVehicleId = hasReturnVehicleId ? requestBody.returnVehicleId : undefined;
 
   if (!id) {
     return NextResponse.json(
@@ -166,6 +178,8 @@ export async function POST(req: NextRequest) {
 
     copy.driver_id = null;
     copy.vehicle_id = null;
+    if ("return_driver_id" in copy) copy.return_driver_id = null;
+    if ("return_vehicle_id" in copy) copy.return_vehicle_id = null;
     copy.status = "pending";
     copy.customer_access_token = crypto.randomUUID();
     copy.booking_source = "admin_duplicate";
@@ -257,6 +271,17 @@ export async function POST(req: NextRequest) {
 
   let nextStatus = status || current.status;
 
+  const isRoundtripPrimaryCompletion =
+    status === "completed" &&
+    current.service_type === "roundtrip" &&
+    requestedLeg === "primary";
+
+  // Dispatcher może domknąć sam WYJAZD roundtrip bez zamykania całej rezerwacji.
+  // Globalny status wraca do assigned; POWRÓT pozostaje aktywny.
+  if (isRoundtripPrimaryCompletion) {
+    nextStatus = "assigned";
+  }
+
   const effectiveDriverId =
     hasDriverId
       ? driverId || null
@@ -267,6 +292,12 @@ export async function POST(req: NextRequest) {
       ? vehicleId || null
       : current.vehicle_id || null;
 
+  const effectiveReturnDriverId =
+    hasReturnDriverId ? returnDriverId || null : current.return_driver_id || null;
+
+  const effectiveReturnVehicleId =
+    hasReturnVehicleId ? returnVehicleId || null : current.return_vehicle_id || null;
+
   if (status && !ALLOWED_STATUSES.includes(status)) {
     return NextResponse.json(
       { error: "Nieprawidłowy status rezerwacji." },
@@ -275,21 +306,27 @@ export async function POST(req: NextRequest) {
   }
 
   // Konflikty operacyjne v3.5: sprawdzamy oba etapy roundtrip.
-  if (effectiveDriverId || effectiveVehicleId) {
+  if (effectiveDriverId || effectiveVehicleId || effectiveReturnDriverId || effectiveReturnVehicleId) {
     const candidate = {
       ...current,
       driver_id: effectiveDriverId,
       vehicle_id: effectiveVehicleId,
+      return_driver_id: effectiveReturnDriverId,
+      return_vehicle_id: effectiveReturnVehicleId,
       status: nextStatus
     };
 
     const operationDates = Array.from(
-      new Set(bookingLegs(candidate).map((leg) => leg.date).filter(Boolean))
+      new Set(
+        bookingLegs(candidate)
+          .flatMap((leg) => [leg.date, leg.operationalStartDate, leg.operationalEndDate])
+          .filter(Boolean)
+      )
     );
 
     if (operationDates.length) {
       const selection =
-        "id,booking_number,travel_date,travel_time,return_date,return_time,service_type,driver_id,vehicle_id,status";
+        "id,booking_number,travel_date,travel_time,return_date,return_time,service_type,driver_id,vehicle_id,return_driver_id,return_vehicle_id,status";
 
       const [primaryResult, returnResult] = await Promise.all([
         admin
@@ -328,8 +365,8 @@ export async function POST(req: NextRequest) {
             error:
               `Konflikt: ten ${resourceLabel} koliduje z ${otherNumber}. ` +
               `${legLabel === "return" ? "Powrót" : "Wyjazd"} i ` +
-              `${otherLegLabel === "return" ? "powrót" : "wyjazd"} są oddalone o ` +
-              `${first.minutesApart} min (minimalne okno operacyjne: 180 min).`,
+              `${otherLegLabel === "return" ? "powrót" : "wyjazd"} mają nakładające się okna zajętości ` +
+              `(${first.overlapMinutes} min). Zmień kierowcę, pojazd albo termin.`,
             conflicts
           },
           { status: 409 }
@@ -370,6 +407,14 @@ export async function POST(req: NextRequest) {
       vehicleId || null;
   }
 
+  if (hasReturnDriverId) {
+    updateData.return_driver_id = returnDriverId || null;
+  }
+
+  if (hasReturnVehicleId) {
+    updateData.return_vehicle_id = returnVehicleId || null;
+  }
+
 
   const { data: updated, error } = await admin
     .from("bookings")
@@ -386,17 +431,29 @@ export async function POST(req: NextRequest) {
   }
 
   const statusChanged = current.status !== nextStatus;
-  const resourcesChanged =
+  const primaryResourcesChanged =
     current.driver_id !== effectiveDriverId ||
     current.vehicle_id !== effectiveVehicleId;
+  const returnResourcesChanged =
+    current.return_driver_id !== effectiveReturnDriverId ||
+    current.return_vehicle_id !== effectiveReturnVehicleId;
+  const resourcesChanged = primaryResourcesChanged || returnResourcesChanged;
 
   await admin.from("booking_history").insert({
     booking_id: id,
     event: `Aktualizacja: status ${nextStatus}${
-      resourcesChanged ? ", zmieniono kierowcę/pojazd" : ""
+      resourcesChanged ? ", zmieniono obsadę WYJAZD/POWRÓT" : ""
     }`,
     created_by: user.id
   });
+
+  if (isRoundtripPrimaryCompletion) {
+    await admin.from("booking_history").insert({
+      booking_id: id,
+      event: "MATT DRIVER · WYJAZD · ZAKOŃCZONY · Dyspozytor MATT",
+      created_by: user.id
+    });
+  }
 
 
   const calendarResult =
@@ -423,7 +480,7 @@ export async function POST(req: NextRequest) {
     updated.driver_id &&
     (
       current.driver_id !== updated.driver_id ||
-      resourcesChanged
+      primaryResourcesChanged
     )
   ) {
     const routeText =
@@ -457,6 +514,32 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  if (
+    updated.service_type === "roundtrip" &&
+    updated.return_driver_id &&
+    (current.return_driver_id !== updated.return_driver_id || current.return_vehicle_id !== updated.return_vehicle_id)
+  ) {
+    await sendDriverPush(
+      admin,
+      updated.return_driver_id,
+      {
+        title: current.return_driver_id !== updated.return_driver_id ? "↩ NOWY KURS POWROTNY MATT" : "⚠ ZMIANA KURSU POWROTNEGO",
+        body:
+          `${updated.return_date} ${String(updated.return_time || "").slice(0,5)} · ` +
+          `${updated.customer_name} · ${updated.airport_label} → ${updated.pickup_address}`,
+        url: `/kierowca?booking=${updated.id}`,
+        tag: `booking-${updated.id}-return`,
+        bookingId: updated.id,
+        eventKey:
+          `return-assignment:${updated.id}:` +
+          `${updated.return_driver_id}:` +
+          `${updated.return_vehicle_id || "no-vehicle"}:` +
+          `${updated.return_date}:` +
+          `${String(updated.return_time || "").slice(0,5)}`
+      }
+    ).catch((error) => console.error("Return driver push:", error));
+  }
+
   let emailSent = false;
   let emailError: string | null = null;
 
@@ -467,7 +550,12 @@ export async function POST(req: NextRequest) {
     if (statusChanged && nextStatus === "confirmed") {
       template = confirmedEmail(enriched);
     } else if (
-      (statusChanged || resourcesChanged) &&
+      !isRoundtripPrimaryCompletion &&
+      (
+        statusChanged ||
+        primaryResourcesChanged ||
+        (returnResourcesChanged && updated.return_driver_id && updated.return_vehicle_id)
+      ) &&
       nextStatus === "assigned" &&
       updated.driver_id &&
       updated.vehicle_id
@@ -523,7 +611,8 @@ export async function POST(req: NextRequest) {
     if (statusChanged && nextStatus === "confirmed") {
       notificationKind = "confirmed";
     } else if (
-      (statusChanged || resourcesChanged) &&
+      !isRoundtripPrimaryCompletion &&
+      (statusChanged || primaryResourcesChanged) &&
       nextStatus === "assigned" &&
       updated.driver_id &&
       updated.vehicle_id
@@ -571,13 +660,15 @@ export async function POST(req: NextRequest) {
 async function enrichBooking(admin: any, booking: any) {
   let driver = null;
   let vehicle = null;
+  let returnDriver = null;
+  let returnVehicle = null;
 
   if (booking.driver_id) {
     const { data } = await admin
       .from("drivers")
       .select("full_name,phone")
       .eq("id", booking.driver_id)
-      .single();
+      .maybeSingle();
     driver = data;
   }
 
@@ -586,8 +677,26 @@ async function enrichBooking(admin: any, booking: any) {
       .from("vehicles")
       .select("name,registration")
       .eq("id", booking.vehicle_id)
-      .single();
+      .maybeSingle();
     vehicle = data;
+  }
+
+  if (booking.return_driver_id) {
+    const { data } = await admin
+      .from("drivers")
+      .select("full_name,phone")
+      .eq("id", booking.return_driver_id)
+      .maybeSingle();
+    returnDriver = data;
+  }
+
+  if (booking.return_vehicle_id) {
+    const { data } = await admin
+      .from("vehicles")
+      .select("name,registration")
+      .eq("id", booking.return_vehicle_id)
+      .maybeSingle();
+    returnVehicle = data;
   }
 
   return {
@@ -595,6 +704,10 @@ async function enrichBooking(admin: any, booking: any) {
     driver_name: driver?.full_name ?? null,
     driver_phone: driver?.phone ?? null,
     vehicle_name: vehicle?.name ?? null,
-    vehicle_registration: vehicle?.registration ?? null
+    vehicle_registration: vehicle?.registration ?? null,
+    return_driver_name: returnDriver?.full_name ?? null,
+    return_driver_phone: returnDriver?.phone ?? null,
+    return_vehicle_name: returnVehicle?.name ?? null,
+    return_vehicle_registration: returnVehicle?.registration ?? null
   };
 }

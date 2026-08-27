@@ -22,7 +22,7 @@ export function onlinePaymentEligible(booking: any) {
     );
   }
 
-  // B2B: online tylko gdy płaci pracownik.
+  // B2B: wartość legacy employee_payment od v4.1 oznacza płatność online firmy.
   return booking.payment_method === "employee_payment";
 }
 
@@ -35,7 +35,7 @@ export function paymentCanStart(booking: any) {
   return (
     ["confirmed", "assigned"].includes(status) &&
     !["paid", "refunded", "review"].includes(payment) &&
-    Number(booking.total_price || 0) > 0
+    Number(booking.company_id ? (booking.price_gross ?? booking.total_price ?? 0) : (booking.total_price ?? 0)) > 0
   );
 }
 

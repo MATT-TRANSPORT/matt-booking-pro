@@ -7,6 +7,7 @@ import {
   UNASSIGNED_CRITICAL_MINUTES,
   UNASSIGNED_WARNING_MINUTES,
   bookingInNextMinutes,
+  bookingHasMissingAssignment,
   bookingLegs,
   bookingMatchesDate,
   bookingMatchesRange,
@@ -76,9 +77,9 @@ export default function DispatcherClient({
       let tone: AttentionTone = "warning";
       const bookingConflicts = conflictsForBooking(String(booking.id), resourceConflicts);
       const nextLeg = nextOperationalLeg(booking, nowKey);
-      const delta = nextLeg ? minutesFromNow(nextLeg.key, nowKey) : Number.POSITIVE_INFINITY;
-      const missingDriver = !booking.driver_id;
-      const missingVehicle = !booking.vehicle_id;
+      const delta = nextLeg ? minutesFromNow(nextLeg.operationalStartKey, nowKey) : Number.POSITIVE_INFINITY;
+      const missingDriver = !nextLeg?.driverId;
+      const missingVehicle = !nextLeg?.vehicleId;
       const missingResources = missingDriver || missingVehicle;
 
       if (isDispatcherOverdue(booking, nowKey)) {
@@ -145,7 +146,7 @@ export default function DispatcherClient({
 
     if (filter === "b2b") result = result.filter((x) => x.company_id);
     if (filter === "private") result = result.filter((x) => !x.company_id);
-    if (filter === "unassigned") result = result.filter((x) => !x.driver_id || !x.vehicle_id);
+    if (filter === "unassigned") result = result.filter((x) => bookingHasMissingAssignment(x));
 
     return result.sort((a, b) =>
       dispatcherSortKey(a, nowKey).localeCompare(dispatcherSortKey(b, nowKey))
@@ -156,7 +157,10 @@ export default function DispatcherClient({
     id: string,
     driverId: string,
     vehicleId: string,
-    status?: string
+    status?: string,
+    returnDriverId?: string,
+    returnVehicleId?: string,
+    leg?: "primary" | "return"
   ) {
     setMessage("");
 
@@ -175,6 +179,9 @@ export default function DispatcherClient({
           id,
           driverId: driverId || null,
           vehicleId: vehicleId || null,
+          ...(returnDriverId !== undefined ? { returnDriverId: returnDriverId || null } : {}),
+          ...(returnVehicleId !== undefined ? { returnVehicleId: returnVehicleId || null } : {}),
+          ...(leg ? { leg } : {}),
           status
         })
       });
@@ -193,6 +200,8 @@ export default function DispatcherClient({
                 ...x,
                 driver_id: data.driver_id ?? driverId ?? null,
                 vehicle_id: data.vehicle_id ?? vehicleId ?? null,
+                return_driver_id: data.return_driver_id ?? x.return_driver_id ?? null,
+                return_vehicle_id: data.return_vehicle_id ?? x.return_vehicle_id ?? null,
                 status: data.status ?? x.status,
                 updated_at: data.updated_at ?? x.updated_at
               }
@@ -209,7 +218,7 @@ export default function DispatcherClient({
 
   const overdueCount = activeRows.filter((x) => isDispatcherOverdue(x, nowKey)).length;
   const next3hCount = activeRows.filter((x) => bookingInNextMinutes(x, 180, nowKey)).length;
-  const unassignedCount = activeRows.filter((x) => !x.driver_id || !x.vehicle_id).length;
+  const unassignedCount = activeRows.filter((x) => bookingHasMissingAssignment(x)).length;
 
   return (
     <>
@@ -360,13 +369,13 @@ export default function DispatcherClient({
 function formatOperationalTerm(booking: any, nowKey: string) {
   const leg = nextOperationalLeg(booking, nowKey);
   if (!leg) return "Brak terminu";
-  return `${leg.label}: ${leg.date} · ${leg.time}`;
+  return `${leg.label}: start ${leg.operationalStartDate} · ${leg.operationalStartTime} (lot ${leg.date} · ${leg.time})`;
 }
 
-function DriverBadge({ b, drivers }: { b: any; drivers: any[] }) {
-  const driver = drivers.find((d: any) => d.id === b.driver_id);
+function DriverBadge({ b, drivers, leg = "primary" }: { b: any; drivers: any[]; leg?: "primary" | "return" }) {
+  const driverId = leg === "return" ? b.return_driver_id : b.driver_id;
+  const driver = drivers.find((d: any) => d.id === driverId);
   if (!driver) return <span className="dispatcher-unassigned">Bez kierowcy</span>;
-
   return (
     <span className="driver-color-badge" style={{ borderColor: driver.color || "#D6AD55" }}>
       <i style={{ background: driver.color || "#D6AD55" }} />
@@ -402,8 +411,10 @@ function OperationalLegs({ b, nowKey }: { b: any; nowKey: string }) {
       {bookingLegs(b).map((leg) => (
         <div key={leg.kind} className={next?.kind === leg.kind ? "next" : ""}>
           <span>{leg.label}</span>
-          <strong>{leg.date}</strong>
-          <b>{leg.time}</b>
+          <strong>{leg.operationalStartDate}</strong>
+          <b>START {leg.operationalStartTime}</b>
+          <small>lot {leg.date} · {leg.time}</small>
+          {(!leg.driverId || !leg.vehicleId) && <small className="dispatcher-leg-unassigned">brak pełnej obsady</small>}
         </div>
       ))}
     </div>
@@ -420,7 +431,7 @@ function ConflictBadges({ conflicts }: { conflicts: any[] }) {
       {driver && <span>⚠ KONFLIKT KIEROWCY</span>}
       {vehicle && <span>⚠ KONFLIKT POJAZDU</span>}
       <small>
-        {conflicts.slice(0, 2).map((x) => `${x.otherBookingNumber} · ${x.minutesApart} min`).join(" · ")}
+        {conflicts.slice(0, 2).map((x) => `${x.otherBookingNumber} · nakłada się ${x.overlapMinutes ?? "?"} min`).join(" · ")}
       </small>
     </div>
   );
@@ -453,13 +464,15 @@ function QuickStatusAction({
   driverId,
   vehicleId,
   update,
-  saving
+  saving,
+  leg
 }: {
   b: any;
   driverId: string;
   vehicleId: string;
   update: any;
   saving: boolean;
+  leg?: "primary" | "return";
 }) {
   const action = nextDispatcherAction(b.status);
   if (!action) return null;
@@ -473,7 +486,7 @@ function QuickStatusAction({
       className={`dispatcher-status-next ${blocked ? "blocked" : ""}`}
       disabled={saving}
       title={blocked ? "Najpierw przypisz kierowcę i pojazd" : undefined}
-      onClick={() => update(b.id, driverId, vehicleId, action.status)}
+      onClick={() => update(b.id, driverId, vehicleId, action.status, leg)}
     >
       {saving ? "ZAPIS..." : action.label}
     </button>
@@ -481,29 +494,22 @@ function QuickStatusAction({
 }
 
 function DispatchRow({
-  b,
-  drivers,
-  vehicles,
-  update,
-  saving,
-  conflicts,
-  nowKey
+  b, drivers, vehicles, update, saving, conflicts, nowKey
 }: {
-  b: any;
-  drivers: any[];
-  vehicles: any[];
-  update: any;
-  saving: boolean;
-  conflicts: any[];
-  nowKey: string;
+  b: any; drivers: any[]; vehicles: any[]; update: any; saving: boolean; conflicts: any[]; nowKey: string;
 }) {
   const [driverId, setDriverId] = useState(b.driver_id ?? "");
   const [vehicleId, setVehicleId] = useState(b.vehicle_id ?? "");
+  const [returnDriverId, setReturnDriverId] = useState(b.return_driver_id ?? "");
+  const [returnVehicleId, setReturnVehicleId] = useState(b.return_vehicle_id ?? "");
   const company = Array.isArray(b.companies) ? b.companies[0] : b.companies;
   const overdue = isDispatcherOverdue(b, nowKey);
+  const activeLeg = nextOperationalLeg({ ...b, driver_id: driverId || null, vehicle_id: vehicleId || null, return_driver_id: returnDriverId || null, return_vehicle_id: returnVehicleId || null }, nowKey);
+  const activeDriver = activeLeg?.kind === "return" ? returnDriverId : driverId;
+  const activeVehicle = activeLeg?.kind === "return" ? returnVehicleId : vehicleId;
 
-  async function save() {
-    await update(b.id, driverId, vehicleId, driverId && vehicleId ? "assigned" : b.status);
+  async function save(status = b.status, leg?: "primary" | "return") {
+    await update(b.id, driverId, vehicleId, status, returnDriverId, returnVehicleId, leg);
   }
 
   const route = b.service_type === "from_airport"
@@ -514,155 +520,60 @@ function DispatchRow({
 
   return (
     <tr className={`${statusStageClass(b.status)} ${overdue ? "booking-overdue" : ""} ${conflicts.length ? "dispatcher-has-conflict" : ""}`}>
+      <td><OperationalLegs b={b} nowKey={nowKey} />{overdue && <div className="overdue-badge">⚠ TERMIN MINĄŁ</div>}</td>
       <td>
-        <OperationalLegs b={b} nowKey={nowKey} />
-        {overdue && <div className="overdue-badge">⚠ TERMIN MINĄŁ</div>}
-      </td>
-
-      <td>
-        <div className="booking-origin">
-          {b.company_id ? (
-            <span className="origin-badge b2b">🏢 B2B · {company?.name ?? "Firma"}</span>
-          ) : (
-            <span className="origin-badge private">👤 INDYWIDUALNY</span>
-          )}
-        </div>
+        <div className="booking-origin">{b.company_id ? <span className="origin-badge b2b">🏢 B2B · {company?.name ?? "Firma"}</span> : <span className="origin-badge private">👤 INDYWIDUALNY</span>}</div>
         <a href={`/panel/rezerwacje/${b.id}`}><strong>{b.booking_number}</strong></a>
-        <div className="dispatcher-route">{route}</div>
-        <FlightOps b={b} compact />
-        <small>{b.customer_name}{b.phone ? ` · ${b.phone}` : ""}</small>
+        <div className="dispatcher-route">{route}</div><FlightOps b={b} compact /><small>{b.customer_name}{b.phone ? ` · ${b.phone}` : ""}</small>
       </td>
-
       <td>
         <span className={`status ${b.status}`}>{statusPl(b.status)}</span>
-        <div><DriverBadge b={b} drivers={drivers} /></div>
         <ConflictBadges conflicts={conflicts} />
-        {(!b.driver_id || !b.vehicle_id) && <div className="dispatcher-missing-badge">⚠ NIEPEŁNA OBSADA</div>}
-        <QuickStatusAction
-          b={b}
-          driverId={driverId}
-          vehicleId={vehicleId}
-          update={update}
-          saving={saving}
-        />
+        {bookingHasMissingAssignment({ ...b, driver_id: driverId || null, vehicle_id: vehicleId || null, return_driver_id: returnDriverId || null, return_vehicle_id: returnVehicleId || null }) && <div className="dispatcher-missing-badge">⚠ NIEPEŁNA OBSADA</div>}
+        <QuickStatusAction b={b} driverId={activeDriver} vehicleId={activeVehicle} leg={activeLeg?.kind} update={(_id:any,_d:any,_v:any,status:any,leg:any)=>save(status, leg)} saving={saving} />
       </td>
-
-      <td>
-        <select value={driverId} onChange={(e) => setDriverId(e.target.value)}>
-          <option value="">— Nieprzypisany —</option>
-          {drivers.map((x: any) => (
-            <option key={x.id} value={x.id}>{x.full_name}</option>
-          ))}
-        </select>
+      <td colSpan={2}>
+        <LegAssignmentControls b={b} drivers={drivers} vehicles={vehicles} driverId={driverId} vehicleId={vehicleId} returnDriverId={returnDriverId} returnVehicleId={returnVehicleId} setDriverId={setDriverId} setVehicleId={setVehicleId} setReturnDriverId={setReturnDriverId} setReturnVehicleId={setReturnVehicleId} />
       </td>
-
-      <td>
-        <select value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
-          <option value="">— Nieprzypisany —</option>
-          {vehicles.map((x: any) => (
-            <option key={x.id} value={x.id}>{x.name} · {x.registration}</option>
-          ))}
-        </select>
-      </td>
-
-      <td>
-        <button className="btn dispatcher-save" disabled={saving} onClick={save}>
-          {saving ? "ZAPIS..." : "ZAPISZ OBSADĘ"}
-        </button>
-        <QuickLinks b={b} />
-      </td>
+      <td><button className="btn dispatcher-save" disabled={saving} onClick={() => save()}>{saving ? "ZAPIS..." : "ZAPISZ OBSADĘ"}</button><QuickLinks b={b} /></td>
     </tr>
   );
 }
 
-function DispatchCard({
-  b,
-  drivers,
-  vehicles,
-  update,
-  saving,
-  conflicts,
-  nowKey
-}: {
-  b: any;
-  drivers: any[];
-  vehicles: any[];
-  update: any;
-  saving: boolean;
-  conflicts: any[];
-  nowKey: string;
-}) {
+function LegAssignmentControls({ b, drivers, vehicles, driverId, vehicleId, returnDriverId, returnVehicleId, setDriverId, setVehicleId, setReturnDriverId, setReturnVehicleId }: any) {
+  const selects = (leg: "primary" | "return", d: string, v: string, setD: any, setV: any) => (
+    <div className={`dispatcher-leg-assignment ${leg}`}>
+      <strong>{leg === "return" ? "↩ POWRÓT" : "→ WYJAZD"}</strong>
+      <select value={d} onChange={(e) => setD(e.target.value)}><option value="">— Kierowca —</option>{drivers.map((x:any)=><option key={x.id} value={x.id}>{x.full_name}</option>)}</select>
+      <select value={v} onChange={(e) => setV(e.target.value)}><option value="">— Pojazd —</option>{vehicles.map((x:any)=><option key={x.id} value={x.id}>{x.name} · {x.registration}</option>)}</select>
+    </div>
+  );
+  return <div className="dispatcher-leg-assignments">{selects("primary",driverId,vehicleId,setDriverId,setVehicleId)}{b.service_type === "roundtrip" && selects("return",returnDriverId,returnVehicleId,setReturnDriverId,setReturnVehicleId)}</div>;
+}
+
+function DispatchCard({ b, drivers, vehicles, update, saving, conflicts, nowKey }: any) {
   const [driverId, setDriverId] = useState(b.driver_id ?? "");
   const [vehicleId, setVehicleId] = useState(b.vehicle_id ?? "");
+  const [returnDriverId, setReturnDriverId] = useState(b.return_driver_id ?? "");
+  const [returnVehicleId, setReturnVehicleId] = useState(b.return_vehicle_id ?? "");
   const overdue = isDispatcherOverdue(b, nowKey);
   const company = Array.isArray(b.companies) ? b.companies[0] : b.companies;
-  const route = b.service_type === "from_airport"
-    ? `${b.airport_label} → ${b.pickup_address}`
-    : b.service_type === "roundtrip"
-    ? `${b.pickup_address} ↔ ${b.airport_label}`
-    : `${b.pickup_address} → ${b.airport_label}`;
-
+  const activeLeg = nextOperationalLeg({ ...b, driver_id: driverId || null, vehicle_id: vehicleId || null, return_driver_id: returnDriverId || null, return_vehicle_id: returnVehicleId || null }, nowKey);
+  const activeDriver = activeLeg?.kind === "return" ? returnDriverId : driverId;
+  const activeVehicle = activeLeg?.kind === "return" ? returnVehicleId : vehicleId;
+  async function save(status = b.status, leg?: "primary" | "return") { await update(b.id, driverId, vehicleId, status, returnDriverId, returnVehicleId, leg); }
+  const route = b.service_type === "from_airport" ? `${b.airport_label} → ${b.pickup_address}` : b.service_type === "roundtrip" ? `${b.pickup_address} ↔ ${b.airport_label}` : `${b.pickup_address} → ${b.airport_label}`;
   return (
     <article className={`dispatcher-card ${statusStageClass(b.status)} ${overdue ? "booking-overdue" : ""} ${conflicts.length ? "dispatcher-has-conflict" : ""}`}>
-      <div className="dispatcher-card-head">
-        <div>
-          <a href={`/panel/rezerwacje/${b.id}`}>{b.booking_number}</a>
-          <OperationalLegs b={b} nowKey={nowKey} />
-        </div>
-        <span className={`status ${b.status}`}>{statusPl(b.status)}</span>
-      </div>
-
-      {overdue && <div className="overdue-badge">⚠ TERMIN MINĄŁ — status niezamknięty</div>}
-      <ConflictBadges conflicts={conflicts} />
-      {(!b.driver_id || !b.vehicle_id) && <div className="dispatcher-missing-badge">⚠ NIEPEŁNA OBSADA</div>}
-
-      <div className="booking-origin">
-        {b.company_id
-          ? <span className="origin-badge b2b">🏢 {company?.name ?? "B2B"}</span>
-          : <span className="origin-badge private">👤 INDYWIDUALNY</span>}
-      </div>
-
-      <div className="dispatcher-card-route">
-        <strong>{b.customer_name}</strong>
-        <span>{route}</span>
-      </div>
-
-      <FlightOps b={b} />
-      <DriverBadge b={b} drivers={drivers} />
-
-      <div className="dispatcher-card-selects">
-        <label>Kierowca
-          <select value={driverId} onChange={(e) => setDriverId(e.target.value)}>
-            <option value="">— Nieprzypisany —</option>
-            {drivers.map((x: any) => <option key={x.id} value={x.id}>{x.full_name}</option>)}
-          </select>
-        </label>
-        <label>Pojazd
-          <select value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
-            <option value="">— Nieprzypisany —</option>
-            {vehicles.map((x: any) => <option key={x.id} value={x.id}>{x.name} · {x.registration}</option>)}
-          </select>
-        </label>
-      </div>
-
-      <div className="dispatcher-mobile-actions">
-        <button
-          className="btn secondary"
-          disabled={saving}
-          onClick={() => update(b.id, driverId, vehicleId, driverId && vehicleId ? "assigned" : b.status)}
-        >
-          {saving ? "ZAPIS..." : "ZAPISZ OBSADĘ"}
-        </button>
-        <QuickStatusAction
-          b={b}
-          driverId={driverId}
-          vehicleId={vehicleId}
-          update={update}
-          saving={saving}
-        />
-      </div>
-
-      <QuickLinks b={b} />
+      <div className="dispatcher-card-head"><div><a href={`/panel/rezerwacje/${b.id}`}>{b.booking_number}</a><OperationalLegs b={b} nowKey={nowKey}/></div><span className={`status ${b.status}`}>{statusPl(b.status)}</span></div>
+      {overdue && <div className="overdue-badge">⚠ TERMIN MINĄŁ — status niezamknięty</div>}<ConflictBadges conflicts={conflicts} />
+      {bookingHasMissingAssignment({ ...b, driver_id: driverId || null, vehicle_id: vehicleId || null, return_driver_id: returnDriverId || null, return_vehicle_id: returnVehicleId || null }) && <div className="dispatcher-missing-badge">⚠ NIEPEŁNA OBSADA</div>}
+      <div className="booking-origin">{b.company_id ? <span className="origin-badge b2b">🏢 {company?.name ?? "B2B"}</span> : <span className="origin-badge private">👤 INDYWIDUALNY</span>}</div>
+      <div className="dispatcher-card-route"><strong>{b.customer_name}</strong><span>{route}</span></div><FlightOps b={b}/>
+      <LegAssignmentControls b={b} drivers={drivers} vehicles={vehicles} driverId={driverId} vehicleId={vehicleId} returnDriverId={returnDriverId} returnVehicleId={returnVehicleId} setDriverId={setDriverId} setVehicleId={setVehicleId} setReturnDriverId={setReturnDriverId} setReturnVehicleId={setReturnVehicleId}/>
+      <div className="dispatcher-mobile-actions"><button className="btn secondary" disabled={saving} onClick={() => save()}>{saving ? "ZAPIS..." : "ZAPISZ OBSADĘ"}</button><QuickStatusAction b={b} driverId={activeDriver} vehicleId={activeVehicle} leg={activeLeg?.kind} update={(_id:any,_d:any,_v:any,status:any,leg:any)=>save(status, leg)} saving={saving}/></div>
+      <QuickLinks b={b}/>
     </article>
   );
 }
+

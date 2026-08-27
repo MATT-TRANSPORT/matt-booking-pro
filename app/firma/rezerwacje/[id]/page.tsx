@@ -14,12 +14,13 @@ export default async function Page({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { s, company } = await companyClient();
+  const { s, company, membership } = await companyClient();
+  const canPayOnline = ["admin", "manager", "accounting"].includes(String(membership.role || ""));
 
   const [{ data: booking }, { data: documents }] = await Promise.all([
     s
       .from("bookings")
-      .select("*,drivers(full_name,phone),vehicles(name,registration,color)")
+      .select("*,drivers(full_name,phone),vehicles(name,registration,color),return_driver:drivers!bookings_return_driver_id_fkey(full_name,phone),return_vehicle:vehicles!bookings_return_vehicle_id_fkey(name,registration,color)")
       .eq("id", id)
       .eq("company_id", company.id)
       .single(),
@@ -35,6 +36,8 @@ export default async function Page({
 
   const driver = Array.isArray(booking.drivers) ? booking.drivers[0] : booking.drivers;
   const vehicle = Array.isArray(booking.vehicles) ? booking.vehicles[0] : booking.vehicles;
+  const returnDriver = Array.isArray(booking.return_driver) ? booking.return_driver[0] : booking.return_driver;
+  const returnVehicle = Array.isArray(booking.return_vehicle) ? booking.return_vehicle[0] : booking.return_vehicle;
   const money = companyBookingMoney(booking);
 
   return (
@@ -75,17 +78,27 @@ export default async function Page({
               <div className="gross"><span>BRUTTO</span><strong>{money.gross.toFixed(2)} zł</strong></div>
             </div>
             <div className="detail-list" style={{ marginTop: 12 }}>
-              <div><span>Płatność</span><strong><CompanyPaymentCell booking={booking} /></strong></div>
+              <div><span>Płatność</span><CompanyPaymentCell booking={booking} canPay={canPayOnline} /></div>
               <div><span>Dokumenty</span><strong>{documents?.length ? `${documents.length} dostępne` : "Brak"}</strong></div>
             </div>
             <p className="muted">Wszystkie ceny B2B są cenami netto. Do ceny doliczany jest VAT 8%.</p>
 
             <h2>Obsada</h2>
-            <div className="detail-list">
-              <div><span>Kierowca</span><strong>{driver?.full_name || "Jeszcze nie przypisano"}</strong></div>
-              <div><span>Telefon kierowcy</span><strong>{driver?.phone || "—"}</strong></div>
-              <div><span>Pojazd</span><strong>{vehicle?.name || "Jeszcze nie przypisano"}</strong></div>
-              <div><span>Rejestracja</span><strong>{vehicle?.registration || "—"}</strong></div>
+            <div className="company-leg-crew-grid">
+              <div className="company-leg-crew">
+                <strong>→ WYJAZD</strong>
+                <span>Kierowca: {driver?.full_name || "Jeszcze nie przypisano"}</span>
+                <span>Telefon: {driver?.phone || "—"}</span>
+                <span>Pojazd: {vehicle ? `${vehicle.name} · ${vehicle.registration}` : "Jeszcze nie przypisano"}</span>
+              </div>
+              {booking.service_type === "roundtrip" && (
+                <div className="company-leg-crew return">
+                  <strong>↩ POWRÓT</strong>
+                  <span>Kierowca: {returnDriver?.full_name || "Jeszcze nie przypisano"}</span>
+                  <span>Telefon: {returnDriver?.phone || "—"}</span>
+                  <span>Pojazd: {returnVehicle ? `${returnVehicle.name} · ${returnVehicle.registration}` : "Jeszcze nie przypisano"}</span>
+                </div>
+              )}
             </div>
           </div>
 

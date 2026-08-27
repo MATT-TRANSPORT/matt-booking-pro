@@ -6,6 +6,7 @@ import { currentDriverLeg, driverProgressFromHistory } from "@/lib/driverOps";
 import { sendMattEmail } from "@/lib/email";
 import { reviewRequestEmail } from "@/lib/emailTemplates";
 import { googleReviewUrl, REVIEW_DELAY_MINUTES } from "@/lib/reviews";
+import { bookingLegOperationalWindow } from "@/lib/bookingOperationalWindow";
 
 function warsawParts(date = new Date()) {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -132,7 +133,8 @@ async function runCustomerReminder(admin: any, from: string, to: string) {
     const leg = currentDriverLeg(booking, progress);
     const date = leg === "return" ? booking.return_date : booking.travel_date;
     const time = leg === "return" ? booking.return_time : booking.travel_time;
-    const until = minutesUntil(date, time);
+    const operational = bookingLegOperationalWindow(booking, leg);
+    const until = minutesUntil(operational.startDate, operational.startTime);
 
     // Cron co 15 min; deduplikacja w logu gwarantuje jedną wiadomość dla każdej nogi.
     if (until < 90 || until > 135) {
@@ -144,7 +146,9 @@ async function runCustomerReminder(admin: any, from: string, to: string) {
       const result = await sendBookingNotification(admin, booking, {
         kind: "reminder_120",
         leg,
-        eventKey: `reminder120:${booking.id}:${leg}:${date}:${shortTime(time)}`
+        eventKey: `reminder120:${booking.id}:${leg}:${operational.startDate}:${operational.startTime}`,
+        serviceDate: operational.startDate,
+        serviceTime: operational.startTime
       });
       if (result.sent) sent += 1;
       else skipped += 1;
@@ -158,7 +162,7 @@ async function runCustomerReminder(admin: any, from: string, to: string) {
 }
 
 async function runDriverReminder(admin: any, from: string, to: string) {
-  const selection = "id,booking_number,customer_name,pickup_address,airport_label,service_type,travel_date,travel_time,return_date,return_time,status,driver_id,vehicle_id";
+  const selection = "id,booking_number,customer_name,pickup_address,airport_label,service_type,travel_date,travel_time,return_date,return_time,status,driver_id,vehicle_id,return_driver_id,return_vehicle_id";
 
   const [primary, returns] = await Promise.all([
     admin.from("bookings").select(selection)
@@ -167,7 +171,7 @@ async function runDriverReminder(admin: any, from: string, to: string) {
     admin.from("bookings").select(selection)
       .gte("return_date", from).lte("return_date", to)
       .eq("service_type", "roundtrip")
-      .in("status", ["confirmed", "assigned"]).not("driver_id", "is", null)
+      .in("status", ["confirmed", "assigned"]).not("return_driver_id", "is", null)
   ]);
 
   const map = new Map<string, any>();
@@ -196,16 +200,18 @@ async function runDriverReminder(admin: any, from: string, to: string) {
 
   for (const booking of bookings) {
     checked += 1;
-    if (!booking.vehicle_id) {
+    const progress = driverProgressFromHistory(historyByBooking.get(booking.id) ?? []);
+    const leg = currentDriverLeg(booking, progress);
+    const driverId = leg === "return" ? booking.return_driver_id : booking.driver_id;
+    const vehicleId = leg === "return" ? booking.return_vehicle_id : booking.vehicle_id;
+    if (!driverId || !vehicleId) {
       skipped += 1;
       continue;
     }
-
-    const progress = driverProgressFromHistory(historyByBooking.get(booking.id) ?? []);
-    const leg = currentDriverLeg(booking, progress);
     const date = leg === "return" ? booking.return_date : booking.travel_date;
     const time = leg === "return" ? booking.return_time : booking.travel_time;
-    const until = minutesUntil(date, time);
+    const operational = bookingLegOperationalWindow(booking, leg);
+    const until = minutesUntil(operational.startDate, operational.startTime);
 
     if (until < 45 || until > 75) {
       skipped += 1;
@@ -213,13 +219,13 @@ async function runDriverReminder(admin: any, from: string, to: string) {
     }
 
     try {
-      const result = await sendDriverPush(admin, booking.driver_id, {
+      const result = await sendDriverPush(admin, driverId, {
         title: "⏰ KURS ZA OK. 60 MIN",
-        body: `${shortTime(time)} · ${booking.customer_name} · ${driverLegRoute(booking, leg)}`,
+        body: `Start ${operational.startTime} · lot ${shortTime(time)} · ${booking.customer_name} · ${driverLegRoute(booking, leg)}`,
         url: `/kierowca?booking=${booking.id}`,
         tag: `driver-reminder-${booking.id}-${leg}`,
         bookingId: booking.id,
-        eventKey: `driver-reminder60:${booking.id}:${leg}:${date}:${shortTime(time)}`
+        eventKey: `driver-reminder60:${booking.id}:${leg}:${operational.startDate}:${operational.startTime}`
       });
       if (result.sent > 0) sent += 1;
       else skipped += 1;
@@ -371,7 +377,7 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    service: "MATT Production Notifications v4",
+    service: "MATT Production Notifications v4.1",
     jobs: ["customer_reminder_120", "driver_reminder_60", "post_trip_review"],
     method: "POST"
   });

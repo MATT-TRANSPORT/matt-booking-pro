@@ -25,6 +25,8 @@ type NotifyOptions = {
   force?: boolean;
   url?: string;
   title?: string;
+  serviceDate?: string;
+  serviceTime?: string;
 };
 
 export type CustomerNotificationResult = {
@@ -120,12 +122,12 @@ async function enrichBooking(admin: any, booking: any) {
 
 export function customerUpdateText(
   booking: any,
-  options: Pick<NotifyOptions, "kind" | "driver" | "vehicle" | "alert" | "flight" | "leg">
+  options: Pick<NotifyOptions, "kind" | "driver" | "vehicle" | "alert" | "flight" | "leg" | "serviceDate" | "serviceTime">
 ) {
   const number = booking.booking_number;
   const returnLeg = options.leg === "return" && booking.service_type === "roundtrip";
-  const date = returnLeg ? booking.return_date : booking.travel_date;
-  const time = shortTime(returnLeg ? booking.return_time : booking.travel_time);
+  const date = options.serviceDate || (returnLeg ? booking.return_date : booking.travel_date);
+  const time = shortTime(options.serviceTime || (returnLeg ? booking.return_time : booking.travel_time));
   const route = routeText(booking, options.leg);
   const driver = options.driver || booking._driver;
   const vehicle = options.vehicle || booking._vehicle;

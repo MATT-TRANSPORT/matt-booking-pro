@@ -132,6 +132,13 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  if (booking.company_id) {
+    return NextResponse.json(
+      { error: "Od v4.1 płatność B2B uruchamia administrator firmy bezpośrednio w portalu przez Stripe Checkout. Ręczne linki B2B są wyłączone." },
+      { status: 410 }
+    );
+  }
+
   if (booking.payment_method !== "employee_payment") {
     return NextResponse.json(
       {

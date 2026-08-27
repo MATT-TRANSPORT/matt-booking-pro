@@ -173,7 +173,7 @@ export default function CompanyTermsEditor({
             onChange={(e) => setF({ ...f, defaultPaymentMethod: e.target.value })}
           >
             <option value="company_transfer">Przelew firmowy</option>
-            <option value="employee_payment">Płatność pracownika</option>
+            <option value="employee_payment">Płatność online firmy</option>
           </select>
         </label>
         <label>

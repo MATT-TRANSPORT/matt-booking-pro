@@ -1,3 +1,5 @@
+import { bookingLegOperationalWindow } from "@/lib/bookingOperationalWindow";
+
 export type DriverLeg = "primary" | "return";
 
 export type DriverStep =
@@ -119,10 +121,20 @@ export function driverLegTime(booking: any, leg: DriverLeg) {
   ).slice(0, 5);
 }
 
+export function driverLegOperationalStartDate(booking: any, leg: DriverLeg) {
+  return bookingLegOperationalWindow(booking, leg).startDate;
+}
+
+export function driverLegOperationalStartTime(booking: any, leg: DriverLeg) {
+  return bookingLegOperationalWindow(booking, leg).startTime;
+}
+
+export function driverLegOperationalEndTime(booking: any, leg: DriverLeg) {
+  return bookingLegOperationalWindow(booking, leg).endTime;
+}
+
 export function driverLegKey(booking: any, leg: DriverLeg) {
-  const date = driverLegDate(booking, leg);
-  const time = driverLegTime(booking, leg) || "23:59";
-  return date ? `${date}T${time}` : "9999-12-31T23:59";
+  return bookingLegOperationalWindow(booking, leg).startKey || "9999-12-31T23:59";
 }
 
 export function driverLegFlightNumber(booking: any, leg: DriverLeg) {
