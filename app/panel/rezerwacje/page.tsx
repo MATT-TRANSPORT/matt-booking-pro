@@ -13,7 +13,7 @@ export default async function Page({
 
   let query = s
     .from("bookings")
-    .select("*,drivers(full_name,color)")
+    .select("*,drivers:drivers!bookings_driver_id_fkey(full_name,color)")
     .order("travel_date", { ascending: false })
     .order("travel_time", { ascending: false })
     .limit(500);
@@ -24,7 +24,7 @@ export default async function Page({
     );
   }
 
-  const { data } = await query;
+  const { data, error } = await query;
   const all = data ?? [];
 
   const rows = all.filter((b: any) => {
@@ -53,6 +53,13 @@ export default async function Page({
           WSZYSTKIE ({allCount})
         </a>
       </div>
+
+      {error && (
+        <div className="card" style={{ borderColor: "#dc2626", marginBottom: 16 }}>
+          <strong>Nie udało się pobrać rezerwacji.</strong>
+          <p className="muted" style={{ marginBottom: 0 }}>Odśwież stronę. Jeśli problem pozostaje, sprawdź logi Supabase / Vercel.</p>
+        </div>
+      )}
 
       <form className="archive-search">
         <input type="hidden" name="view" value={view} />

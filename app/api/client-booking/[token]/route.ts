@@ -19,7 +19,7 @@ async function getBooking(token: string) {
   const admin = createAdminClient();
   const { data } = await admin
     .from("bookings")
-    .select("*,drivers(full_name,phone),vehicles(name,registration)")
+    .select("*,drivers:drivers!bookings_driver_id_fkey(full_name,phone),vehicles:vehicles!bookings_vehicle_id_fkey(name,registration)")
     .eq("customer_access_token", token)
     .single();
   return data;

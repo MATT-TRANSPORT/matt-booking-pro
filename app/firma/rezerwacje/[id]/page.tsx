@@ -20,7 +20,7 @@ export default async function Page({
   const [{ data: booking }, { data: documents }] = await Promise.all([
     s
       .from("bookings")
-      .select("*,drivers(full_name,phone),vehicles(name,registration,color),return_driver:drivers!bookings_return_driver_id_fkey(full_name,phone),return_vehicle:vehicles!bookings_return_vehicle_id_fkey(name,registration,color)")
+      .select("*,drivers:drivers!bookings_driver_id_fkey(full_name,phone),vehicles:vehicles!bookings_vehicle_id_fkey(name,registration,color),return_driver:drivers!bookings_return_driver_id_fkey(full_name,phone),return_vehicle:vehicles!bookings_return_vehicle_id_fkey(name,registration,color)")
       .eq("id", id)
       .eq("company_id", company.id)
       .single(),

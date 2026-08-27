@@ -18,14 +18,14 @@ export default async function PanelPage() {
     { count: pending },
     { count: todayCount },
     { count: b2bPending },
-    { data: bookings },
+    { data: bookings, error: bookingsError },
     { data: weddings },
     { data: vehicles }
   ] = await Promise.all([
     s.from("bookings").select("*", { count: "exact", head: true }).eq("status", "pending"),
     s.from("bookings").select("*", { count: "exact", head: true }).eq("travel_date", today).not("status", "in", "(completed,cancelled)"),
     s.from("bookings").select("*", { count: "exact", head: true }).not("company_id", "is", null).in("status", ["pending","confirmed","assigned"]),
-    s.from("bookings").select("*,companies(name),drivers(full_name,color)").order("created_at", { ascending: false }).limit(120),
+    s.from("bookings").select("*,companies(name),drivers:drivers!bookings_driver_id_fkey(full_name,color)").order("created_at", { ascending: false }).limit(120),
     s.from("wedding_bookings").select("*").order("created_at", { ascending: false }).limit(30),
     s.from("vehicles").select("id,name,registration,inspection_date,insurance_date,active").eq("active", true).order("name")
   ]);
@@ -142,6 +142,12 @@ export default async function PanelPage() {
       <PanelNav />
 
       <FlightAutomationStatus lastRun={lastRun} />
+
+      {bookingsError && (
+        <div className="card" style={{ borderColor: "#dc2626", marginBottom: 16 }}>
+          <strong>Nie udało się pobrać rezerwacji z Supabase.</strong>
+        </div>
+      )}
 
       <div className="admin-quick-row">
         <EmailTestButton />

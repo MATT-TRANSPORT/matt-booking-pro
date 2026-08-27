@@ -8,12 +8,12 @@ export default async function Page() {
   const { s } = await panelClient();
 
   const [
-    { data: bookings },
+    { data: bookings, error: bookingsError },
     { data: drivers },
     { data: vehicles }
   ] = await Promise.all([
     s.from("bookings")
-      .select("*,companies(name),drivers(full_name,color)")
+      .select("*,companies(name),drivers:drivers!bookings_driver_id_fkey(full_name,color)")
       .not("status", "in", "(completed,cancelled)")
       .order("travel_date")
       .order("travel_time")
@@ -88,6 +88,11 @@ export default async function Page() {
         Priorytety operacyjne, najbliższe kursy, obsada, konflikty i loty — w jednym miejscu.
       </p>
       <PanelNav />
+      {bookingsError && (
+        <div className="card" style={{ borderColor: "#dc2626", marginBottom: 16 }}>
+          <strong>Nie udało się pobrać aktywnych rezerwacji.</strong>
+        </div>
+      )}
       <FlightAutomationStatus lastRun={lastRun} />
       <div className="dispatcher-flight-toolbar">
         <FlightRefreshAllButton />

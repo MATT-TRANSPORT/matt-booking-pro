@@ -1,0 +1,17 @@
+MATT Booking PRO v4.1.3 — DEPLOY CHECKLIST
+
+1. NIE URUCHAMIAJ SQL.
+2. Rozpakuj MATT_V4_1_3_ONLY_FILES_FLAT.zip do ROOT repozytorium i nadpisz pliki.
+3. Commit / push do GitHub.
+4. Poczekaj na zielony Vercel.
+5. Po wdrożeniu:
+   - Panel główny: aktywne rezerwacje mają być widoczne.
+   - Panel -> Rezerwacje -> AKTYWNE: ma być widoczna najnowsza rezerwacja testowa oraz starsze aktywne.
+   - Dyspozytornia: aktywne kursy mają się wczytać.
+   - Kalendarz: wydarzenia mają się wczytać z kierowcą i pojazdem.
+   - Otwórz szczegóły rezerwacji B2B oraz portal klienta B2C — dane kierowcy/pojazdu mają się wczytać.
+   - Panel -> Raporty: test eksportu CSV.
+6. Jeśli Panel pokaże czerwony komunikat „Nie udało się pobrać rezerwacji”, nie twórz kolejnych zmian danych — zgłoś komunikat/log.
+
+SQL: BRAK
+ENV: BRAK

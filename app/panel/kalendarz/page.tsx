@@ -9,7 +9,7 @@ function driverColor(id:string|null,ids:string[]){
 }
 export default async function CalendarPage(){
   const {s}=await panelClient();
-  const {data}=await s.from("bookings").select("*,drivers(id,full_name),vehicles(name,registration)").neq("status","cancelled").order("travel_date").order("travel_time").limit(250);
+  const {data}=await s.from("bookings").select("*,drivers:drivers!bookings_driver_id_fkey(id,full_name),vehicles:vehicles!bookings_vehicle_id_fkey(name,registration)").neq("status","cancelled").order("travel_date").order("travel_time").limit(250);
   const rows=data??[];
   const ids=[...new Set(rows.map((x:any)=>x.driver_id).filter(Boolean))] as string[];
   const grouped=rows.reduce((a:Record<string,any[]>,x:any)=>{(a[x.travel_date]??=[]).push(x);return a},{});

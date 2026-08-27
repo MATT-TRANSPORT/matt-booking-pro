@@ -14,7 +14,7 @@ export default async function Page() {
   toDate.setDate(toDate.getDate() + 30);
   const to = toDate.toISOString().slice(0, 10);
 
-  const selection = "*,companies(name),vehicles(name,registration,color),return_vehicle:vehicles!bookings_return_vehicle_id_fkey(name,registration,color)";
+  const selection = "*,companies(name),vehicles:vehicles!bookings_vehicle_id_fkey(name,registration,color),return_vehicle:vehicles!bookings_return_vehicle_id_fkey(name,registration,color)";
 
   // Osobne zapytania są celowe: roundtrip może mieć wyjazd dawno temu,
   // a powrót nadal przed kierowcą. Łączymy oba zbiory po id rezerwacji.

@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
   for (let offset = 0; offset < 10000; offset += pageSize) {
     const { data, error } = await admin
       .from("bookings")
-      .select("*,companies(name),drivers(full_name),vehicles(name,registration)")
+      .select("*,companies(name),drivers:drivers!bookings_driver_id_fkey(full_name),vehicles:vehicles!bookings_vehicle_id_fkey(name,registration)")
       .gte("travel_date", range.start)
       .lt("travel_date", range.end)
       .neq("status", "cancelled")

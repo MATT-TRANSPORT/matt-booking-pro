@@ -1,0 +1,27 @@
+MATT Booking PRO v4.1.3 — RELATIONSHIP HOTFIX
+
+Cel:
+- naprawa pustych list rezerwacji po dodaniu osobnej obsady POWROTU w v4.1.0,
+- jawne wskazanie relacji FK bookings -> drivers / vehicles w zapytaniach PostgREST,
+- brak zmian danych i brak SQL.
+
+Przyczyna:
+Po dodaniu return_driver_id oraz return_vehicle_id tabela bookings ma po dwie relacje do drivers i vehicles.
+Stare zapytania w stylu drivers(...) / vehicles(...) stały się niejednoznaczne i PostgREST odrzucał całe SELECT-y.
+
+Naprawione miejsca:
+- Dashboard Panelu,
+- Panel -> Rezerwacje,
+- Dyspozytornia,
+- Kalendarz MATT,
+- szczegóły rezerwacji firmy,
+- Driver PRO,
+- portal klienta przez token,
+- eksport raportów CSV.
+
+Dodatkowo:
+- Panel i Dyspozytornia pokazują ostrzeżenie, jeśli pobranie rezerwacji zwróci błąd, zamiast pokazywać pustą listę.
+
+SQL: NIE
+Nowe ENV: NIE
+Wersja: 4.1.3
