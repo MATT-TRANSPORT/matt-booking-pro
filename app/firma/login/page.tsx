@@ -1,10 +1,8 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function Page() {
-  const router = useRouter();
   const [email,setEmail] = useState("");
   const [password,setPassword] = useState("");
   const [message,setMessage] = useState("");
@@ -16,7 +14,7 @@ export default function Page() {
     const s = createClient();
     const { error } = await s.auth.signInWithPassword({ email, password });
     if (error) { setMessage("Nieprawidłowy e-mail lub hasło."); setLoading(false); return; }
-    router.push("/firma"); router.refresh();
+    window.location.replace("/firma");
   }
 
   return <main className="container" style={{maxWidth:520}}>
