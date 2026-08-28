@@ -3,6 +3,7 @@ import CustomerPushControls from "@/components/CustomerPushControls";
 
 import { useEffect, useMemo, useState } from "react";
 import { PRICES } from "@/lib/pricing";
+import { clearGrowthTracking, readGrowthTracking } from "@/lib/growthTracking";
 
 type Suggestion = { placeId?: string; text?: string };
 type AirportKey = keyof typeof PRICES | "other";
@@ -99,14 +100,17 @@ export default function BookingForm() {
     if(!address||!distanceKm||!travelDate||!travelTime||!name||!phone||!email){ setMessage("Uzupełnij wymagane dane."); return; }
     if(invoice&&nip10(nip).length!==10){ setMessage("Podaj poprawny 10-cyfrowy NIP."); return; }
     setSaving(true); setMessage("");
+    const tracking = readGrowthTracking();
     const r=await fetch("/api/bookings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
       serviceType,address,airport,vehicleType:vehicle,passengers,distanceKm,travelDate,travelTime,
       returnDate,returnTime,flightNumber:flight,returnFlightNumber:returnFlight,
-      customerName:name,phone,email,invoiceRequired:invoice,companyNip:invoice?nip10(nip):null,paymentMethod,onlinePaymentRequested,notes:notes||null
+      customerName:name,phone,email,invoiceRequired:invoice,companyNip:invoice?nip10(nip):null,paymentMethod,onlinePaymentRequested,notes:notes||null,
+      tracking
     })});
     const d=await r.json();
     if(!r.ok){ setMessage(d.error??"Błąd rezerwacji."); setSaving(false); return; }
     setSuccess(d); setSaving(false);
+    clearGrowthTracking();
     window.scrollTo({top:0,behavior:"smooth"});
   }
 

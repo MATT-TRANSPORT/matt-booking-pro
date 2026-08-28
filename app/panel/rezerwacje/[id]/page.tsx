@@ -12,6 +12,7 @@ import CustomerCommunicationCard from "@/components/CustomerCommunicationCard";
 import { quickWhatsAppUrl } from "@/lib/customerNotifications";
 import B2BPricingSnapshotCard from "@/components/B2BPricingSnapshotCard";
 import BookingDocumentsCard from "@/components/BookingDocumentsCard";
+import GrowthSourceCard from "@/components/GrowthSourceCard";
 
 
 export default async function Page({
@@ -258,6 +259,8 @@ export default async function Page({
           />
 
           <GoogleCalendarSyncCard booking={booking} />
+
+          <GrowthSourceCard booking={booking} />
 
           <CustomerCommunicationCard booking={booking} pushLogs={customerPushLogs ?? []} activeSubscriptions={activeCustomerPush ?? 0} whatsappUrl={quickWhatsAppUrl({ ...booking, _driver: (drivers ?? []).find((d: any) => d.id === booking.driver_id) ?? null, _vehicle: (vehicles ?? []).find((v: any) => v.id === booking.vehicle_id) ?? null })} />
 

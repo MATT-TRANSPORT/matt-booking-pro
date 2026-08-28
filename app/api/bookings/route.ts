@@ -8,6 +8,33 @@ import {
   adminNewBookingEmail
 } from "@/lib/emailTemplates";
 
+
+function safeTrackingValue(value: unknown, max = 240) {
+  const text = String(value ?? "").trim();
+  return text ? text.slice(0, max) : null;
+}
+
+function growthFields(body: any) {
+  const t = body?.tracking && typeof body.tracking === "object" ? body.tracking : {};
+  const allowedSources = new Set([
+    "google_ads", "google_organic", "meta_ads", "social_organic",
+    "partner", "matt_website", "referral", "direct"
+  ]);
+  const rawSource = safeTrackingValue(t.acquisitionSource, 80)?.toLowerCase() || "direct";
+  return {
+    acquisition_source: allowedSources.has(rawSource) ? rawSource : rawSource.slice(0, 80),
+    utm_source: safeTrackingValue(t.utmSource, 120),
+    utm_medium: safeTrackingValue(t.utmMedium, 120),
+    utm_campaign: safeTrackingValue(t.utmCampaign, 180),
+    utm_content: safeTrackingValue(t.utmContent, 180),
+    utm_term: safeTrackingValue(t.utmTerm, 180),
+    gclid: safeTrackingValue(t.gclid, 240),
+    fbclid: safeTrackingValue(t.fbclid, 240),
+    referral_code: safeTrackingValue(t.referralCode, 120),
+    landing_page: safeTrackingValue(t.landingPage, 500)
+  };
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
@@ -115,6 +142,8 @@ export async function POST(req: NextRequest) {
       vat_price: quote.vatPrice,
       total_price: quote.totalPrice,
       status: "pending",
+      booking_source: "public",
+      ...growthFields(body),
       payment_method: paymentMethod,
       online_payment_requested: paymentMethod === "online",
       payment_status: "pending",

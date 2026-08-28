@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import GrowthTracker from "@/components/GrowthTracker";
 
 export const metadata: Metadata = {
   title: "MATT Booking PRO",
@@ -29,7 +30,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pl">
-      <body>{children}</body>
+      <body><GrowthTracker />{children}</body>
     </html>
   );
 }

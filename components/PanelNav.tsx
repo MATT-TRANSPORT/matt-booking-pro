@@ -9,5 +9,6 @@ export default function PanelNav() {
     <a href="/panel/pojazdy">Pojazdy</a>
     <a href="/kierowca">Panel kierowcy</a>
     <a href="/panel/raporty">Raporty</a>
+    <a href="/panel/growth">Growth</a>
   </nav>;
 }

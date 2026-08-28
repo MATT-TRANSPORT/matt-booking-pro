@@ -89,7 +89,7 @@ export async function GET(req: NextRequest) {
   const headers = [
     "Numer rezerwacji", "Data", "Godzina", "Typ", "Klient / pasażer", "Firma",
     "Trasa", "Pojazd", "Kierowca", "Status", "Płatność", "Status płatności",
-    "Netto", "VAT", "Brutto", "Faktura", "Źródło"
+    "Netto", "VAT", "Brutto", "Faktura", "Źródło systemowe", "Źródło Growth", "UTM kampania", "Partner / kod"
   ];
 
   const rows = allRows.map((b: any) => {
@@ -118,7 +118,10 @@ export async function GET(req: NextRequest) {
       typeof money.vat === "number" ? money.vat.toFixed(2) : "",
       Number(money.gross || 0).toFixed(2),
       b.invoice_number || "",
-      b.booking_source || ""
+      b.booking_source || "",
+      b.acquisition_source || "",
+      b.utm_campaign || "",
+      b.referral_code || ""
     ];
   });
 

@@ -2041,3 +2041,15 @@
 .driver-return-waiting strong{color:#f1d28b;font-size:12px;letter-spacing:.04em}
 .driver-return-waiting span{color:var(--muted);font-size:12px;line-height:1.45}
 .driver-roundtrip-plan>div.waiting{opacity:.82;border-style:dashed}
+
+
+/* v4.2.0 MATT GROWTH */
+.growth-wrap{overflow-wrap:anywhere;word-break:break-word}
+.growth-tech-details{margin-top:14px;border-top:1px solid rgba(255,255,255,.09);padding-top:12px}
+.growth-tech-details summary{cursor:pointer;font-weight:800;color:#d6ad55}
+.growth-test-card{margin-top:18px;display:flex;align-items:center;justify-content:space-between;gap:18px}
+.growth-test-card h2{margin-bottom:4px}
+.growth-two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
+.growth-recent-list a{color:inherit;text-decoration:none}
+.growth-recent-list a:hover{text-decoration:underline}
+@media(max-width:900px){.growth-test-card{align-items:stretch;flex-direction:column}.growth-two-col{grid-template-columns:1fr}.growth-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
