@@ -8,6 +8,59 @@ import { clearGrowthTracking, readGrowthTracking } from "@/lib/growthTracking";
 type Suggestion = { placeId?: string; text?: string };
 type AirportKey = keyof typeof PRICES | "other";
 
+
+const GA_PURCHASE_KEY_PREFIX = "matt_ga4_purchase_v1:";
+const gaPurchaseSentInMemory = new Set<string>();
+
+function trackBookingPurchase(input: {
+  bookingNumber: string;
+  value: number;
+  serviceType: "to_airport" | "from_airport" | "roundtrip";
+  airportLabel: string;
+}) {
+  if (typeof window === "undefined") return false;
+
+  const transactionId = String(input.bookingNumber || "").trim();
+  const value = Number(input.value);
+  if (!transactionId || !Number.isFinite(value) || value <= 0) return false;
+
+  const storageKey = `${GA_PURCHASE_KEY_PREFIX}${transactionId}`;
+  if (gaPurchaseSentInMemory.has(storageKey)) return false;
+  try {
+    if (window.localStorage.getItem(storageKey) === "1") return false;
+  } catch {}
+
+  // Zaznacz przed wysłaniem, aby rerender/refresh nie nabił drugiego purchase.
+  gaPurchaseSentInMemory.add(storageKey);
+  try { window.localStorage.setItem(storageKey, "1"); } catch {}
+
+  const w = window as any;
+  w.dataLayer = w.dataLayer || [];
+  w.gtag = w.gtag || function () { w.dataLayer.push(arguments); };
+
+  w.gtag("event", "purchase", {
+    transaction_id: transactionId,
+    value: Number(value.toFixed(2)),
+    currency: "PLN",
+    items: [
+      {
+        item_id: `airport_transfer_${input.serviceType}`,
+        item_name: input.serviceType === "roundtrip"
+          ? "Transfer lotniskowy w obie strony"
+          : input.serviceType === "from_airport"
+          ? "Odbiór z lotniska"
+          : "Transfer na lotnisko",
+        item_category: "transfer_lotniskowy",
+        item_variant: String(input.airportLabel || "Lotnisko").slice(0, 120),
+        price: Number(value.toFixed(2)),
+        quantity: 1
+      }
+    ]
+  });
+
+  return true;
+}
+
 export default function BookingForm() {
   const [mobile, setMobile] = useState(false);
   const [step, setStep] = useState(1);
@@ -109,6 +162,12 @@ export default function BookingForm() {
     })});
     const d=await r.json();
     if(!r.ok){ setMessage(d.error??"Błąd rezerwacji."); setSaving(false); return; }
+    trackBookingPurchase({
+      bookingNumber: d.booking_number,
+      value: Number(d.total_price),
+      serviceType,
+      airportLabel
+    });
     setSuccess(d); setSaving(false);
     clearGrowthTracking();
     window.scrollTo({top:0,behavior:"smooth"});
