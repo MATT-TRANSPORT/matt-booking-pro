@@ -9,7 +9,7 @@ import FlightMonitorCard from "@/components/FlightMonitorCard";
 import FlightAlertList from "@/components/FlightAlertList";
 import GoogleCalendarSyncCard from "@/components/GoogleCalendarSyncCard";
 import CustomerCommunicationCard from "@/components/CustomerCommunicationCard";
-import { quickWhatsAppUrl } from "@/lib/customerNotifications";
+import { quickSmsUrl, quickWhatsAppUrl } from "@/lib/customerNotifications";
 import B2BPricingSnapshotCard from "@/components/B2BPricingSnapshotCard";
 import BookingDocumentsCard from "@/components/BookingDocumentsCard";
 import GrowthSourceCard from "@/components/GrowthSourceCard";
@@ -262,7 +262,13 @@ export default async function Page({
 
           <GrowthSourceCard booking={booking} />
 
-          <CustomerCommunicationCard booking={booking} pushLogs={customerPushLogs ?? []} activeSubscriptions={activeCustomerPush ?? 0} whatsappUrl={quickWhatsAppUrl({ ...booking, _driver: (drivers ?? []).find((d: any) => d.id === booking.driver_id) ?? null, _vehicle: (vehicles ?? []).find((v: any) => v.id === booking.vehicle_id) ?? null })} />
+          <CustomerCommunicationCard
+            booking={booking}
+            pushLogs={customerPushLogs ?? []}
+            activeSubscriptions={activeCustomerPush ?? 0}
+            whatsappUrl={quickWhatsAppUrl({ ...booking, _driver: (drivers ?? []).find((d: any) => d.id === booking.driver_id) ?? null, _vehicle: (vehicles ?? []).find((v: any) => v.id === booking.vehicle_id) ?? null })}
+            smsUrl={quickSmsUrl({ ...booking, _driver: (drivers ?? []).find((d: any) => d.id === booking.driver_id) ?? null, _vehicle: (vehicles ?? []).find((v: any) => v.id === booking.vehicle_id) ?? null })}
+          />
 
           <div className="card" style={{ marginTop: 16 }}>
             <h2>Historia zmian</h2>

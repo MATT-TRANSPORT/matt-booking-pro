@@ -7,16 +7,19 @@ export default function CustomerCommunicationCard({
   booking,
   pushLogs,
   activeSubscriptions,
-  whatsappUrl
+  whatsappUrl,
+  smsUrl
 }: {
   booking: any;
   pushLogs: any[];
   activeSubscriptions: number;
   whatsappUrl: string | null;
+  smsUrl: string | null;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [showSmsFallback, setShowSmsFallback] = useState(false);
 
   async function sendNow() {
     if (busy) return;
@@ -58,15 +61,36 @@ export default function CustomerCommunicationCard({
           {busy ? "WYSYŁANIE..." : "🔔 WYŚLIJ PUSH TERAZ"}
         </button>
         {whatsappUrl ? (
-          <a className="btn whatsapp-quick-btn" href={whatsappUrl} target="_blank" rel="noreferrer">
+          <a
+            className="btn whatsapp-quick-btn"
+            href={whatsappUrl}
+            target="_blank"
+            rel="noreferrer"
+            onClick={() => setShowSmsFallback(true)}
+          >
             🟢 OTWÓRZ WHATSAPP Z GOTOWĄ WIADOMOŚCIĄ
           </a>
         ) : (
-          <button className="btn secondary" disabled>🟢 BRAK NUMERU WHATSAPP</button>
+          <button className="btn secondary" disabled>🟢 BRAK NUMERU KLIENTA</button>
+        )}
+        {smsUrl ? (
+          <a className="btn sms-quick-btn" href={smsUrl}>💬 WYŚLIJ SMS Z GOTOWĄ WIADOMOŚCIĄ</a>
+        ) : (
+          <button className="btn secondary" disabled>💬 BRAK NUMERU DO SMS</button>
         )}
       </div>
 
-      <small className="communication-lite-note">WhatsApp otwiera gotową wiadomość, ale wysyłasz ją ręcznie. Nie korzystamy z płatnego API.</small>
+      {showSmsFallback && smsUrl && (
+        <div className="sms-fallback-box">
+          <div>
+            <strong>WhatsApp się nie otworzył?</strong>
+            <span>Jeśli klient nie korzysta z WhatsApp, otwórz tę samą gotową wiadomość jako SMS.</span>
+          </div>
+          <a className="btn sms-quick-btn" href={smsUrl}>OTWÓRZ SMS</a>
+        </div>
+      )}
+
+      <small className="communication-lite-note">WhatsApp i SMS otwierają gotową wiadomość na Twoim urządzeniu — wysyłasz ją ręcznie. System nie korzysta z płatnego API SMS/WhatsApp.</small>
       {message && <div className="admin-save-message">{message}</div>}
 
       <div className="customer-message-log">

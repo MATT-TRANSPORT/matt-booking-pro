@@ -144,7 +144,7 @@ export function customerUpdateText(
     case "reminder_120":
       return `Przypomnienie: przejazd ${number} jest dzisiaj o ${time}. Trasa: ${route}.`;
     case "review_request":
-      return `Dziękujemy za podróż z MATT TRANSPORT. Jeśli masz chwilę, oceń naszą obsługę w Google — Twoja opinia bardzo nam pomaga.`;
+      return `Dziękujemy za podróż z MATT TRANSPORT. Jeśli masz chwilę, podziel się opinią w Google. Kliknięcie otworzy bezpośrednio formularz opinii naszej firmy.`;
     case "in_progress":
       return `Kierowca ${driver?.full_name || "MATT TRANSPORT"} wyruszył na realizację rezerwacji ${number}${driver?.phone ? `. Kontakt: ${driver.phone}` : ""}.`;
     case "arrived":
@@ -191,6 +191,13 @@ export function quickWhatsAppUrl(booking: any) {
   if (!digits) return null;
   const phone = digits.length === 9 ? `48${digits}` : digits;
   return `https://wa.me/${phone}?text=${encodeURIComponent(quickWhatsAppText(booking))}`;
+}
+
+export function quickSmsUrl(booking: any) {
+  const digits = String(booking.phone || "").replace(/\D/g, "");
+  if (!digits) return null;
+  const phone = digits.length === 9 ? `+48${digits}` : `+${digits}`;
+  return `sms:${phone}?body=${encodeURIComponent(quickWhatsAppText(booking))}`;
 }
 
 async function reservePushLog(

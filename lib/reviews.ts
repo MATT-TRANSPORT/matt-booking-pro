@@ -1,11 +1,14 @@
 export const REVIEW_DELAY_MINUTES = 45;
 
+export const MATT_GOOGLE_REVIEW_URL = "https://g.page/r/Ce8RDPaWkNhrEBE/review";
+
 export function googleReviewUrl() {
   const configured = String(process.env.NEXT_PUBLIC_GOOGLE_REVIEW_URL || "").trim();
-  if (configured) return configured;
 
-  // Bezpieczny fallback działający bez dodatkowej konfiguracji.
-  return "https://www.google.com/maps/search/?api=1&query=MATT%20TRANSPORT%20Rybnik%20Ko%C5%9Bcielna%2029";
+  // Akceptujemy tylko bezpośredni link do formularza opinii.
+  // Stare linki do wyszukiwarki / map nie mogą już przejąć fallbacku.
+  if (configured && /\/review(?:[/?#]|$)/i.test(configured)) return configured;
+  return MATT_GOOGLE_REVIEW_URL;
 }
 
 export function reviewDue(completedAt: string | null | undefined, now = new Date()) {

@@ -128,7 +128,7 @@ export default function BookingAdminActions({
 
       <hr className="admin-divider" />
       <div className="booking-leg-assignment primary">
-        <div className="booking-leg-assignment-head"><strong>→ WYJAZD / PIERWSZA NOGA</strong><span>Osobna obsada</span></div>
+        <div className="booking-leg-assignment-head"><strong>→ WYJAZD</strong><span>Osobna obsada</span></div>
         <div className="admin-action-grid">
           <label>Kierowca{driverSelect(driverId, setDriverId)}</label>
           <label>Pojazd{vehicleSelect(vehicleId, setVehicleId)}</label>

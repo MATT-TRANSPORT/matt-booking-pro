@@ -2053,3 +2053,12 @@
 .growth-recent-list a{color:inherit;text-decoration:none}
 .growth-recent-list a:hover{text-decoration:underline}
 @media(max-width:900px){.growth-test-card{align-items:stretch;flex-direction:column}.growth-two-col{grid-template-columns:1fr}.growth-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* MATT Booking PRO v4.3.0 — OPERATIONS UX */
+.sms-quick-btn{background:#213452;border-color:rgba(102,157,232,.5);color:#d9e9ff}
+.sms-fallback-box{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:12px;padding:12px 14px;border:1px solid rgba(102,157,232,.35);border-radius:12px;background:rgba(33,52,82,.22)}
+.sms-fallback-box strong,.sms-fallback-box span{display:block}.sms-fallback-box span{margin-top:3px;color:var(--muted);font-size:11px;line-height:1.4}
+.dashboard-upcoming-leg{display:inline-flex;align-items:center;width:max-content;margin-bottom:2px;padding:3px 7px;border:1px solid rgba(213,174,93,.32);border-radius:999px;color:var(--gold2);font-size:9px;font-weight:900;letter-spacing:.06em}
+.dashboard-upcoming-time{color:var(--gold2)!important;font-weight:800}
+@media(max-width:800px){.sms-fallback-box{align-items:stretch;flex-direction:column}.sms-fallback-box .btn{width:100%;text-align:center}}

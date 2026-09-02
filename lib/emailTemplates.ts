@@ -242,7 +242,7 @@ export function assignedEmail(b: BookingMail) {
       </p>
       ${details(b)}
       <div style="margin-top:18px;background:#10141b;border:1px solid #343b49;border-radius:14px;padding:18px;line-height:1.8">
-        <div style="font-weight:900;color:#f1d28b;margin-bottom:6px">→ WYJAZD / PIERWSZA NOGA</div>
+        <div style="font-weight:900;color:#f1d28b;margin-bottom:6px">→ WYJAZD</div>
         <div><span style="color:#aab1bc">Kierowca:</span> <strong>${esc(b.driver_name || "—")}</strong></div>
         <div><span style="color:#aab1bc">Telefon:</span> <strong>${esc(b.driver_phone || "—")}</strong></div>
         <div><span style="color:#aab1bc">Pojazd:</span> <strong>${esc(b.vehicle_name || "—")}</strong></div>
@@ -366,11 +366,11 @@ export function reviewRequestEmail(b: BookingMail, reviewUrl: string) {
       </p>
       <p style="color:#aab1bc;line-height:1.7">
         Jeśli masz chwilę, będziemy wdzięczni za krótką opinię w Google.
-        Twoja ocena pomaga innym klientom wybrać sprawdzony transport i pomaga nam rozwijać jakość usług.
+        Przycisk poniżej otworzy bezpośrednio formularz opinii MATT TRANSPORT — bez szukania naszej firmy na mapie.
       </p>
       <div style="margin:24px 0;text-align:center">
         <a href="${esc(reviewUrl)}" style="display:inline-block;background:#d5ae5d;color:#111;padding:15px 24px;border-radius:11px;text-decoration:none;font-weight:900">
-          ⭐ OCEŃ MATT TRANSPORT
+          ⭐ WYSTAW OPINIĘ W GOOGLE
         </a>
       </div>
       <div style="background:#10141b;border:1px solid #343b49;border-radius:14px;padding:16px;line-height:1.7">
