@@ -153,3 +153,76 @@ export function growthSourceLabel(source?: string | null) {
   };
   return labels[value] || (source ? String(source) : "Brak danych");
 }
+
+
+export type GrowthFunnelEventName =
+  | "landing"
+  | "form_started"
+  | "route_ready"
+  | "trip_ready"
+  | "quote_viewed"
+  | "customer_started"
+  | "ready_to_submit"
+  | "booking_created";
+
+export type GrowthFunnelDetails = {
+  serviceType?: string | null;
+  airportKey?: string | null;
+  vehicleType?: string | null;
+  quoteTotal?: number | null;
+  bookingId?: string | null;
+};
+
+const FUNNEL_SESSION_KEY = "matt_growth_funnel_session_v1";
+
+export function growthFunnelSessionId() {
+  if (typeof window === "undefined") return null;
+  try {
+    const existing = window.sessionStorage.getItem(FUNNEL_SESSION_KEY);
+    if (existing && /^[0-9a-f-]{36}$/i.test(existing)) return existing;
+    const id = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
+          const random = Math.floor(Math.random() * 16);
+          const value = char === "x" ? random : (random & 0x3) | 0x8;
+          return value.toString(16);
+        });
+    window.sessionStorage.setItem(FUNNEL_SESSION_KEY, id);
+    return id;
+  } catch {
+    return null;
+  }
+}
+
+export function resetGrowthFunnelSession() {
+  if (typeof window === "undefined") return;
+  try { window.sessionStorage.removeItem(FUNNEL_SESSION_KEY); } catch {}
+}
+
+export function trackGrowthFunnelEvent(eventName: GrowthFunnelEventName, details: GrowthFunnelDetails = {}) {
+  if (typeof window === "undefined") return;
+  const sessionId = growthFunnelSessionId();
+  if (!sessionId) return;
+
+  const tracking = readGrowthTracking();
+  const quote = Number(details.quoteTotal);
+  const payload = {
+    sessionId,
+    eventName,
+    tracking,
+    serviceType: clean(details.serviceType, 40),
+    airportKey: clean(details.airportKey, 80),
+    vehicleType: clean(details.vehicleType, 40),
+    quoteTotal: Number.isFinite(quote) && quote >= 0 ? Math.round(quote * 100) / 100 : null,
+    bookingId: clean(details.bookingId, 80)
+  };
+
+  try {
+    void fetch("/api/growth/funnel", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      keepalive: true
+    }).catch(() => {});
+  } catch {}
+}

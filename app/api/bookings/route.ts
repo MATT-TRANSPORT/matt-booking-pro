@@ -35,6 +35,11 @@ function growthFields(body: any) {
   };
 }
 
+function validFunnelSessionId(value: unknown) {
+  const text = String(value ?? "").trim();
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text) ? text : null;
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
@@ -113,6 +118,7 @@ export async function POST(req: NextRequest) {
     : "cash";
 
   const supabase = createAdminClient();
+  const growth = growthFields(body);
 
   const { data, error } = await supabase
     .from("bookings")
@@ -143,7 +149,7 @@ export async function POST(req: NextRequest) {
       total_price: quote.totalPrice,
       status: "pending",
       booking_source: "public",
-      ...growthFields(body),
+      ...growth,
       payment_method: paymentMethod,
       online_payment_requested: paymentMethod === "online",
       payment_status: "pending",
@@ -160,6 +166,25 @@ export async function POST(req: NextRequest) {
       { error: error.message },
       { status: 500 }
     );
+  }
+
+  const funnelSessionId = validFunnelSessionId(body?.funnelSessionId);
+  if (funnelSessionId) {
+    const { error: funnelError } = await supabase
+      .from("growth_funnel_events")
+      .upsert({
+        session_id: funnelSessionId,
+        event_name: "booking_created",
+        stage_order: 8,
+        occurred_at: new Date().toISOString(),
+        ...growth,
+        service_type: body.serviceType,
+        airport_key: body.airport,
+        vehicle_type: vehicleType,
+        quote_total: quote.totalPrice,
+        booking_id: data.id
+      }, { onConflict: "session_id,event_name" });
+    if (funnelError) console.error("Growth funnel booking_created:", funnelError);
   }
 
   let customerEmailSent = false;

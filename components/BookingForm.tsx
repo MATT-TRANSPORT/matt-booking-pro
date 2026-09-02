@@ -3,63 +3,11 @@ import CustomerPushControls from "@/components/CustomerPushControls";
 
 import { useEffect, useMemo, useState } from "react";
 import { PRICES } from "@/lib/pricing";
-import { clearGrowthTracking, readGrowthTracking } from "@/lib/growthTracking";
+import { clearGrowthTracking, growthFunnelSessionId, readGrowthTracking, resetGrowthFunnelSession, trackGrowthFunnelEvent } from "@/lib/growthTracking";
+import { trackBookingPurchase } from "@/lib/ga4";
 
 type Suggestion = { placeId?: string; text?: string };
 type AirportKey = keyof typeof PRICES | "other";
-
-
-const GA_PURCHASE_KEY_PREFIX = "matt_ga4_purchase_v1:";
-const gaPurchaseSentInMemory = new Set<string>();
-
-function trackBookingPurchase(input: {
-  bookingNumber: string;
-  value: number;
-  serviceType: "to_airport" | "from_airport" | "roundtrip";
-  airportLabel: string;
-}) {
-  if (typeof window === "undefined") return false;
-
-  const transactionId = String(input.bookingNumber || "").trim();
-  const value = Number(input.value);
-  if (!transactionId || !Number.isFinite(value) || value <= 0) return false;
-
-  const storageKey = `${GA_PURCHASE_KEY_PREFIX}${transactionId}`;
-  if (gaPurchaseSentInMemory.has(storageKey)) return false;
-  try {
-    if (window.localStorage.getItem(storageKey) === "1") return false;
-  } catch {}
-
-  // Zaznacz przed wysłaniem, aby rerender/refresh nie nabił drugiego purchase.
-  gaPurchaseSentInMemory.add(storageKey);
-  try { window.localStorage.setItem(storageKey, "1"); } catch {}
-
-  const w = window as any;
-  w.dataLayer = w.dataLayer || [];
-  w.gtag = w.gtag || function () { w.dataLayer.push(arguments); };
-
-  w.gtag("event", "purchase", {
-    transaction_id: transactionId,
-    value: Number(value.toFixed(2)),
-    currency: "PLN",
-    items: [
-      {
-        item_id: `airport_transfer_${input.serviceType}`,
-        item_name: input.serviceType === "roundtrip"
-          ? "Transfer lotniskowy w obie strony"
-          : input.serviceType === "from_airport"
-          ? "Odbiór z lotniska"
-          : "Transfer na lotnisko",
-        item_category: "transfer_lotniskowy",
-        item_variant: String(input.airportLabel || "Lotnisko").slice(0, 120),
-        price: Number(value.toFixed(2)),
-        quantity: 1
-      }
-    ]
-  });
-
-  return true;
-}
 
 export default function BookingForm() {
   const [mobile, setMobile] = useState(false);
@@ -138,6 +86,54 @@ export default function BookingForm() {
     ? "Przelew tradycyjny"
     : "Gotówka u kierowcy";
 
+  const funnelDetails = {
+    serviceType,
+    airportKey: airport,
+    vehicleType: vehicle,
+    quoteTotal: quote.total
+  };
+
+  useEffect(() => {
+    trackGrowthFunnelEvent("landing", funnelDetails);
+    // Jedno wejście = jedna sesja formularza. Dalsze zdarzenia są deduplikowane po session_id + event.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (address.trim() && distanceKm > 0 && (airport !== "other" || otherAirport.trim().length >= 3)) {
+      trackGrowthFunnelEvent("route_ready", funnelDetails);
+    }
+  }, [address, distanceKm, airport, otherAirport, serviceType, vehicle, quote.total]);
+
+  useEffect(() => {
+    if (travelDate && travelTime) trackGrowthFunnelEvent("trip_ready", funnelDetails);
+  }, [travelDate, travelTime, serviceType, airport, vehicle, quote.total]);
+
+  useEffect(() => {
+    const routeReady = Boolean(address.trim() && distanceKm > 0 && airport !== "other");
+    if (quote.total > 0 && ((!mobile && routeReady) || (mobile && step === 6))) {
+      trackGrowthFunnelEvent("quote_viewed", funnelDetails);
+    }
+  }, [mobile, step, address, distanceKm, airport, quote.total, serviceType, vehicle]);
+
+  useEffect(() => {
+    if (name.trim() || phone.trim() || email.trim()) {
+      trackGrowthFunnelEvent("customer_started", funnelDetails);
+    }
+  }, [name, phone, email, serviceType, airport, vehicle, quote.total]);
+
+  useEffect(() => {
+    const customerReady = Boolean(name.trim() && phone.trim() && email.trim() && (!invoice || nip10(nip).length === 10));
+    const bookingReady = Boolean(address.trim() && distanceKm > 0 && travelDate && travelTime && airport !== "other" && customerReady);
+    if (bookingReady && (!mobile || step === 6)) {
+      trackGrowthFunnelEvent("ready_to_submit", funnelDetails);
+    }
+  }, [name, phone, email, invoice, nip, address, distanceKm, travelDate, travelTime, airport, mobile, step, serviceType, vehicle, quote.total]);
+
+  function markFunnelStarted() {
+    trackGrowthFunnelEvent("form_started", funnelDetails);
+  }
+
   function nip10(v:string){ return v.replace(/\D/g,"").slice(0,10); }
   function go(n:number){setStep(n);if(typeof window!=="undefined"){window.dispatchEvent(new CustomEvent("matt:booking-step",{detail:{step:n}}));setTimeout(()=>window.scrollTo({top:0,behavior:"smooth"}),60);}}
 
@@ -158,7 +154,8 @@ export default function BookingForm() {
       serviceType,address,airport,vehicleType:vehicle,passengers,distanceKm,travelDate,travelTime,
       returnDate,returnTime,flightNumber:flight,returnFlightNumber:returnFlight,
       customerName:name,phone,email,invoiceRequired:invoice,companyNip:invoice?nip10(nip):null,paymentMethod,onlinePaymentRequested,notes:notes||null,
-      tracking
+      tracking,
+      funnelSessionId: growthFunnelSessionId()
     })});
     const d=await r.json();
     if(!r.ok){ setMessage(d.error??"Błąd rezerwacji."); setSaving(false); return; }
@@ -170,6 +167,7 @@ export default function BookingForm() {
     });
     setSuccess(d); setSaving(false);
     clearGrowthTracking();
+    resetGrowthFunnelSession();
     window.scrollTo({top:0,behavior:"smooth"});
   }
 
@@ -200,7 +198,7 @@ export default function BookingForm() {
   </div> : null;
 
   if(mobile){
-    return <div className="mobile-booking-wizard">
+    return <div className="mobile-booking-wizard" onClickCapture={markFunnelStarted} onInputCapture={markFunnelStarted}>
       <div className="wizard-header">
         <div className="wizard-header-top"><span className="badge">MATT TRANSPORT</span><strong>Krok {step} z 6</strong></div>
         <div className="wizard-progress"><span style={{width:`${Math.round(step/6*100)}%`}}/></div>
@@ -298,7 +296,7 @@ export default function BookingForm() {
     </div>;
   }
 
-  return <div className="layout booking-form-wrap">
+  return <div className="layout booking-form-wrap" onClickCapture={markFunnelStarted} onInputCapture={markFunnelStarted}>
     <div className="card">
       <span className="badge">MATT TRANSPORT</span><h1>Zarezerwuj transfer lotniskowy</h1>
       <div className="choice-grid">
