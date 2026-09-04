@@ -1,0 +1,16 @@
+MATT Booking PRO v4.3.3 — DEPLOY CHECKLIST
+
+1. Rozpakuj pakiet v4.3.3 do ROOT repozytorium matt-booking-pro.
+2. Nadpisz pliki z zachowaniem folderów.
+3. npm install / npm ci zgodnie z normalnym workflow projektu.
+4. npm run build.
+5. Commit + push.
+6. Poczekaj na zielony Vercel.
+7. Panel MATT → Firmy B2B → SL Poland Sp. z o.o.
+8. Sprawdź EDYTUJ DANE FIRMY oraz bezpieczne USUŃ FIRMĘ.
+9. Kliknij GENERUJ HASŁO TYMCZASOWE i przekaż klientowi wygenerowane hasło.
+10. Zaloguj się testowo do /firma/login.
+11. Sprawdź również zwykły WYŚLIJ LINK / RESET HASŁA — SafeLink z v4.3.2 pozostaje aktywny.
+
+SQL: BRAK.
+ENV: BRAK.

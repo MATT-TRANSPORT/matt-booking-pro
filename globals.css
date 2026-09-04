@@ -674,7 +674,7 @@
 .payment-dashboard-link{font-size:10px;color:var(--gold2)}
 @media(max-width:800px){.wedding-assignment-row{grid-template-columns:1fr}.dashboard-feed-meta{align-items:flex-start}}
 
-.booking-brand-head{display:flex;align-items:center;gap:14px;margin:10px 0 18px;padding:10px 14px;border:1px solid var(--line);border-radius:16px;background:#0c0f14}.booking-brand-head img{width:86px;height:58px;object-fit:cover;border-radius:10px}.booking-brand-head strong,.booking-brand-head span{display:block}.booking-brand-head strong{color:var(--gold2);font-size:20px}.booking-brand-head span{color:var(--muted);font-size:11px;margin-top:3px}.company-payment-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.company-payment-actions a,.company-payment-actions button{border:1px solid var(--gold);background:transparent;color:var(--gold2);padding:5px 7px;border-radius:8px;font-size:10px;text-decoration:none;cursor:pointer}.payment-paid{color:#bde7cc}.payment-waiting{color:#f1d28b}.portal-access-box{display:flex;flex-direction:column;gap:5px;margin-top:10px}.portal-access-box small{color:var(--muted)}.password-setup-shell{max-width:520px}.password-setup-shell .card{margin-top:8vh}.access-login-links{display:flex;gap:12px;margin-top:14px}.access-login-links a{color:var(--gold2)}.portal-create-toggle{display:flex!important;gap:8px;align-items:center;margin-top:14px}.portal-create-toggle input{width:auto}.ops-alert-center{margin:14px 0 18px}.ops-alert-center>div:first-child{display:flex;justify-content:space-between;align-items:end}.ops-alert-center h2{margin:0}.ops-alert-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.ops-alert-grid a{padding:13px;border:1px solid var(--line);border-radius:12px;text-decoration:none;background:rgba(255,255,255,.02)}.ops-alert-grid strong,.ops-alert-grid span{display:block}.ops-alert-grid strong{font-size:23px;color:var(--gold2)}.ops-alert-grid span{color:var(--muted);font-size:11px;margin-top:3px}@media(max-width:760px){.ops-alert-grid{grid-template-columns:1fr 1fr}.booking-brand-head img{width:70px;height:48px}}
+.booking-brand-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:10px 0 18px;padding:10px 14px;border:1px solid var(--line);border-radius:16px;background:#0c0f14}.booking-brand-main-link{display:flex;align-items:center;gap:14px;min-width:0;color:inherit;text-decoration:none}.booking-brand-head img{width:86px;height:58px;object-fit:cover;border-radius:10px}.booking-brand-head strong,.booking-brand-head span{display:block}.booking-brand-head strong{color:var(--gold2);font-size:20px}.booking-brand-head span{color:var(--muted);font-size:11px;margin-top:3px}.booking-site-back{flex:0 0 auto;color:var(--gold2);font-size:11px;font-weight:800;letter-spacing:.04em;text-decoration:none;border:1px solid rgba(213,174,93,.35);border-radius:999px;padding:8px 11px}.booking-site-back:hover,.booking-brand-main-link:hover strong{color:#f4d98f}.booking-site-bridge{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:14px 0 18px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.02)}.booking-site-bridge strong,.booking-site-bridge span{display:block}.booking-site-bridge strong{font-size:13px}.booking-site-bridge span{margin-top:4px;color:var(--muted);font-size:11px;line-height:1.45}.booking-site-bridge a{flex:0 0 auto;color:var(--gold2);font-size:11px;font-weight:800;text-decoration:none;white-space:nowrap}.company-payment-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.company-payment-actions a,.company-payment-actions button{border:1px solid var(--gold);background:transparent;color:var(--gold2);padding:5px 7px;border-radius:8px;font-size:10px;text-decoration:none;cursor:pointer}.payment-paid{color:#bde7cc}.payment-waiting{color:#f1d28b}.portal-access-box{display:flex;flex-direction:column;gap:5px;margin-top:10px}.portal-access-box small{color:var(--muted)}.password-setup-shell{max-width:520px}.password-setup-shell .card{margin-top:8vh}.access-login-links{display:flex;gap:12px;margin-top:14px}.access-login-links a{color:var(--gold2)}.portal-create-toggle{display:flex!important;gap:8px;align-items:center;margin-top:14px}.portal-create-toggle input{width:auto}.ops-alert-center{margin:14px 0 18px}.ops-alert-center>div:first-child{display:flex;justify-content:space-between;align-items:end}.ops-alert-center h2{margin:0}.ops-alert-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.ops-alert-grid a{padding:13px;border:1px solid var(--line);border-radius:12px;text-decoration:none;background:rgba(255,255,255,.02)}.ops-alert-grid strong,.ops-alert-grid span{display:block}.ops-alert-grid strong{font-size:23px;color:var(--gold2)}.ops-alert-grid span{color:var(--muted);font-size:11px;margin-top:3px}@media(max-width:760px){.ops-alert-grid{grid-template-columns:1fr 1fr}.booking-brand-head{align-items:flex-start}.booking-brand-main-link{gap:10px}.booking-brand-head img{width:70px;height:48px}.booking-site-back{font-size:9px;padding:7px 8px}.booking-site-bridge{align-items:flex-start;flex-direction:column}.booking-site-bridge a{white-space:normal}}
 
 
 /* v2.4.2.2 — company dashboard mobile/status fix */
@@ -1246,3 +1246,839 @@
     min-height:46px;
   }
 }
+
+
+/* MATT Booking PRO v2.7.1.1 — inline driver logout hotfix */
+.driver-header-side{
+  display:flex;
+  flex-direction:column;
+  gap:9px;
+  align-items:stretch;
+}
+.driver-header-side .driver-logout-btn{
+  min-height:42px;
+  width:100%;
+  font-size:11px;
+}
+@media(max-width:620px){
+  .driver-header-card{
+    align-items:stretch;
+    flex-direction:column;
+  }
+  .driver-header-side{
+    width:100%;
+  }
+  .driver-header-side .driver-logout-btn{
+    min-height:46px;
+  }
+}
+
+
+/* MATT Booking PRO v2.8 — Driver PWA & Push */
+.driver-app-controls{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:12px;
+  border-color:rgba(213,174,93,.30);
+}
+.driver-app-controls>div:first-child{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+}
+.driver-app-controls>div:first-child strong{
+  font-size:16px;
+}
+.driver-app-controls>div:first-child small{
+  color:var(--muted);
+}
+.driver-app-control-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+  gap:7px;
+}
+.driver-app-control-actions .btn{
+  padding:9px 11px;
+  font-size:10px;
+}
+.pwa-installed-badge{
+  padding:8px 10px;
+  border:1px solid rgba(79,189,125,.45);
+  border-radius:9px;
+  background:rgba(79,189,125,.08);
+  color:#bcebd0;
+  font-size:10px;
+  font-weight:900;
+}
+.push-on{
+  border-color:rgba(79,189,125,.42)!important;
+  color:#bcebd0!important;
+}
+.push-warning{
+  max-width:260px;
+  color:#ffd2a0;
+  font-size:10px;
+}
+.driver-app-control-message{
+  flex-basis:100%;
+  padding-top:5px;
+  color:var(--gold2);
+}
+@media(max-width:700px){
+  .driver-app-controls{
+    align-items:stretch;
+    flex-direction:column;
+  }
+  .driver-app-control-actions{
+    justify-content:stretch;
+  }
+  .driver-app-control-actions .btn{
+    flex:1 1 145px;
+    min-height:44px;
+  }
+}
+
+
+/* MATT Booking PRO v2.8.1 — Branding & Payments */
+.admin-payment-status{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:10px 0 14px;
+  padding:12px 13px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:rgba(255,255,255,.02);
+}
+.admin-payment-status span{
+  color:var(--muted);
+  font-size:11px;
+}
+.admin-payment-status strong{
+  font-size:11px;
+  text-align:right;
+}
+.admin-payment-status.paid{
+  border-color:rgba(79,189,125,.48);
+  background:rgba(79,189,125,.08);
+}
+.admin-payment-status.paid strong{
+  color:#bcebd0;
+}
+.admin-payment-status.pending strong{
+  color:#ffd2a0;
+}
+.payment-mark-paid,
+.payment-mark-pending{
+  width:100%;
+  margin-top:9px;
+}
+.payment-mark-paid{
+  border-color:rgba(79,189,125,.44)!important;
+  color:#bcebd0!important;
+}
+.payment-dashboard-badge.paid{
+  color:#bcebd0;
+  border-color:rgba(79,189,125,.48);
+  background:rgba(79,189,125,.09);
+}
+.payment-paid{
+  color:#bcebd0;
+  font-weight:800;
+}
+
+
+/* MATT Booking PRO v2.8.2 — Online Payments */
+.online-payment-card{
+  margin-top:16px;
+  padding:16px;
+  border:1px solid rgba(213,174,93,.34);
+  border-radius:14px;
+  background:rgba(213,174,93,.05);
+}
+.online-payment-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+}
+.online-payment-head h3{
+  margin:7px 0 0;
+  font-size:16px;
+}
+.online-payment-head>strong{
+  color:var(--gold2);
+  font-size:18px;
+  white-space:nowrap;
+}
+.online-pay-button{
+  width:100%;
+  min-height:48px;
+  margin:8px 0;
+}
+.online-payment-card small{
+  display:block;
+  color:var(--muted);
+  line-height:1.5;
+}
+.online-payment-success,
+.online-payment-warning,
+.online-payment-info,
+.online-payment-message,
+.payment-review-admin{
+  margin-top:10px;
+  padding:11px 12px;
+  border-radius:10px;
+  font-size:12px;
+  line-height:1.55;
+}
+.online-payment-success{
+  background:rgba(79,189,125,.12);
+  color:#bcebd0;
+}
+.online-payment-warning,
+.payment-review-admin{
+  background:rgba(232,178,66,.11);
+  color:#ffe0a0;
+}
+.online-payment-info{
+  background:rgba(255,255,255,.04);
+  color:var(--muted);
+}
+.online-payment-message{
+  background:rgba(255,255,255,.05);
+  color:#fff;
+}
+.admin-payment-status.failed strong,
+.payment-dashboard-badge.failed{
+  color:#ffb7b7;
+}
+.admin-payment-status.refunded strong,
+.payment-dashboard-badge.refunded,
+.payment-refunded{
+  color:#c7cbd3;
+}
+.admin-payment-status.review strong,
+.payment-dashboard-badge.review,
+.payment-review{
+  color:#ffe0a0;
+}
+.admin-payment-online-link{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin:12px 0;
+}
+.manual-payment-link-details{
+  margin-top:14px;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:10px;
+}
+.manual-payment-link-details summary{
+  cursor:pointer;
+  font-weight:800;
+}
+.manual-payment-link-details input{
+  margin:10px 0 8px;
+}
+@media(max-width:700px){
+  .online-payment-head{
+    flex-direction:column;
+  }
+  .admin-payment-online-link .btn{
+    flex:1 1 100%;
+  }
+}
+
+
+/* v2.8.2.1 — payment opt-in */
+.online-payment-choice{
+  display:flex;align-items:flex-start;gap:12px;margin-top:16px;padding:15px 16px;
+  border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.02);cursor:pointer;
+}
+.online-payment-choice.selected{
+  border-color:rgba(213,174,93,.60);background:rgba(213,174,93,.08);
+}
+.online-payment-choice input{
+  width:20px;height:20px;min-width:20px;margin-top:2px;accent-color:#d5ae5d;
+}
+.online-payment-choice span{display:flex;flex-direction:column;gap:5px;}
+.online-payment-choice strong{font-size:14px;line-height:1.35;}
+.online-payment-choice small{color:var(--muted);line-height:1.45;}
+@media(max-width:700px){
+  .online-payment-choice{padding:14px;}
+}
+
+
+/* v2.8.2.2 — B2C payment method selector */
+.payment-method-section{margin-top:16px}.payment-method-section h3{margin:0 0 10px}.payment-method-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.payment-method-choice{display:flex;gap:10px;align-items:flex-start;padding:14px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.02);cursor:pointer}.payment-method-choice.selected{border-color:#d5ae5d;background:rgba(213,174,93,.08)}.payment-method-choice input{margin-top:3px;accent-color:#d5ae5d}.payment-method-choice span{display:flex;flex-direction:column;gap:5px}.payment-method-choice strong{font-size:13px}.payment-method-choice small{color:var(--muted);font-size:11px;line-height:1.4}@media(max-width:900px){.payment-method-grid{grid-template-columns:1fr}.payment-method-choice{min-height:70px}}
+
+
+/* v2.8.2.4 — reservation detail overlap fix */
+.admin-actions-card{
+  position:relative !important;
+  top:auto !important;
+  z-index:auto !important;
+}
+.reservation-detail-grid > div:last-child{
+  min-width:0;
+}
+.history-list strong{
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+
+
+/* MATT Booking PRO v2.9 — Google Calendar */
+.google-calendar-sync-card{
+  border-color:rgba(93,151,255,.28);
+}
+.google-calendar-title{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+.google-calendar-title h2{
+  margin:7px 0 0;
+}
+.calendar-sync-state{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:7px 9px;
+  border-radius:9px;
+  border:1px solid var(--line);
+  font-size:10px;
+  font-weight:900;
+  white-space:nowrap;
+}
+.calendar-sync-state.ok{
+  color:#bcebd0;
+  background:rgba(79,189,125,.08);
+  border-color:rgba(79,189,125,.42);
+}
+.calendar-sync-state.waiting{
+  color:#ffe1a3;
+  background:rgba(213,174,93,.07);
+  border-color:rgba(213,174,93,.35);
+}
+.calendar-sync-state.error{
+  color:#ffb9b9;
+  background:rgba(220,74,74,.08);
+  border-color:rgba(220,74,74,.38);
+}
+.calendar-last-sync{
+  font-size:11px;
+  color:var(--muted);
+}
+.calendar-sync-error{
+  margin:10px 0;
+  padding:10px 11px;
+  border-radius:10px;
+  background:rgba(220,74,74,.08);
+  border:1px solid rgba(220,74,74,.35);
+  color:#ffb9b9;
+  font-size:11px;
+  overflow-wrap:anywhere;
+}
+
+
+/* MATT Booking PRO v3.0 — SMS / WhatsApp */
+.notification-method-section{
+  margin-top:18px;
+  padding-top:16px;
+  border-top:1px solid var(--line);
+}
+.notification-method-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+}
+.notification-method-choice{
+  display:flex;
+  align-items:flex-start;
+  gap:9px;
+  padding:13px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:rgba(255,255,255,.02);
+  cursor:pointer;
+}
+.notification-method-choice.selected{
+  border-color:rgba(213,174,93,.62);
+  background:rgba(213,174,93,.08);
+}
+.notification-method-choice input{
+  width:auto;
+  margin-top:3px;
+}
+.notification-method-choice span{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.notification-method-choice small,
+.notification-consent-note,
+.client-notification-settings small{
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.45;
+}
+.notification-consent-note{
+  margin:9px 0 0;
+}
+.client-notification-settings{
+  margin-top:16px;
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:rgba(255,255,255,.02);
+}
+.client-notification-settings h3{
+  margin-top:0;
+}
+.customer-communication-card{
+  border-color:rgba(93,151,255,.28);
+}
+.customer-communication-title{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:10px;
+}
+.customer-communication-title h2{
+  margin:7px 0 0;
+}
+.communication-channel{
+  padding:7px 9px;
+  border-radius:9px;
+  border:1px solid var(--line);
+  font-size:10px;
+  font-weight:900;
+  text-align:center;
+}
+.communication-channel.sms{
+  color:#cfe3ff;
+  border-color:rgba(93,151,255,.42);
+  background:rgba(93,151,255,.08);
+}
+.communication-channel.whatsapp{
+  color:#bcebd0;
+  border-color:rgba(79,189,125,.42);
+  background:rgba(79,189,125,.08);
+}
+.communication-fallback-note{
+  padding:10px;
+  border-radius:10px;
+  background:rgba(79,189,125,.06);
+  border:1px solid rgba(79,189,125,.22);
+  color:#cdebd9;
+  font-size:11px;
+}
+.customer-message-log{
+  margin-top:16px;
+  border-top:1px solid var(--line);
+  padding-top:12px;
+}
+.customer-message-log-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:8px 12px;
+  padding:10px 0;
+  border-bottom:1px solid var(--line);
+}
+.customer-message-log-row>div:first-child{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  min-width:0;
+}
+.customer-message-log-row>div:first-child span{
+  color:var(--muted);
+  font-size:10px;
+  overflow-wrap:anywhere;
+}
+.customer-message-log-row>div:nth-child(2){
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:4px;
+}
+.customer-message-log-row small{
+  color:var(--muted);
+  font-size:9px;
+}
+.message-delivery-status{
+  font-size:9px;
+  font-weight:900;
+  padding:5px 7px;
+  border-radius:7px;
+  border:1px solid var(--line);
+}
+.message-delivery-status.delivered,
+.message-delivery-status.read{
+  color:#bcebd0;
+  border-color:rgba(79,189,125,.4);
+}
+.message-delivery-status.failed,
+.message-delivery-status.undelivered,
+.message-delivery-error{
+  color:#ffb9b9!important;
+}
+.message-delivery-error{
+  grid-column:1/-1;
+}
+@media(max-width:800px){
+  .notification-method-grid{
+    grid-template-columns:1fr;
+  }
+  .customer-communication-title{
+    flex-direction:column;
+  }
+  .customer-message-log-row{
+    grid-template-columns:1fr;
+  }
+  .customer-message-log-row>div:nth-child(2){
+    align-items:flex-start;
+  }
+}
+
+
+/* MATT Booking PRO v3.0.1 — COMMUNICATIONS LITE */
+.customer-push-controls{
+  margin-top:18px;
+  padding:16px;
+  border:1px solid rgba(213,174,93,.28);
+  border-radius:12px;
+  background:rgba(213,174,93,.04);
+}
+.customer-push-controls h3{margin:0 0 7px}
+.customer-push-actions,.communication-lite-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:9px;
+  margin-top:10px;
+}
+.customer-push-controls .driver-app-control-message{
+  display:block;
+  margin-top:10px;
+}
+.communication-channel.push{
+  color:#bcebd0;
+  border-color:rgba(79,189,125,.42);
+  background:rgba(79,189,125,.08);
+}
+.communication-channel.email{
+  color:#ddd;
+  background:rgba(255,255,255,.03);
+}
+.whatsapp-quick-btn{
+  background:#153d28;
+  border-color:rgba(79,189,125,.46);
+  color:#d9f6e4;
+}
+.communication-lite-note{
+  display:block;
+  margin-top:9px;
+  color:var(--muted);
+  line-height:1.45;
+}
+@media(max-width:800px){
+  .customer-push-actions,.communication-lite-actions{flex-direction:column}
+  .customer-push-actions .btn,.communication-lite-actions .btn{width:100%}
+}
+
+
+/* MATT Booking PRO v3.3.1 — B2B PORTAL PRO */
+.company-stats-pro{grid-template-columns:repeat(6,minmax(0,1fr));margin-bottom:0}
+.company-stats-pro .stat{padding:14px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.025)}
+.company-stats-pro .stat span{display:block;color:var(--muted);font-size:11px;margin-top:5px}
+.b2b-terms-card{border-color:rgba(213,174,93,.34)}
+.b2b-terms-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.b2b-terms-head h2{margin:8px 0 0}
+.b2b-terms-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:16px}
+.b2b-terms-grid>div{padding:13px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025);min-width:0}
+.b2b-terms-grid span,.b2b-terms-grid strong{display:block}.b2b-terms-grid span{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}.b2b-terms-grid strong{font-size:13px;overflow-wrap:anywhere}
+.b2b-commercial-note{display:flex;flex-direction:column;gap:5px;margin-top:12px;padding:13px;border:1px solid rgba(213,174,93,.24);border-radius:12px;background:rgba(213,174,93,.04)}
+.b2b-commercial-note span{color:var(--muted);line-height:1.5}
+.b2b-upcoming-terms{margin-top:12px;padding:11px 12px;border-radius:10px;border:1px solid rgba(93,151,255,.28);background:rgba(93,151,255,.06);color:#cfe3ff;font-size:12px}
+.b2b-net-note{margin:12px 0 0}
+.b2b-booking-terms-banner{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;margin:16px 0 22px;padding:15px;border:1px solid rgba(213,174,93,.32);border-radius:14px;background:rgba(213,174,93,.05)}
+.b2b-booking-terms-banner>div{display:flex;flex-direction:column;gap:5px}.b2b-booking-terms-banner small{font-size:9px;color:var(--gold2);font-weight:900;letter-spacing:.06em}.b2b-booking-terms-banner strong{font-size:13px}.b2b-booking-terms-banner span{font-size:11px;color:var(--muted)}.b2b-booking-terms-banner a{font-size:11px;font-weight:900;white-space:nowrap}
+.b2b-price-table{min-width:900px}.b2b-price-table td small.pricing-source-tag{display:block;width:max-content;margin-top:6px}
+.pricing-source-tag{font-size:8px!important;font-style:normal;font-weight:900;padding:4px 6px;border:1px solid var(--line);border-radius:999px;color:var(--muted);white-space:nowrap}
+.pricing-source-tag.custom{color:#bcebd0;border-color:rgba(79,189,125,.4);background:rgba(79,189,125,.07)}
+.pricing-source-tag.standard{color:#ffe0a0;border-color:rgba(213,174,93,.32);background:rgba(213,174,93,.05)}
+.b2b-price-cards{display:none;gap:10px}.b2b-price-card{padding:14px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.02)}.b2b-price-card h3{margin:0 0 12px;color:var(--gold2)}.b2b-price-card-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.b2b-price-card-grid>div{display:flex;flex-direction:column;gap:5px;padding:11px;border:1px solid var(--line);border-radius:10px}.b2b-price-card-grid span,.b2b-price-card-grid small{color:var(--muted);font-size:10px}.b2b-price-card-grid strong{font-size:13px}.b2b-price-card-grid .pricing-source-tag{width:max-content;margin-top:4px}
+.b2b-pricing-explainer{margin-top:16px;padding:16px;border:1px solid rgba(213,174,93,.28);border-radius:14px;background:rgba(213,174,93,.04)}.b2b-pricing-explainer h3{margin-top:0}.b2b-pricing-explainer p{color:var(--muted);line-height:1.6}.b2b-pricing-explainer>strong{color:var(--gold2)}
+.b2b-terms-history{display:grid;gap:9px;margin-top:14px}.b2b-terms-history>div{display:grid;grid-template-columns:110px 140px 1fr;gap:10px;align-items:center;padding:11px;border-bottom:1px solid var(--line)}.b2b-terms-history span{font-size:9px;font-weight:900;color:var(--gold2)}.b2b-terms-history small{color:var(--muted)}
+.document-status{display:inline-flex;padding:5px 7px;border-radius:8px;border:1px solid var(--line);font-size:9px;font-weight:900;white-space:nowrap}.document-status.invoice{color:#bcebd0;border-color:rgba(79,189,125,.35)}.document-status.other{color:#cfe3ff;border-color:rgba(93,151,255,.3)}
+.b2b-bookings-pro-table{min-width:1200px}
+.company-detail-title{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.company-detail-title h2{margin-top:0}.company-detail-title p{margin-bottom:0}.company-detail-title .status{flex:0 0 auto}
+.b2b-detail-financials{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}.b2b-detail-financials>div{padding:14px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025)}.b2b-detail-financials span,.b2b-detail-financials strong{display:block}.b2b-detail-financials span{font-size:10px;color:var(--muted);margin-bottom:5px}.b2b-detail-financials strong{font-size:18px}.b2b-detail-financials .gross{border-color:rgba(213,174,93,.4);background:rgba(213,174,93,.05)}.b2b-detail-financials .gross strong{color:var(--gold2);font-size:22px}
+.company-cancel-btn{border-color:rgba(220,74,74,.45)!important;color:#ffb9bf!important}.company-cancel-confirm{margin-top:10px;padding:14px;border:1px solid rgba(220,74,74,.45);border-radius:12px;background:rgba(220,74,74,.06)}.company-cancel-confirm>strong{color:#ffb9bf}.company-cancel-confirm>div{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:11px}.company-cancel-confirm-btn{background:#8b343b!important;color:#fff!important}
+@media(max-width:1100px){.company-stats-pro{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:800px){.company-stats-pro{grid-template-columns:1fr 1fr}.b2b-terms-head,.b2b-booking-terms-banner,.company-detail-title{flex-direction:column}.b2b-terms-grid{grid-template-columns:1fr 1fr}.b2b-price-table{display:none}.b2b-price-cards{display:grid}.b2b-terms-history>div{grid-template-columns:1fr;gap:5px}.b2b-detail-financials{grid-template-columns:1fr}.company-cancel-confirm>div{grid-template-columns:1fr}.b2b-booking-terms-banner a{white-space:normal}}
+@media(max-width:560px){.company-stats-pro,.b2b-terms-grid,.b2b-price-card-grid{grid-template-columns:1fr}}
+
+/* MATT Booking PRO v3.4.0 — B2B UX & OPERATIONS */
+.company-dashboard-transport-card{margin-top:18px}
+.company-dashboard-empty{display:flex;flex-direction:column;gap:6px;padding:24px 4px 8px;color:var(--muted)}
+.company-dashboard-empty strong{color:var(--text)}
+.company-booking-archive-divider td{padding-top:24px!important;padding-bottom:10px!important;color:var(--muted);font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;background:transparent!important;border-bottom-color:rgba(255,255,255,.08)!important}
+.company-booking-row-archive{opacity:.68}
+.company-booking-row-archive:hover{opacity:1}
+.company-booking-cards-divider{padding:9px 2px 2px;color:var(--muted);font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}
+.company-booking-card-archive{opacity:.72;background:rgba(255,255,255,.012)}
+.company-booking-card-archive:hover{opacity:1}
+.company-expired-note{margin-top:10px;padding:7px 9px;border-radius:9px;border:1px solid rgba(213,174,93,.2);background:rgba(213,174,93,.04);color:var(--muted);font-size:10px;font-weight:800}
+.company-settlement-summary{border-color:rgba(213,174,93,.28)}
+.company-settlement-stats{grid-template-columns:repeat(4,minmax(0,1fr));margin-top:16px}
+@media(max-width:800px){.company-settlement-stats{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.company-settlement-stats{grid-template-columns:1fr}}
+
+
+/* MATT Booking PRO v3.5.0 — Dispatcher PRO / Operations 2.0 */
+.dispatcher-command-center{margin:14px 0 16px;border-color:rgba(213,174,93,.30)}
+.dispatcher-command-center.has-attention{box-shadow:inset 0 0 0 1px rgba(231,154,67,.14),0 14px 32px rgba(0,0,0,.25)}
+.dispatcher-command-center.is-clear{border-color:rgba(79,189,125,.30)}
+.dispatcher-command-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
+.dispatcher-command-head h2{margin:10px 0 4px;font-size:26px}
+.dispatcher-command-head p{margin:0;max-width:720px}
+.dispatcher-attention-count{min-width:58px;height:58px;border-radius:16px;display:grid;place-items:center;background:rgba(231,154,67,.10);border:1px solid rgba(231,154,67,.35);color:#ffd2a0;font-size:28px}
+.dispatcher-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}
+.dispatcher-kpi-grid>button,.dispatcher-kpi-grid>div{appearance:none;text-align:left;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.025);padding:13px;color:var(--text)}
+.dispatcher-kpi-grid>button{cursor:pointer}
+.dispatcher-kpi-grid>button:hover{border-color:rgba(213,174,93,.42)}
+.dispatcher-kpi-grid .danger{border-color:rgba(224,83,83,.42);background:rgba(224,83,83,.07)}
+.dispatcher-kpi-grid strong{display:block;font-size:25px;color:var(--gold2);margin-bottom:3px}
+.dispatcher-kpi-grid .danger strong{color:#ffb8ba}
+.dispatcher-kpi-grid span{font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.03em}
+.dispatcher-attention-list{display:grid;gap:8px;margin-top:14px}
+.dispatcher-attention-item{display:grid;grid-template-columns:minmax(220px,.8fr) minmax(280px,1.2fr);gap:12px;align-items:center;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02);color:var(--text)}
+.dispatcher-attention-item.critical{border-color:rgba(224,83,83,.42);background:rgba(224,83,83,.06)}
+.dispatcher-attention-item.warning{border-color:rgba(231,154,67,.38);background:rgba(231,154,67,.045)}
+.dispatcher-attention-item>div:first-child{display:flex;flex-direction:column;gap:3px}
+.dispatcher-attention-item>div:first-child strong{color:var(--gold2);font-size:12px}
+.dispatcher-attention-item>div:first-child span{font-size:11px;color:var(--muted)}
+.dispatcher-attention-reasons{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
+.dispatcher-attention-reasons span{padding:5px 7px;border-radius:8px;border:1px solid rgba(231,154,67,.28);font-size:9px;font-weight:900;color:#ffd2a0}
+.dispatcher-attention-item.critical .dispatcher-attention-reasons span{border-color:rgba(224,83,83,.34);color:#ffb8ba}
+.dispatcher-all-clear{margin-top:14px;padding:11px 12px;border:1px solid rgba(79,189,125,.30);border-radius:11px;background:rgba(79,189,125,.06);color:#bcebd0;font-weight:800;font-size:12px}
+
+.dispatcher-leg-list{display:grid;gap:4px;min-width:128px}
+.dispatcher-leg-list>div{display:grid;grid-template-columns:42px 1fr auto;gap:5px;align-items:center;padding:4px 6px;border:1px solid transparent;border-radius:8px;color:var(--muted)}
+.dispatcher-leg-list>div.next{border-color:rgba(213,174,93,.25);background:rgba(213,174,93,.06);color:var(--text)}
+.dispatcher-leg-list span{font-size:8px;font-weight:900;color:var(--muted)}
+.dispatcher-leg-list strong{font-size:10px;white-space:nowrap}
+.dispatcher-leg-list b{font-size:15px;color:var(--gold2)}
+.dispatcher-flight-stack{display:flex;flex-direction:column;align-items:flex-start;gap:2px;margin:4px 0}
+.dispatcher-return-flight{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.dispatcher-return-flight>small{font-size:8px;font-weight:900;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 5px}
+.dispatcher-conflict-box{display:grid;gap:4px;margin-top:7px;padding:7px;border:1px solid rgba(224,83,83,.45);border-radius:9px;background:rgba(224,83,83,.07)}
+.dispatcher-conflict-box span{font-size:9px;color:#ffb8ba;font-weight:900}
+.dispatcher-conflict-box small{font-size:8px;color:var(--muted)}
+.dispatcher-missing-badge{display:inline-block;margin-top:7px;padding:4px 6px;border:1px solid rgba(231,154,67,.35);border-radius:7px;background:rgba(231,154,67,.07);color:#ffd2a0;font-size:8px;font-weight:900}
+.dispatcher-has-conflict{box-shadow:inset 0 0 0 1px rgba(224,83,83,.28)}
+.dispatcher-status-next{display:block;width:100%;margin-top:7px;padding:7px 8px;border:1px solid rgba(213,174,93,.36);border-radius:8px;background:rgba(213,174,93,.08);color:var(--gold2);font-size:8px;font-weight:900}
+.dispatcher-status-next:hover{background:rgba(213,174,93,.14)}
+.dispatcher-status-next.blocked{border-color:var(--line);color:var(--muted);background:rgba(255,255,255,.02)}
+.dispatcher-mobile-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.dispatcher-mobile-actions .dispatcher-status-next{margin:0;min-height:42px}
+.dispatcher-table select{min-width:150px}
+.dispatcher-table .flight-chip{max-width:330px}
+
+@media(max-width:1100px){
+  .dispatcher-kpi-grid{grid-template-columns:repeat(2,1fr)}
+  .dispatcher-attention-item{grid-template-columns:1fr}
+  .dispatcher-attention-reasons{justify-content:flex-start}
+}
+@media(max-width:620px){
+  .dispatcher-command-head{align-items:center}
+  .dispatcher-command-head h2{font-size:22px}
+  .dispatcher-attention-count{min-width:48px;height:48px;font-size:23px}
+  .dispatcher-kpi-grid{grid-template-columns:1fr 1fr}
+  .dispatcher-kpi-grid>button,.dispatcher-kpi-grid>div{padding:10px}
+  .dispatcher-kpi-grid strong{font-size:21px}
+  .dispatcher-kpi-grid span{font-size:9px}
+  .dispatcher-attention-item{padding:10px}
+  .dispatcher-leg-list{margin-top:4px}
+  .dispatcher-mobile-actions{grid-template-columns:1fr}
+  .dispatcher-card .dispatcher-status-next{font-size:10px;padding:11px}
+}
+
+/* MATT Booking PRO v3.6.0 — DRIVER PRO */
+.driver-pro-shell{max-width:980px;padding-bottom:90px}
+.driver-pro-header{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:14px;border-color:rgba(213,174,93,.36)}
+.driver-pro-header h1{margin:8px 0 4px}
+.driver-pro-header-side{display:flex;align-items:stretch;gap:10px}
+.driver-pro-mini-stats{display:grid;grid-template-columns:repeat(3,76px);gap:7px}
+.driver-pro-mini-stats>div{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:62px;padding:8px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025)}
+.driver-pro-mini-stats strong{font-size:21px;color:var(--gold2)}
+.driver-pro-mini-stats span{margin-top:3px;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.driver-pro-mini-stats .warning{border-color:rgba(231,154,67,.5);background:rgba(231,154,67,.08)}
+.driver-pro-mini-stats .warning strong{color:#ffd2a0}
+.driver-next-section{margin:18px 0 20px}
+.driver-section-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin:0 2px 10px}
+.driver-section-heading h2{margin:7px 0 0;font-size:24px}
+.driver-section-heading.compact{margin-top:18px;align-items:center}
+.driver-section-heading.compact h2{font-size:20px}
+.driver-next-countdown{padding:9px 12px;border:1px solid rgba(213,174,93,.45);border-radius:999px;background:rgba(213,174,93,.08);color:var(--gold2);font-size:12px;white-space:nowrap}
+.driver-pro-filter-bar{top:0;z-index:40}
+.driver-pro-filter-bar button{min-width:0}
+.driver-pro-trip{scroll-margin-top:78px;position:relative;overflow:hidden}
+.driver-pro-trip.featured{border-color:rgba(213,174,93,.7);box-shadow:0 18px 44px rgba(0,0,0,.34),0 0 0 1px rgba(213,174,93,.12)}
+.driver-pro-trip.focused{animation:driverFocusPulse 1.6s ease 2}
+@keyframes driverFocusPulse{0%,100%{box-shadow:0 18px 44px rgba(0,0,0,.34)}50%{box-shadow:0 0 0 3px rgba(213,174,93,.42),0 18px 44px rgba(0,0,0,.34)}}
+.driver-badge-row{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.driver-leg-badge{display:inline-flex;align-items:center;padding:5px 8px;border:1px solid rgba(93,160,230,.36);border-radius:999px;background:rgba(93,160,230,.08);color:#c9deff;font-size:10px;font-weight:900}
+.driver-leg-badge.return{border-color:rgba(213,174,93,.45);background:rgba(213,174,93,.08);color:var(--gold2)}
+.driver-status-stack{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.driver-status-stack small{font-size:10px;color:var(--gold2);font-weight:800}
+.driver-attention-box{display:grid;gap:5px;margin:12px 0;padding:12px 13px;border:1px solid rgba(231,154,67,.48);border-radius:12px;background:rgba(231,154,67,.075)}
+.driver-attention-box strong{font-size:11px;color:#ffd2a0;letter-spacing:.04em}
+.driver-attention-box span{font-size:11px;color:#ffe2bb;line-height:1.35}
+.driver-pro-route{margin-bottom:12px}
+.driver-timeline{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;position:relative;margin:12px 0 14px}
+.driver-timeline>div{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-height:58px;padding:7px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.018);text-align:center}
+.driver-timeline>div i{display:flex;align-items:center;justify-content:center;width:19px;height:19px;border:1px solid var(--line);border-radius:999px;font-style:normal;font-size:10px;color:var(--muted)}
+.driver-timeline>div span{font-size:9px;color:var(--muted);line-height:1.25}
+.driver-timeline>div.done{border-color:rgba(79,189,125,.28);background:rgba(79,189,125,.045)}
+.driver-timeline>div.done i{border-color:rgba(79,189,125,.48);color:#bcebd0;background:rgba(79,189,125,.08)}
+.driver-timeline>div.current{border-color:rgba(213,174,93,.55);background:rgba(213,174,93,.08)}
+.driver-timeline>div.current i,.driver-timeline>div.current span{color:var(--gold2);border-color:rgba(213,174,93,.5)}
+.driver-timeline>small{grid-column:1/-1;color:var(--muted);font-size:9px;text-align:right}
+.driver-roundtrip-plan{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.driver-roundtrip-plan>div{display:flex;flex-direction:column;gap:4px;padding:12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.018)}
+.driver-roundtrip-plan>div.current{border-color:rgba(213,174,93,.5);background:rgba(213,174,93,.07)}
+.driver-roundtrip-plan>div.done{border-color:rgba(79,189,125,.32);background:rgba(79,189,125,.045)}
+.driver-roundtrip-plan span{font-size:9px;color:var(--gold2);font-weight:900;letter-spacing:.07em}
+.driver-roundtrip-plan strong{font-size:13px}
+.driver-roundtrip-plan small{color:var(--muted);line-height:1.35}
+.driver-roundtrip-plan em{min-height:13px;color:#bcebd0;font-size:9px;font-style:normal;font-weight:800}
+.driver-pro-flight-box{margin:12px 0}
+.driver-flight-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.driver-flight-title strong{font-size:10px;color:var(--muted)}
+.driver-flight-title span{font-size:13px;color:var(--gold2);font-weight:900}
+.driver-pro-info-grid{grid-template-columns:repeat(4,1fr)}
+.driver-navigation-panel{display:grid;grid-template-columns:1.55fr .8fr;gap:9px;margin-top:14px}
+.driver-main-navigation{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;min-height:62px;text-align:center}
+.driver-main-navigation small{display:block;max-width:100%;font-size:9px;font-weight:600;opacity:.72;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.driver-secondary-actions{display:grid;grid-template-columns:1fr;gap:7px}
+.driver-secondary-actions .btn{display:flex;align-items:center;justify-content:center;min-height:28px;font-size:10px}
+.driver-pro-command{margin-top:10px}
+.driver-pro-command .driver-action{min-height:64px;font-size:16px;letter-spacing:.01em}
+.driver-pro-command small{display:block;margin-top:7px;color:#ffd2a0;font-size:10px;text-align:center}
+.driver-filter-empty{padding:22px 8px;text-align:center;font-size:12px}
+.driver-all-clear{margin:16px 0;border-color:rgba(79,189,125,.32)}
+.driver-all-clear strong{color:#bcebd0}
+@media(max-width:760px){
+  .driver-pro-shell{padding-left:9px;padding-right:9px}
+  .driver-pro-header{align-items:stretch;flex-direction:column}
+  .driver-pro-header-side{flex-direction:column}
+  .driver-pro-mini-stats{grid-template-columns:repeat(3,1fr)}
+  .driver-pro-filter-bar{gap:5px;padding:7px 0}
+  .driver-pro-filter-bar button{padding:10px 4px;font-size:10px}
+  .driver-section-heading{align-items:center}
+  .driver-section-heading h2{font-size:21px}
+  .driver-next-countdown{font-size:10px}
+  .driver-status-stack{align-items:flex-start}
+  .driver-timeline{grid-template-columns:repeat(2,1fr)}
+  .driver-roundtrip-plan{grid-template-columns:1fr}
+  .driver-pro-info-grid{grid-template-columns:1fr 1fr}
+  .driver-navigation-panel{grid-template-columns:1fr}
+  .driver-secondary-actions{grid-template-columns:1fr 1fr}
+  .driver-main-navigation{min-height:66px;font-size:15px}
+  .driver-pro-command{position:sticky;bottom:8px;z-index:25;padding:7px;border:1px solid rgba(213,174,93,.3);border-radius:15px;background:rgba(9,11,16,.94);backdrop-filter:blur(12px);box-shadow:0 12px 28px rgba(0,0,0,.4)}
+  .driver-pro-command .driver-action{min-height:62px}
+}
+@media(max-width:440px){
+  .driver-pro-mini-stats>div{min-height:58px;padding:7px 4px}
+  .driver-pro-mini-stats strong{font-size:19px}
+  .driver-pro-trip{padding:14px}
+  .driver-pro-info-grid{grid-template-columns:1fr 1fr}
+  .driver-roundtrip-plan strong{font-size:12px}
+}
+
+/* v4.0 PRODUCTION FINAL */
+.ops-alert-grid-seven{grid-template-columns:repeat(7,1fr)}
+.company-address-list{display:grid;gap:9px;margin:14px 0}
+.company-address-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02)}
+.company-address-row strong,.company-address-row span{display:block}
+.company-address-row span{margin-top:4px;color:var(--muted);font-size:12px}
+.company-address-form{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.company-saved-address-select{margin-bottom:12px}
+.report-export-card{display:flex;align-items:end;justify-content:space-between;gap:24px}
+.report-export-card h2{margin:8px 0 4px}
+.report-export-actions{display:flex;align-items:end;gap:10px;min-width:330px}
+.report-export-actions label{flex:1}
+@media(max-width:1050px){.ops-alert-grid-seven{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:760px){.ops-alert-grid-seven{grid-template-columns:1fr 1fr}.report-export-card,.report-export-actions{display:grid;grid-template-columns:1fr;width:100%;min-width:0}.company-address-row{align-items:flex-start;flex-direction:column}}
+
+/* v4.1.0 — Company Calendar */
+.company-calendar-toolbar{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;margin-bottom:18px}.company-calendar-toolbar>div{text-align:center;display:flex;flex-direction:column;gap:4px}.company-calendar-toolbar>div strong{font-size:22px;color:#f1d28b}.company-calendar-toolbar>div span{color:var(--muted);font-size:13px}.company-calendar-weekdays,.company-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}.company-calendar-weekdays{margin-bottom:7px}.company-calendar-weekdays span{text-align:center;color:var(--muted);font-size:12px;font-weight:800}.company-calendar-day,.company-calendar-empty{min-height:86px;border:1px solid var(--line);border-radius:12px}.company-calendar-day{padding:10px;text-decoration:none;color:var(--txt);display:flex;flex-direction:column;justify-content:space-between;background:var(--panel2)}.company-calendar-day:hover,.company-calendar-day.selected{border-color:var(--gold);background:#29261d}.company-calendar-day.today{box-shadow:inset 0 0 0 1px var(--gold)}.company-calendar-day.has-bookings span{display:inline-flex;align-self:flex-start;padding:4px 7px;border-radius:999px;background:#3a311d;color:#f1d28b;font-size:10px;font-weight:800}.company-calendar-orders{display:flex;flex-direction:column;gap:9px}.company-calendar-orders>a{display:grid;grid-template-columns:90px 1fr auto;gap:14px;align-items:center;padding:13px;border:1px solid var(--line);border-radius:12px;text-decoration:none;color:var(--txt);background:var(--panel2)}.company-calendar-orders>a:hover{border-color:var(--gold)}.company-calendar-order-time{display:flex;flex-direction:column}.company-calendar-order-time strong{font-size:20px;color:#f1d28b}.company-calendar-order-time span{font-size:10px;font-weight:900;color:var(--muted)}.company-calendar-orders>a>div:nth-child(2){display:flex;flex-direction:column;gap:4px}.company-calendar-orders>a>div:nth-child(2)>span{color:var(--muted);font-size:13px}.company-calendar-count{font-size:30px;color:#f1d28b}.payment-error-inline{display:block;color:#ffb4b4;margin-top:5px}.company-online-payment-actions button{border:0;border-radius:8px;padding:7px 10px;font-weight:900;cursor:pointer;background:var(--gold);color:#151108}.company-online-payment-actions button:disabled{opacity:.6;cursor:wait}
+@media(max-width:700px){.company-calendar-toolbar{grid-template-columns:1fr 1fr}.company-calendar-toolbar>div{grid-column:1/-1;grid-row:1}.company-calendar-day,.company-calendar-empty{min-height:62px}.company-calendar-day{padding:7px}.company-calendar-day.has-bookings span{font-size:0;padding:5px}.company-calendar-day.has-bookings span:after{content:'●';font-size:10px}.company-calendar-orders>a{grid-template-columns:68px 1fr}.company-calendar-orders>a>.status{grid-column:1/-1;justify-self:start}}
+
+/* v4.1.0 — separate leg assignments */
+.booking-leg-assignment{border:1px solid var(--line);border-radius:13px;padding:13px;margin-top:12px;background:var(--panel2)}.booking-leg-assignment.return{border-color:#66572e;background:#211e17}.booking-leg-assignment-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.booking-leg-assignment-head strong{color:#f1d28b}.booking-leg-assignment-head span{font-size:11px;color:var(--muted)}
+
+/* v4.1.0 — dispatcher leg assignments */
+.dispatcher-leg-assignments{display:grid;gap:8px}.dispatcher-leg-assignment{display:grid;grid-template-columns:85px minmax(150px,1fr) minmax(150px,1fr);gap:7px;align-items:center;padding:7px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}.dispatcher-leg-assignment.return{border-color:#66572e;background:#211e17}.dispatcher-leg-assignment strong{font-size:11px;color:#f1d28b}.dispatcher-leg-unassigned{color:#ffbc7a!important;font-size:9px!important}.dispatcher-leg-list>div{position:relative}
+@media(max-width:900px){.dispatcher-leg-assignment{grid-template-columns:1fr}.dispatcher-leg-assignment strong{font-size:12px}}
+.company-leg-crew-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.company-leg-crew{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--panel2)}.company-leg-crew>strong{color:#f1d28b}.company-leg-crew>span{font-size:13px;color:var(--muted)}.company-leg-crew.return{border-color:#66572e}@media(max-width:700px){.company-leg-crew-grid{grid-template-columns:1fr}}
+.calendar-leg-state-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}.calendar-leg-state-grid>div{display:flex;justify-content:space-between;gap:8px;padding:9px;border:1px solid var(--line);border-radius:9px;background:var(--panel2)}.calendar-leg-state-grid>div.ok{border-color:#315f42}.calendar-leg-state-grid>div.waiting{border-color:#66572e}.calendar-leg-state-grid span{font-size:11px;color:var(--muted)}@media(max-width:600px){.calendar-leg-state-grid{grid-template-columns:1fr}}
+
+/* v4.1.0 — różni kierowcy WYJAZD / POWRÓT */
+.driver-return-waiting{margin-top:14px;padding:14px;border:1px solid rgba(213,174,93,.45);border-radius:12px;background:rgba(213,174,93,.08);display:flex;flex-direction:column;gap:6px}
+.driver-return-waiting strong{color:#f1d28b;font-size:12px;letter-spacing:.04em}
+.driver-return-waiting span{color:var(--muted);font-size:12px;line-height:1.45}
+.driver-roundtrip-plan>div.waiting{opacity:.82;border-style:dashed}
+
+
+/* v4.2.0 MATT GROWTH */
+.growth-wrap{overflow-wrap:anywhere;word-break:break-word}
+.growth-tech-details{margin-top:14px;border-top:1px solid rgba(255,255,255,.09);padding-top:12px}
+.growth-tech-details summary{cursor:pointer;font-weight:800;color:#d6ad55}
+.growth-test-card{margin-top:18px;display:flex;align-items:center;justify-content:space-between;gap:18px}
+.growth-test-card h2{margin-bottom:4px}
+.growth-two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
+.growth-recent-list a{color:inherit;text-decoration:none}
+.growth-recent-list a:hover{text-decoration:underline}
+@media(max-width:900px){.growth-test-card{align-items:stretch;flex-direction:column}.growth-two-col{grid-template-columns:1fr}.growth-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* MATT Booking PRO v4.3.0 — OPERATIONS UX */
+.sms-quick-btn{background:#213452;border-color:rgba(102,157,232,.5);color:#d9e9ff}
+.sms-fallback-box{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:12px;padding:12px 14px;border:1px solid rgba(102,157,232,.35);border-radius:12px;background:rgba(33,52,82,.22)}
+.sms-fallback-box strong,.sms-fallback-box span{display:block}.sms-fallback-box span{margin-top:3px;color:var(--muted);font-size:11px;line-height:1.4}
+.dashboard-upcoming-leg{display:inline-flex;align-items:center;width:max-content;margin-bottom:2px;padding:3px 7px;border:1px solid rgba(213,174,93,.32);border-radius:999px;color:var(--gold2);font-size:9px;font-weight:900;letter-spacing:.06em}
+.dashboard-upcoming-time{color:var(--gold2)!important;font-weight:800}
+@media(max-width:800px){.sms-fallback-box{align-items:stretch;flex-direction:column}.sms-fallback-box .btn{width:100%;text-align:center}}
+
+/* v4.3.1 — Growth Funnel */
+.growth-funnel-heading{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;flex-wrap:wrap}
+.growth-funnel-heading h2{margin:8px 0 6px}
+.growth-funnel-summary{display:grid;grid-template-columns:auto auto;gap:3px 10px;align-items:baseline;min-width:180px}
+.growth-funnel-summary strong{font-size:24px;color:#d4af37;text-align:right}
+.growth-funnel-summary span{font-size:12px;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em}
+.growth-funnel-source-tabs{margin:18px 0 12px}
+.growth-funnel-google-note{padding:11px 13px;border:1px solid rgba(212,175,55,.28);border-radius:10px;margin-bottom:14px;background:rgba(212,175,55,.05)}
+.growth-funnel-table td{vertical-align:middle}
+.growth-funnel-bar{width:100%;min-width:120px;height:9px;border-radius:999px;background:rgba(148,163,184,.18);overflow:hidden}
+.growth-funnel-bar span{display:block;height:100%;border-radius:999px;background:#d4af37}
+@media(max-width:900px){
+  .growth-funnel-summary{min-width:0;width:100%;grid-template-columns:auto 1fr}
+  .growth-funnel-summary strong{text-align:left}
+  .growth-funnel-source-tabs{overflow:auto;white-space:nowrap;display:flex}
+}
+
+/* v4.3.3 B2B ACCESS + COMPANY ADMIN HOTFIX */
+.portal-access-actions{display:flex;gap:8px;flex-wrap:wrap}.portal-access-success{color:#bde7cc!important}.portal-access-error{color:#ffb2b2!important}.temporary-password-box{margin-top:8px;padding:14px;border:1px solid rgba(213,174,93,.45);border-radius:12px;background:rgba(213,174,93,.06);display:grid;gap:8px}.temporary-password-box>span{font-size:10px;letter-spacing:.08em;color:var(--muted);font-weight:800}.temporary-password-box>strong{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:20px;letter-spacing:.04em;color:var(--gold2);overflow-wrap:anywhere}.temporary-password-box small{line-height:1.45}.company-admin-actions{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}.company-admin-action-buttons{display:flex;gap:8px;flex-wrap:wrap}.company-admin-edit-form{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02)}.company-admin-edit-form .btn{grid-column:1/-1}.company-active-toggle{grid-column:1/-1;display:flex!important;align-items:center;gap:8px}.company-active-toggle input{width:auto}.company-delete-btn{border-color:rgba(255,91,91,.55)!important;color:#ffb2b2!important}.company-delete-confirm{margin-top:14px;padding:14px;border:1px solid rgba(255,91,91,.48);border-radius:12px;background:rgba(255,91,91,.06)}.company-delete-confirm p{color:var(--muted);font-size:12px;line-height:1.55}.company-delete-confirm-btn{background:#7c2727!important;color:#fff!important;border-color:#a53a3a!important}@media(max-width:700px){.company-admin-edit-form{grid-template-columns:1fr}.portal-access-actions>*{width:100%}.company-admin-action-buttons>*{width:100%}}

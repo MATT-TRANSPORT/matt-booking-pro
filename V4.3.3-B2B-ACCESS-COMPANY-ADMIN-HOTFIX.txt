@@ -1,0 +1,33 @@
+MATT Booking PRO v4.3.3 — B2B ACCESS + COMPANY ADMIN HOTFIX
+
+Zakres:
+1. Panel MATT → Firma B2B:
+   - EDYTUJ DANE FIRMY,
+   - zmiana nazwy, NIP, e-maila, telefonu, osoby kontaktowej i statusu aktywna/nieaktywna,
+   - USUŃ FIRMĘ z potwierdzeniem pełnej nazwy.
+2. Bezpieczne usuwanie:
+   - firma bez rezerwacji może zostać trwale usunięta,
+   - firma mająca historię rezerwacji nie może zostać skasowana; należy ustawić ją jako nieaktywną,
+   - chroni historię finansową i operacyjną.
+3. Dostęp B2B:
+   - nowy przycisk GENERUJ HASŁO TYMCZASOWE,
+   - 18-znakowe hasło generowane kryptograficznie po stronie serwera,
+   - hasło ustawiane przez Supabase Admin API,
+   - hasło zwracane administratorowi tylko w bieżącej odpowiedzi i nie jest przechowywane w bazie jako tekst.
+4. Naprawa duplikatów dostępu:
+   - przy przypinaniu konta B2B usuwane są przypadkowe aktywne członkostwa tego samego użytkownika do innych firm,
+   - portal firmy ma dodatkowy fallback: wybiera najstarsze aktywne członkostwo zamiast wywalać .single() przy duplikacie.
+5. Ochrona przed ponownym utworzeniem tej samej firmy:
+   - tworzenie i edycja sprawdzają znormalizowany NIP oraz e-mail,
+   - NIP jest zapisywany w formie 10 cyfr.
+6. Zachowany hotfix v4.3.2 SafeLink:
+   - GET /auth/confirm nie zużywa tokenu,
+   - verifyOtp dopiero po ręcznym kliknięciu użytkownika.
+
+SQL migracji: brak.
+ENV: bez zmian.
+
+Produkcja 04.09.2026:
+- usunięto duplikat rekordu SL Poland Sp. z o.o. bez rezerwacji,
+- pozostawiono właściwy rekord z jednym aktywnym członkostwem B2B,
+- NIP właściwego rekordu znormalizowano do 10 cyfr.
