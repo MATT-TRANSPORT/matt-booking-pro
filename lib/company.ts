@@ -8,10 +8,12 @@ export async function companyClient() {
 
   const { data: membership } = await s
     .from("company_users")
-    .select("id,role,company_id,companies(id,name,nip,email,phone,contact_person,payment_days,discount_percent,active)")
+    .select("id,role,company_id,created_at,companies(id,name,nip,email,phone,contact_person,payment_days,discount_percent,active)")
     .eq("user_id", user.id)
     .eq("active", true)
-    .single();
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
 
   if (!membership) redirect("/firma/brak-dostepu");
 

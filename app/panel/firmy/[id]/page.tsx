@@ -1,5 +1,6 @@
 import PortalAccessButton from "@/components/PortalAccessButton";
 import CompanyTermsEditor from "@/components/CompanyTermsEditor";
+import CompanyAdminActions from "@/components/CompanyAdminActions";
 import { notFound } from "next/navigation";
 import PanelNav from "@/components/PanelNav";
 import SettlementUpload from "@/components/SettlementUpload";
@@ -88,6 +89,7 @@ export default async function Page({
               <div><span>Dostęp B2B</span><strong>{(users?.length ?? 0) > 0 ? "Konto aktywne" : "Brak konta"}</strong></div>
             </div>
             <PortalAccessButton type="company" id={company.id} active={(users?.length ?? 0) > 0} />
+            <CompanyAdminActions company={company} />
           </div>
 
           <SettlementUpload companyId={company.id} />
