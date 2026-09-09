@@ -9,7 +9,9 @@ export async function middleware(request: NextRequest) {
 
   // Publiczny formularz nie wymaga odświeżania sesji użytkownika.
   if (host === bookingHost && pathname === "/") {
-    return NextResponse.rewrite(new URL("/booking", request.url));
+    const bookingUrl = request.nextUrl.clone();
+    bookingUrl.pathname = "/booking";
+    return NextResponse.rewrite(bookingUrl);
   }
 
   // Najpierw przechodzimy na /panel, a dopiero kolejne żądanie

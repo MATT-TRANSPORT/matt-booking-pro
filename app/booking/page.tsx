@@ -1,9 +1,13 @@
 import Script from "next/script";
 import BookingLanding from "@/components/BookingLanding";
+import { parseBookingEntry } from "@/lib/bookingEntry";
 
 const GA_MEASUREMENT_ID = "G-BKDS7PH54K";
 
-export default function BookingPage(){
+export default async function BookingPage({searchParams}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}){
+  const initialEntry = parseBookingEntry(await searchParams);
   return <>
     <Script
       src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
@@ -17,6 +21,6 @@ export default function BookingPage(){
         window.gtag('config', '${GA_MEASUREMENT_ID}');
       `}
     </Script>
-    <main className="container"><BookingLanding/></main>
+    <main className="container"><BookingLanding initialEntry={initialEntry}/></main>
   </>;
 }

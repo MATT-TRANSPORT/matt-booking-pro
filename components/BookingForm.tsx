@@ -5,19 +5,20 @@ import { useEffect, useMemo, useState } from "react";
 import { PRICES } from "@/lib/pricing";
 import { clearGrowthTracking, growthFunnelSessionId, readGrowthTracking, resetGrowthFunnelSession, trackGrowthFunnelEvent } from "@/lib/growthTracking";
 import { trackBookingPurchase } from "@/lib/ga4";
+import type { BookingEntry } from "@/lib/bookingEntry";
 
 type Suggestion = { placeId?: string; text?: string };
 type AirportKey = keyof typeof PRICES | "other";
 
-export default function BookingForm() {
+export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry}) {
   const [mobile, setMobile] = useState(false);
   const [step, setStep] = useState(1);
 
   const [serviceType,setServiceType] = useState<"to_airport"|"from_airport"|"roundtrip">("to_airport");
   const [address,setAddress] = useState("");
-  const [airport,setAirport] = useState<AirportKey>("balice");
+  const [airport,setAirport] = useState<AirportKey>(initialEntry?.airport ?? "balice");
   const [otherAirport,setOtherAirport] = useState("");
-  const [vehicle,setVehicle] = useState<"car"|"bus">("car");
+  const [vehicle,setVehicle] = useState<"car"|"bus">(initialEntry?.vehicle ?? "car");
   const [passengers,setPassengers] = useState(1);
   const [distanceKm,setDistanceKm] = useState(0);
   const [suggestions,setSuggestions] = useState<Suggestion[]>([]);
