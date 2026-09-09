@@ -243,21 +243,21 @@ export default function BookingForm() {
     </div>;
   }
 
-  const AirportSelect = () => <label>Lotnisko
+  const renderAirportSelect = () => <label>Lotnisko
     <select value={airport} onChange={e=>{const v=e.target.value as AirportKey;setAirport(v);if(v!=="other")setOtherAirport("");}}>
       {Object.entries(PRICES).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
       <option value="other">Inne lotnisko</option>
     </select>
   </label>;
 
-  const OtherAirportBox = () => airport==="other" ? <div className="individual-quote-box">
+  const renderOtherAirportBox = () => airport==="other" ? <div className="individual-quote-box">
     <label>Jakie lotnisko?<input value={otherAirport} onChange={e=>setOtherAirport(e.target.value)} placeholder="np. Berlin Brandenburg"/></label>
     <strong>Wycena indywidualna</strong>
     <p>Dla tego lotniska cenę ustalamy indywidualnie telefonicznie.</p>
     <a className="btn" href="tel:+48691242691">📞 ZADZWOŃ I ZAPYTAJ O CENĘ</a>
   </div> : null;
 
-  const AdditionalStopBox = () => !additionalStopEnabled ? <button type="button" className="btn secondary additional-stop-toggle" onClick={()=>setAdditionalStopEnabled(true)}>+ DODAJ DODATKOWY ADRES / PRZYSTANEK</button> : <div className="additional-stop-box">
+  const renderAdditionalStopBox = () => !additionalStopEnabled ? <button type="button" className="btn secondary additional-stop-toggle" onClick={()=>setAdditionalStopEnabled(true)}>+ DODAJ DODATKOWY ADRES / PRZYSTANEK</button> : <div className="additional-stop-box">
     <div className="additional-stop-head"><div><strong>Dodatkowy adres / przystanek</strong><small>+20,00 zł za każdy użyty kierunek. Dopłata kilometrowa tylko za faktyczny objazd poza normalną trasę.</small></div><button type="button" className="btn secondary" onClick={()=>{setAdditionalStopEnabled(false);setAdditionalStopAddress("");setAdditionalStopPrimary(true);setAdditionalStopReturn(false);setAdditionalStopSuggestions([]);setAdditionalStopQuote(null);setAdditionalStopError("");}}>USUŃ</button></div>
     <label>Adres dodatkowego przystanku<input value={additionalStopAddress} onChange={e=>setAdditionalStopAddress(e.target.value)} autoComplete="off" placeholder="Wpisz drugi adres"/>{additionalStopSuggestions.length>0&&<div className="address-suggestions">{additionalStopSuggestions.slice(0,5).map((x,i)=><button key={x.placeId??i} type="button" onClick={()=>{setAdditionalStopAddress(x.text??"");setAdditionalStopSuggestions([]);}}>{x.text}</button>)}</div>}</label>
     {serviceType==="roundtrip"?<div className="additional-stop-directions"><label><input type="checkbox" checked={additionalStopPrimary} onChange={e=>setAdditionalStopPrimary(e.target.checked)}/> Wyjazd na lotnisko (+20 zł)</label><label><input type="checkbox" checked={additionalStopReturn} onChange={e=>setAdditionalStopReturn(e.target.checked)}/> Powrót z lotniska (+20 zł)</label></div>:<p className="muted">Przystanek dotyczy tego przejazdu · +20,00 zł.</p>}
@@ -266,10 +266,20 @@ export default function BookingForm() {
     {additionalStopQuote&&!additionalStopBusy&&<div className="route-status ok">{Number(additionalStopQuote.totalExtraKm||0)>0?`Objazd poza normalną trasę: ${Number(additionalStopQuote.totalExtraKm).toFixed(1)} km · dopłata ${Number(additionalStopQuote.stopExtraPrice).toFixed(2)} zł`:"✓ Przystanek jest na trasie — bez dopłaty kilometrowej."}</div>}
   </div>;
 
+  const googleRatingBadge = <a
+    className="badge"
+    href="https://www.google.com/maps/search/?api=1&query=MATT%20TRANSPORT%20Rybnik&query_place_id=ChIJpcffIH5JEUcR7xEM9paQ2Gs"
+    target="_blank"
+    rel="noreferrer"
+    title="Zobacz opinie MATT TRANSPORT w Google"
+    aria-label="Ocena MATT TRANSPORT w Google: 5.0 na 5"
+  >★★★★★ 5.0 w Google</a>;
+
   if(mobile){
     return <div className="mobile-booking-wizard" onClickCapture={markFunnelStarted} onInputCapture={markFunnelStarted}>
       <div className="wizard-header">
         <div className="wizard-header-top"><span className="badge">MATT TRANSPORT</span><strong>Krok {step} z 6</strong></div>
+        <div style={{marginTop:8}}>{googleRatingBadge}</div>
         <div className="wizard-progress"><span style={{width:`${Math.round(step/6*100)}%`}}/></div>
       </div>
 
@@ -288,9 +298,9 @@ export default function BookingForm() {
           <input value={address} onChange={e=>setAddress(e.target.value)} placeholder="Wpisz adres"/>
           {suggestions.length>0&&<div className="address-suggestions">{suggestions.slice(0,5).map((s,i)=><button key={s.placeId??i} type="button" onClick={()=>chooseAddress(s.text??"")}>{s.text}</button>)}</div>}
         </label>
-        <AirportSelect/>
-        <OtherAirportBox/>
-        {airport!=="other"&&<AdditionalStopBox/>}
+        {renderAirportSelect()}
+        {renderOtherAirportBox()}
+        {airport!=="other"&&renderAdditionalStopBox()}
         <div className="wizard-nav"><button className="btn secondary" onClick={()=>go(1)}>WSTECZ</button>{airport!=="other"&&<button className="btn" disabled={!valid(2)} onClick={()=>go(3)}>DALEJ</button>}</div>
       </section>}
 
@@ -371,7 +381,7 @@ export default function BookingForm() {
 
   return <div className="layout booking-form-wrap" onClickCapture={markFunnelStarted} onInputCapture={markFunnelStarted}>
     <div className="card">
-      <span className="badge">MATT TRANSPORT</span><h1>Zarezerwuj transfer lotniskowy</h1>
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}><span className="badge">MATT TRANSPORT</span>{googleRatingBadge}</div><h1>Zarezerwuj transfer lotniskowy</h1>
       <div className="choice-grid">
         <button className={`choice ${serviceType==="to_airport"?"active":""}`} onClick={()=>setServiceType("to_airport")}><strong>🛫 Transfer na lotnisko</strong></button>
         <button className={`choice ${serviceType==="from_airport"?"active":""}`} onClick={()=>setServiceType("from_airport")}><strong>🛬 Odbiór z lotniska</strong></button>
@@ -380,10 +390,10 @@ export default function BookingForm() {
       <h3>Trasa</h3>
       <div className="grid">
         <label>{serviceType==="from_airport"?"Adres docelowy":"Adres odbioru"}<input value={address} onChange={e=>setAddress(e.target.value)} placeholder="Wpisz adres"/>{suggestions.length>0&&<div className="address-suggestions">{suggestions.slice(0,5).map((s,i)=><button key={s.placeId??i} type="button" onClick={()=>chooseAddress(s.text??"")}>{s.text}</button>)}</div>}</label>
-        <AirportSelect/>
+        {renderAirportSelect()}
       </div>
-      <OtherAirportBox/>
-      {airport!=="other"&&<AdditionalStopBox/>}
+      {renderOtherAirportBox()}
+      {airport!=="other"&&renderAdditionalStopBox()}
       <h3>Termin</h3>
       <p className="muted flight-time-hint">Dla wyjazdu na lotnisko podaj godzinę wyjazdu spod wskazanego adresu. Przy odbiorze z lotniska podaj godzinę przylotu z rozkładu lotu.</p>
       <div className="grid">
