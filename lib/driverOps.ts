@@ -1,3 +1,5 @@
+import { bookingRouteText } from "@/lib/bookingRoute";
+
 import { bookingLegOperationalWindow } from "@/lib/bookingOperationalWindow";
 
 export type DriverLeg = "primary" | "return";
@@ -170,10 +172,14 @@ export function driverDestinationTarget(booking: any, leg: DriverLeg) {
 }
 
 export function driverRouteText(booking: any, leg: DriverLeg) {
-  return `${driverPickupTarget(booking, leg)} → ${driverDestinationTarget(
-    booking,
-    leg
-  )}`;
+  return bookingRouteText(booking, leg);
+}
+
+export function driverAdditionalStopTarget(booking: any, leg: DriverLeg) {
+  const address = String(booking?.additional_stop_address || "").trim();
+  if (!address) return "";
+  if (leg === "return") return booking?.additional_stop_return ? address : "";
+  return booking?.additional_stop_primary ? address : "";
 }
 
 export function isDriverLegCompleted(
