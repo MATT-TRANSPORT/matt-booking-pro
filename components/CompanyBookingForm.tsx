@@ -21,11 +21,13 @@ function normalizeQuote(raw: any) {
   const baseOneWayNet = money(finite(raw?.baseOneWayNet, 0));
   const basePriceNet = money(finite(raw?.basePriceNet, baseOneWayNet * multiplier));
   const extraPriceNet = money(finite(raw?.extraPriceNet, 0));
-  const net = money(basePriceNet + extraPriceNet);
+  const additionalStopFeeNet = money(finite(raw?.additionalStopFeeNet, 0));
+  const additionalStopExtraPriceNet = money(finite(raw?.additionalStopExtraPriceNet, 0));
+  const net = money(basePriceNet + extraPriceNet + additionalStopFeeNet + additionalStopExtraPriceNet);
   const vatRate = finite(raw?.vatRate, 8);
   const vat = money(net * (vatRate / 100));
   const gross = money(net + vat);
-  return { ...raw, originAddress: String(raw?.originAddress || ""), distanceKm: finite(raw?.distanceKm,0), freeKm: finite(raw?.freeKm,0), billableKm: finite(raw?.billableKm,0), extraKmRateNet: finite(raw?.extraKmRateNet,0), baseOneWayNet, basePriceNet, extraPriceNet, multiplier, net, vatRate, vat, gross };
+  return { ...raw, originAddress: String(raw?.originAddress || ""), distanceKm: finite(raw?.distanceKm,0), freeKm: finite(raw?.freeKm,0), billableKm: finite(raw?.billableKm,0), extraKmRateNet: finite(raw?.extraKmRateNet,0), baseOneWayNet, basePriceNet, extraPriceNet, additionalStopFeeNet, additionalStopExtraPriceNet, additionalStopExtraKm: finite(raw?.additionalStopExtraKm,0), multiplier, net, vatRate, vat, gross };
 }
 
 export default function CompanyBookingForm({
@@ -69,6 +71,11 @@ export default function CompanyBookingForm({
     useState<"company_transfer" | "employee_payment">("company_transfer");
   const [paymentInitialized, setPaymentInitialized] = useState(false);
   const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [additionalStopEnabled, setAdditionalStopEnabled] = useState(false);
+  const [additionalStopAddress, setAdditionalStopAddress] = useState("");
+  const [additionalStopPrimary, setAdditionalStopPrimary] = useState(true);
+  const [additionalStopReturn, setAdditionalStopReturn] = useState(false);
+  const [additionalStopSuggestions, setAdditionalStopSuggestions] = useState<any[]>([]);
   const [quote, setQuote] = useState<any>(null);
   const [quoteBusy, setQuoteBusy] = useState(false);
   const [quoteError, setQuoteError] = useState("");
@@ -114,6 +121,27 @@ export default function CompanyBookingForm({
   }, [address]);
 
   useEffect(() => {
+    if (serviceType !== "roundtrip") setAdditionalStopReturn(false);
+  }, [serviceType]);
+
+  useEffect(() => {
+    if (!additionalStopEnabled || additionalStopAddress.trim().length < 3) {
+      setAdditionalStopSuggestions([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/places?q=${encodeURIComponent(additionalStopAddress)}`);
+        const data = await response.json();
+        setAdditionalStopSuggestions(data.suggestions ?? []);
+      } catch {
+        setAdditionalStopSuggestions([]);
+      }
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [additionalStopEnabled, additionalStopAddress]);
+
+  useEffect(() => {
     if (address.trim().length < 5) {
       setQuote(null);
       setQuoteError("");
@@ -125,10 +153,10 @@ export default function CompanyBookingForm({
     }, 650);
 
     return () => clearTimeout(timer);
-  }, [address, airport, vehicle, serviceType]);
+  }, [address, airport, vehicle, serviceType, additionalStopEnabled, additionalStopAddress, additionalStopPrimary, additionalStopReturn]);
 
   async function quoteFor(value: string) {
-    if (!value || quoteBusy) return;
+    if (!value) return;
     setQuoteBusy(true);
     setQuoteError("");
 
@@ -140,7 +168,10 @@ export default function CompanyBookingForm({
           address: value,
           airport,
           vehicleType: vehicle,
-          serviceType
+          serviceType,
+          additionalStopAddress: additionalStopEnabled ? additionalStopAddress : null,
+          additionalStopPrimary: additionalStopEnabled && additionalStopPrimary,
+          additionalStopReturn: additionalStopEnabled && serviceType === "roundtrip" && additionalStopReturn
         })
       });
       const data = await response.json();
@@ -184,6 +215,11 @@ export default function CompanyBookingForm({
       return;
     }
 
+    if (additionalStopEnabled && (!additionalStopAddress.trim() || (!additionalStopPrimary && !(serviceType === "roundtrip" && additionalStopReturn)))) {
+      setMessage("Uzupełnij dodatkowy adres i wybierz kierunek przystanku.");
+      return;
+    }
+
     if (!quote) {
       setMessage("Poczekaj na poprawną wycenę B2B.");
       return;
@@ -209,6 +245,9 @@ export default function CompanyBookingForm({
         returnTime,
         flightNumber,
         returnFlightNumber,
+        additionalStopAddress: additionalStopEnabled ? additionalStopAddress : null,
+        additionalStopPrimary: additionalStopEnabled && additionalStopPrimary,
+        additionalStopReturn: additionalStopEnabled && serviceType === "roundtrip" && additionalStopReturn,
         notes,
         paymentMethod
       })
@@ -385,6 +424,44 @@ export default function CompanyBookingForm({
           </label>
         </div>
 
+        {!additionalStopEnabled ? (
+          <button type="button" className="btn secondary additional-stop-toggle" onClick={() => setAdditionalStopEnabled(true)}>
+            + DODAJ DODATKOWY ADRES / PRZYSTANEK
+          </button>
+        ) : (
+          <div className="additional-stop-box">
+            <div className="additional-stop-head">
+              <div><strong>Dodatkowy adres / przystanek</strong><small>+20,00 zł netto za każdy użyty kierunek. Kilometry doliczamy tylko za faktyczny objazd poza normalną trasę.</small></div>
+              <button type="button" className="btn secondary" onClick={() => { setAdditionalStopEnabled(false); setAdditionalStopAddress(""); setAdditionalStopPrimary(true); setAdditionalStopReturn(false); setAdditionalStopSuggestions([]); }}>USUŃ</button>
+            </div>
+            <label>Adres dodatkowego przystanku
+              <input value={additionalStopAddress} onChange={(e) => setAdditionalStopAddress(e.target.value)} autoComplete="off" placeholder="Wpisz drugi adres" />
+              {additionalStopSuggestions.length > 0 && (
+                <div className="address-suggestions">
+                  {additionalStopSuggestions.slice(0, 5).map((item: any, i: number) => (
+                    <button key={item.placeId ?? i} type="button" onClick={() => { setAdditionalStopAddress(String(item?.text ?? "")); setAdditionalStopSuggestions([]); }}>{item.text}</button>
+                  ))}
+                </div>
+              )}
+            </label>
+            {serviceType === "roundtrip" ? (
+              <div className="additional-stop-directions">
+                <label><input type="checkbox" checked={additionalStopPrimary} onChange={(e) => setAdditionalStopPrimary(e.target.checked)} /> Wyjazd na lotnisko (+20 zł netto)</label>
+                <label><input type="checkbox" checked={additionalStopReturn} onChange={(e) => setAdditionalStopReturn(e.target.checked)} /> Powrót z lotniska (+20 zł netto)</label>
+              </div>
+            ) : (
+              <p className="muted">Przystanek dotyczy tego przejazdu · +20,00 zł netto.</p>
+            )}
+            {quote?.additionalStopAddress && (
+              <div className="route-status ok">
+                {Number(quote.additionalStopExtraKm || 0) > 0
+                  ? `Objazd poza normalną trasę: ${fixed(quote.additionalStopExtraKm, 1)} km · dopłata ${fixed(quote.additionalStopExtraPriceNet, 2)} zł netto`
+                  : "✓ Przystanek jest na trasie — bez dopłaty kilometrowej."}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className={`route-status ${quote ? "ok" : ""}`}>
           {quoteBusy
             ? "Obliczanie odległości od siedziby kontrahenta i wyceny..."
@@ -441,6 +518,8 @@ export default function CompanyBookingForm({
             {quote.multiplier > 1 && <div className="row"><span>Mnożnik przejazdu</span><strong>× {quote.multiplier}</strong></div>}
             <div className="row"><span>Cena bazowa</span><strong>{fixed(quote.basePriceNet, 2)} zł netto</strong></div>
             <div className="row"><span>Dopłata km</span><strong>{fixed(quote.extraPriceNet, 2)} zł netto</strong></div>
+            {quote.additionalStopAddress && <div className="row"><span>Dodatkowy przystanek</span><strong>{fixed(quote.additionalStopFeeNet, 2)} zł netto</strong></div>}
+            {quote.additionalStopAddress && <div className="row"><span>Objazd przystanku</span><strong>{fixed(quote.additionalStopExtraKm, 1)} km · {fixed(quote.additionalStopExtraPriceNet, 2)} zł netto</strong></div>}
             <div className="row total"><span>RAZEM NETTO</span><strong>{fixed(quote.net, 2)} zł</strong></div>
             <div className="row"><span>VAT {fixed(quote.vatRate, 0)}%</span><strong>{fixed(quote.vat, 2)} zł</strong></div>
             <div className="row total"><span>RAZEM BRUTTO</span><strong>{fixed(quote.gross, 2)} zł</strong></div>
