@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="MATT Administrator">
+  <rect width="512" height="512" rx="96" fill="#090b10"/>
+  <rect x="24" y="24" width="464" height="464" rx="76" fill="none" stroke="#d5ae5d" stroke-width="12"/>
+  <path d="M256 92l116 42v88c0 87-49 151-116 198-67-47-116-111-116-198v-88l116-42z" fill="#151923" stroke="#d5ae5d" stroke-width="8"/>
+  <text x="256" y="225" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="88" font-weight="900" fill="#f1d28b">MATT</text>
+  <text x="256" y="310" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="50" font-weight="900" letter-spacing="4" fill="#ffffff">ADMIN</text>
+  <text x="256" y="360" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" letter-spacing="3" fill="#d5ae5d">PANEL</text>
+</svg>

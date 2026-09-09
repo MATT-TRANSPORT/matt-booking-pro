@@ -4,16 +4,7 @@ import GrowthTracker from "@/components/GrowthTracker";
 
 export const metadata: Metadata = {
   title: "MATT Booking PRO",
-  description: "MATT TRANSPORT",
-  manifest: "/manifest.webmanifest",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "MATT Driver"
-  },
-  icons: {
-    apple: "/pwa/icon-192.png"
-  }
+  description: "MATT TRANSPORT"
 };
 
 export const viewport: Viewport = {

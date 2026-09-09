@@ -1,15 +1,21 @@
 {
-  "name": "MATT DRIVER",
-  "short_name": "MATT Driver",
-  "description": "Panel kierowcy MATT TRANSPORT",
-  "id": "/kierowca",
-  "start_url": "/kierowca",
+  "name": "MATT ADMINISTRATOR",
+  "short_name": "MATT Admin",
+  "description": "Panel administratora MATT TRANSPORT",
+  "id": "/panel",
+  "start_url": "/panel",
   "scope": "/",
   "display": "standalone",
   "background_color": "#090b10",
   "theme_color": "#090b10",
   "orientation": "portrait",
   "icons": [
+    {
+      "src": "/pwa/admin-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
     {
       "src": "/pwa/icon-192.png",
       "sizes": "192x192",
@@ -19,12 +25,6 @@
       "src": "/pwa/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
-    },
-    {
-      "src": "/pwa/icon-maskable-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
     }
   ]
 }
