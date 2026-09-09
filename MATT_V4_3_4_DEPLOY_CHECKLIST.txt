@@ -1,0 +1,22 @@
+MATT Booking PRO v4.3.4 — ADDITIONAL STOP — DEPLOY CHECKLIST
+
+KOLEJNOŚĆ:
+1. Wykonaj MATT_V4_3_4_ADDITIONAL_STOP_SQL.sql w produkcyjnym Supabase.
+2. Sprawdź, że kolumny additional_stop_* istnieją w public.bookings.
+3. Wdróż kod v4.3.4.
+4. Test B2C:
+   - bez przystanku = cena bez zmian,
+   - przystanek na trasie = +20,00 zł, bez dopłaty km,
+   - przystanek z objazdem = +20,00 zł + 2,40 zł/km faktycznego objazdu,
+   - roundtrip: wyjazd / powrót / oba kierunki (+20 / +20 / +40 zł).
+5. Test B2B:
+   - bez przystanku = cena bez zmian,
+   - przystanek na trasie = +20,00 zł netto, bez dopłaty km,
+   - przystanek przy normalnej trasie siedziba firmy → lotnisko = +20,00 zł netto, bez dopłaty km,
+   - objazd poza tę trasę = +20,00 zł netto + stawka netto/km z warunków firmy,
+   - roundtrip: wyjazd / powrót / oba kierunki (+20 / +20 / +40 zł netto).
+6. Sprawdź: panel MATT, portal firmy, portal klienta, Driver PWA, Google Calendar, e-mail i Stripe.
+7. Sprawdź „Powtórz rezerwację” B2B — dodatkowy przystanek ma zostać zachowany i wyceniony wg aktualnych warunków.
+
+ROLLBACK KODU:
+- wróć do v4.3.3; nowe kolumny mogą pozostać w bazie (są kompatybilne wstecz).
