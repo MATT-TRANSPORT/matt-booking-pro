@@ -1,0 +1,18 @@
+MATT Booking PRO v4.3.4 — ADDITIONAL STOP
+
+Zakres:
+- B2C i B2B: opcjonalny drugi adres / przystanek przez przycisk „+ DODAJ DODATKOWY ADRES / PRZYSTANEK”.
+- Jeden dodatkowy adres na rezerwację.
+- Roundtrip: przystanek może dotyczyć wyjazdu, powrotu albo obu kierunków.
+- B2C: 20,00 zł za każdy użyty kierunek.
+- B2B: 20,00 zł netto za każdy użyty kierunek + VAT 8% w normalnym rozliczeniu B2B.
+- Dopłata kilometrowa tylko za faktyczny objazd: system porównuje normalną trasę z trasą przez dodatkowy adres.
+- Jeżeli dodatkowy adres jest na trasie, dopłata kilometrowa wynosi 0,00 zł; pozostaje tylko opłata za przystanek.
+- B2C objazd: 2,40 zł/km.
+- B2B objazd: porównanie trasy siedziba kontrahenta → lotnisko z trasą przez dodatkowy adres; stawka netto/km z aktywnych warunków handlowych firmy.
+- Cena jest ponownie liczona na backendzie przed zapisem rezerwacji.
+
+Kolejność wdrożenia:
+1. Wykonać MATT_V4_3_4_ADDITIONAL_STOP_SQL.sql w Supabase SQL Editor.
+2. Wdrożyć kod v4.3.4.
+3. Test B2C i B2B: przystanek na trasie, objazd, roundtrip jeden kierunek, roundtrip oba kierunki.
