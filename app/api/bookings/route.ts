@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PRICES, calculateQuote } from "@/lib/pricing";
+import { calculateAdditionalStopDetour } from "@/lib/additionalStopServer";
+import { ADDITIONAL_STOP_B2C_KM_RATE, ADDITIONAL_STOP_FEE_B2C, additionalStopDirectionCount } from "@/lib/additionalStopConfig";
 import { sendMattEmail } from "@/lib/email";
 import { sendBookingNotification } from "@/lib/customerNotifications";
 import {
@@ -94,12 +96,58 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const additionalStopAddress = String(body.additionalStopAddress || "").trim();
+  const additionalStopPrimary = Boolean(
+    additionalStopAddress &&
+      (body.serviceType === "roundtrip" ? body.additionalStopPrimary : true)
+  );
+  const additionalStopReturn = Boolean(
+    additionalStopAddress && body.serviceType === "roundtrip" && body.additionalStopReturn
+  );
+
+  let additionalStop = {
+    stopAddress: additionalStopAddress || null,
+    primary: additionalStopPrimary,
+    returnLeg: additionalStopReturn,
+    primaryExtraKm: 0,
+    returnExtraKm: 0,
+    totalExtraKm: 0
+  } as any;
+
+  if (additionalStopAddress && (additionalStopPrimary || additionalStopReturn)) {
+    try {
+      additionalStop = await calculateAdditionalStopDetour({
+        serviceType: body.serviceType,
+        pickupAddress: body.address,
+        airportKey: body.airport,
+        stopAddress: additionalStopAddress,
+        primary: additionalStopPrimary,
+        returnLeg: additionalStopReturn
+      });
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Nie udało się obliczyć dodatkowego przystanku." },
+        { status: 400 }
+      );
+    }
+  }
+
+  const additionalStopCount = additionalStopDirectionCount({
+    serviceType: body.serviceType,
+    primary: additionalStop.primary,
+    returnLeg: additionalStop.returnLeg
+  });
+
   const quote = calculateQuote({
     serviceType: body.serviceType,
     airport: body.airport,
     vehicleType: body.vehicleType,
     distanceKm: Number(body.distanceKm),
-    invoiceRequired: Boolean(body.invoiceRequired)
+    invoiceRequired: Boolean(body.invoiceRequired),
+    additionalStopCount,
+    additionalStopExtraKm: additionalStop.totalExtraKm,
+    additionalStopFee: ADDITIONAL_STOP_FEE_B2C,
+    additionalStopKmRate: ADDITIONAL_STOP_B2C_KM_RATE
   });
 
   const airport =
@@ -145,6 +193,13 @@ export async function POST(req: NextRequest) {
       return_flight_number: body.returnFlightNumber || null,
       base_price: quote.basePrice,
       extra_price: quote.extraPrice,
+      additional_stop_address: additionalStop.stopAddress,
+      additional_stop_primary: Boolean(additionalStop.primary),
+      additional_stop_return: Boolean(additionalStop.returnLeg),
+      additional_stop_primary_extra_km: Number(additionalStop.primaryExtraKm || 0),
+      additional_stop_return_extra_km: Number(additionalStop.returnExtraKm || 0),
+      additional_stop_fee: quote.additionalStopFee,
+      additional_stop_extra_price: quote.additionalStopExtraPrice,
       vat_price: quote.vatPrice,
       total_price: quote.totalPrice,
       status: "pending",
@@ -166,6 +221,19 @@ export async function POST(req: NextRequest) {
       { error: error.message },
       { status: 500 }
     );
+  }
+
+  if (additionalStop.stopAddress) {
+    await supabase.from("booking_history").insert({
+      booking_id: data.id,
+      event:
+        `Dodatkowy przystanek: ${additionalStop.stopAddress} · ` +
+        `postój ${quote.additionalStopFee.toFixed(2)} zł` +
+        (quote.additionalStopExtraKm > 0
+          ? ` · objazd ${quote.additionalStopExtraKm.toFixed(1)} km = ${quote.additionalStopExtraPrice.toFixed(2)} zł`
+          : " · bez dopłaty kilometrowej"),
+      created_by: null
+    });
   }
 
   const funnelSessionId = validFunnelSessionId(body?.funnelSessionId);
