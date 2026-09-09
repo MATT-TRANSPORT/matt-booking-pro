@@ -121,7 +121,10 @@ export async function POST(req: NextRequest) {
       pickupAddress: String(body.address || ""),
       airportKey: String(body.airport || ""),
       vehicleType: vehicle,
-      serviceType: String(body.serviceType || "to_airport")
+      serviceType: String(body.serviceType || "to_airport"),
+      additionalStopAddress: body.additionalStopAddress ? String(body.additionalStopAddress) : null,
+      additionalStopPrimary: Boolean(body.additionalStopPrimary),
+      additionalStopReturn: Boolean(body.additionalStopReturn)
     });
   } catch (error) {
     return NextResponse.json(
@@ -189,7 +192,11 @@ export async function POST(req: NextRequest) {
     event:
       `Rezerwacja utworzona przez portal B2B · ` +
       `${quote.net.toFixed(2)} zł netto + VAT ${quote.vatRate.toFixed(0)}% = ${quote.gross.toFixed(2)} zł brutto · ` +
-      `${quote.distanceKm.toFixed(1)} km od siedziby, ${quote.billableKm.toFixed(1)} km płatne`,
+      `${quote.distanceKm.toFixed(1)} km od siedziby, ${quote.billableKm.toFixed(1)} km płatne` +
+      (quote.additionalStopAddress
+        ? ` · dodatkowy przystanek: ${quote.additionalStopAddress} · ${quote.additionalStopFeeNet.toFixed(2)} zł netto` +
+          (quote.additionalStopExtraKm > 0 ? ` + objazd ${quote.additionalStopExtraKm.toFixed(1)} km` : " · bez dopłaty km")
+        : ""),
     created_by: user.id
   });
 
