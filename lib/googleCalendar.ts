@@ -1,4 +1,5 @@
 import { bookingLegOperationalWindow } from "@/lib/bookingOperationalWindow";
+import { bookingRouteText } from "@/lib/bookingRoute";
 import {
   createPrivateKey,
   createSign
@@ -356,29 +357,7 @@ function routeFor(
   booking: any,
   leg: "primary" | "return"
 ) {
-  if (
-    booking.service_type === "roundtrip" &&
-    leg === "return"
-  ) {
-    return (
-      `${booking.airport_label} → ` +
-      `${booking.pickup_address}`
-    );
-  }
-
-  if (
-    booking.service_type === "from_airport"
-  ) {
-    return (
-      `${booking.airport_label} → ` +
-      `${booking.pickup_address}`
-    );
-  }
-
-  return (
-    `${booking.pickup_address} → ` +
-    `${booking.airport_label}`
-  );
+  return bookingRouteText(booking, leg);
 }
 
 function locationFor(
@@ -445,7 +424,7 @@ function bookingEventBody(
     `Telefon: ${booking.phone || "—"}`,
     `Trasa: ${route}`,
     `Okno operacyjne: ${operational.startDate} ${operational.startTime} – ${operational.endDate} ${operational.endTime}`,
-    `${leg === "return" || booking.service_type === "from_airport" ? "Przylot" : "Wylot"}: ${operational.scheduledDate} ${operational.scheduledTime}`,
+    `${leg === "return" || booking.service_type === "from_airport" ? "Godzina przylotu" : "Godzina wyjazdu od klienta"}: ${operational.scheduledDate} ${operational.scheduledTime}`,
     `Pasażerowie: ${booking.passengers || "—"}`,
     `Lot: ${flight || "—"}`,
     `Płatność: ${paymentMethodLabel(booking)}`,
