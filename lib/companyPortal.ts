@@ -1,3 +1,5 @@
+import { bookingRouteText } from "@/lib/bookingRoute";
+
 export function companyServiceLabel(value?: string | null) {
   const map: Record<string, string> = {
     to_airport: "Na lotnisko",
@@ -12,11 +14,7 @@ export function companyVehicleLabel(value?: string | null) {
 }
 
 export function companyRouteLabel(booking: any) {
-  const address = String(booking?.pickup_address || "—");
-  const airport = String(booking?.airport_label || "Lotnisko");
-  if (booking?.service_type === "from_airport") return `${airport} → ${address}`;
-  if (booking?.service_type === "roundtrip") return `${address} ↔ ${airport}`;
-  return `${address} → ${airport}`;
+  return bookingRouteText(booking);
 }
 
 function finite(value: unknown, fallback = 0) {
@@ -33,7 +31,9 @@ export function companyBookingMoney(booking: any) {
   const snapshot = booking?.pricing_snapshot || {};
   const basePrice = finite(snapshot?.base_price_net ?? booking?.base_price, 0);
   const extraPrice = finite(snapshot?.extra_price_net ?? booking?.extra_price, 0);
-  const componentNet = money(basePrice + extraPrice);
+  const stopFee = finite(snapshot?.additional_stop_fee_net ?? booking?.additional_stop_fee, 0);
+  const stopExtra = finite(snapshot?.additional_stop_extra_price_net ?? booking?.additional_stop_extra_price, 0);
+  const componentNet = money(basePrice + extraPrice + stopFee + stopExtra);
   const storedTotal = finite(booking?.total_price, 0);
 
   if (source === "custom" || source === "standard" || snapshot?.version === 1) {
@@ -141,4 +141,3 @@ export function sortCompanyBookings<T = any>(bookings: T[], nowKey = companyWars
     return String(b?.created_at || "").localeCompare(String(a?.created_at || ""));
   });
 }
-
