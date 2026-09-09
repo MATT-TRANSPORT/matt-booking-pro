@@ -21,6 +21,14 @@ export default function BookingForm() {
   const [passengers,setPassengers] = useState(1);
   const [distanceKm,setDistanceKm] = useState(0);
   const [suggestions,setSuggestions] = useState<Suggestion[]>([]);
+  const [additionalStopEnabled,setAdditionalStopEnabled] = useState(false);
+  const [additionalStopAddress,setAdditionalStopAddress] = useState("");
+  const [additionalStopPrimary,setAdditionalStopPrimary] = useState(true);
+  const [additionalStopReturn,setAdditionalStopReturn] = useState(false);
+  const [additionalStopSuggestions,setAdditionalStopSuggestions] = useState<Suggestion[]>([]);
+  const [additionalStopQuote,setAdditionalStopQuote] = useState<any>(null);
+  const [additionalStopBusy,setAdditionalStopBusy] = useState(false);
+  const [additionalStopError,setAdditionalStopError] = useState("");
   const [travelDate,setTravelDate] = useState("");
   const [travelTime,setTravelTime] = useState("");
   const [returnDate,setReturnDate] = useState("");
@@ -59,6 +67,41 @@ export default function BookingForm() {
     return()=>clearTimeout(timer);
   },[address]);
 
+  useEffect(()=>{
+    if(serviceType!=="roundtrip") setAdditionalStopReturn(false);
+  },[serviceType]);
+
+  useEffect(()=>{
+    if(!additionalStopEnabled||additionalStopAddress.trim().length<3){ setAdditionalStopSuggestions([]); return; }
+    const timer=setTimeout(async()=>{
+      try{
+        const r=await fetch(`/api/places?q=${encodeURIComponent(additionalStopAddress)}`);
+        const d=await r.json();
+        setAdditionalStopSuggestions(d.suggestions??[]);
+      }catch{ setAdditionalStopSuggestions([]); }
+    },350);
+    return()=>clearTimeout(timer);
+  },[additionalStopEnabled,additionalStopAddress]);
+
+  useEffect(()=>{
+    const active=additionalStopEnabled&&additionalStopAddress.trim().length>=5&&address.trim().length>=5&&airport!=="other"&&
+      (additionalStopPrimary||(serviceType==="roundtrip"&&additionalStopReturn));
+    if(!active){ setAdditionalStopQuote(null); setAdditionalStopError(""); setAdditionalStopBusy(false); return; }
+    setAdditionalStopQuote(null);
+    const timer=setTimeout(async()=>{
+      setAdditionalStopBusy(true); setAdditionalStopError("");
+      try{
+        const r=await fetch("/api/additional-stop/quote",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+          serviceType,address,airport,additionalStopAddress,additionalStopPrimary,additionalStopReturn:serviceType==="roundtrip"&&additionalStopReturn
+        })});
+        const d=await r.json();
+        if(r.ok) setAdditionalStopQuote(d); else setAdditionalStopError(d.error??"Nie udało się obliczyć przystanku.");
+      }catch{ setAdditionalStopError("Nie udało się obliczyć dodatkowego przystanku."); }
+      setAdditionalStopBusy(false);
+    },500);
+    return()=>clearTimeout(timer);
+  },[additionalStopEnabled,additionalStopAddress,additionalStopPrimary,additionalStopReturn,address,airport,serviceType]);
+
   async function chooseAddress(value:string){
     setAddress(value); setSuggestions([]);
     const r=await fetch("/api/route",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({address:value})});
@@ -69,17 +112,32 @@ export default function BookingForm() {
   const standardAirport = airport!=="other";
   const item = standardAirport ? PRICES[airport as keyof typeof PRICES] : null;
   const quote = useMemo(()=>{
-    if(!item) return {base:0,extra:0,vat:0,total:0};
+    if(!item) return {base:0,extra:0,stopFee:0,stopExtraKm:0,stopExtra:0,vat:0,total:0};
     const m=serviceType==="roundtrip"?2:1;
     const base=item[vehicle]*m;
     const extra=Math.max(0,distanceKm-40)*2.4*m;
-    const subtotal=base+extra;
+    const stopFee=additionalStopEnabled?Number(additionalStopQuote?.stopFee||0):0;
+    const stopExtraKm=additionalStopEnabled?Number(additionalStopQuote?.totalExtraKm||0):0;
+    const stopExtra=additionalStopEnabled?Number(additionalStopQuote?.stopExtraPrice||0):0;
+    const subtotal=base+extra+stopFee+stopExtra;
     const vat=invoice?subtotal*0.08:0;
-    return {base,extra,vat,total:subtotal+vat};
-  },[item,serviceType,vehicle,distanceKm,invoice]);
+    return {base,extra,stopFee,stopExtraKm,stopExtra,vat,total:subtotal+vat};
+  },[item,serviceType,vehicle,distanceKm,invoice,additionalStopEnabled,additionalStopQuote]);
 
   const airportLabel = airport==="other" ? (otherAirport||"Inne lotnisko") : PRICES[airport as keyof typeof PRICES].label;
-  const routeText = serviceType==="from_airport" ? `${airportLabel} → ${address||"—"}` : serviceType==="roundtrip" ? `${address||"—"} ↔ ${airportLabel}` : `${address||"—"} → ${airportLabel}`;
+  const activeStop = additionalStopEnabled && additionalStopAddress.trim() ? additionalStopAddress.trim() : "";
+  const stopLegText = serviceType === "roundtrip"
+    ? additionalStopPrimary && additionalStopReturn
+      ? "wyjazd i powrót"
+      : additionalStopReturn
+      ? "powrót"
+      : "wyjazd"
+    : "";
+  const routeText = serviceType==="from_airport"
+    ? (activeStop ? `${airportLabel} → ${activeStop} → ${address||"—"}` : `${airportLabel} → ${address||"—"}`)
+    : serviceType==="roundtrip"
+    ? `${address||"—"} ↔ ${airportLabel}${activeStop ? ` · przystanek: ${activeStop} (${stopLegText})` : ""}`
+    : (activeStop ? `${address||"—"} → ${activeStop} → ${airportLabel}` : `${address||"—"} → ${airportLabel}`);
   const paymentMethodText = paymentMethod === "online"
     ? "Płatność online po potwierdzeniu"
     : paymentMethod === "bank_transfer"
@@ -138,7 +196,7 @@ export default function BookingForm() {
   function go(n:number){setStep(n);if(typeof window!=="undefined"){window.dispatchEvent(new CustomEvent("matt:booking-step",{detail:{step:n}}));setTimeout(()=>window.scrollTo({top:0,behavior:"smooth"}),60);}}
 
   function valid(n:number){
-    if(n===2) return !!address && !!distanceKm && (airport!=="other" || otherAirport.trim().length>=3);
+    if(n===2) return !!address && !!distanceKm && (airport!=="other" || otherAirport.trim().length>=3) && (!additionalStopEnabled || (!!additionalStopAddress.trim() && !additionalStopBusy && !!additionalStopQuote));
     if(n===3) return !!travelDate && !!travelTime;
     if(n===5) return !!name.trim() && !!phone.trim() && !!email.trim() && (!invoice || nip10(nip).length===10);
     return true;
@@ -148,11 +206,13 @@ export default function BookingForm() {
     if(airport==="other"){ setMessage("Dla tego lotniska wycena jest indywidualna telefonicznie."); return; }
     if(!address||!distanceKm||!travelDate||!travelTime||!name||!phone||!email){ setMessage("Uzupełnij wymagane dane."); return; }
     if(invoice&&nip10(nip).length!==10){ setMessage("Podaj poprawny 10-cyfrowy NIP."); return; }
+    if(additionalStopEnabled&&(!additionalStopAddress.trim()||(!additionalStopPrimary&&!(serviceType==="roundtrip"&&additionalStopReturn))||!additionalStopQuote)){ setMessage("Poczekaj na poprawne obliczenie dodatkowego przystanku."); return; }
     setSaving(true); setMessage("");
     const tracking = readGrowthTracking();
     const r=await fetch("/api/bookings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
       serviceType,address,airport,vehicleType:vehicle,passengers,distanceKm,travelDate,travelTime,
       returnDate,returnTime,flightNumber:flight,returnFlightNumber:returnFlight,
+      additionalStopAddress:additionalStopEnabled?additionalStopAddress:null,additionalStopPrimary:additionalStopEnabled&&additionalStopPrimary,additionalStopReturn:additionalStopEnabled&&serviceType==="roundtrip"&&additionalStopReturn,
       customerName:name,phone,email,invoiceRequired:invoice,companyNip:invoice?nip10(nip):null,paymentMethod,onlinePaymentRequested,notes:notes||null,
       tracking,
       funnelSessionId: growthFunnelSessionId()
@@ -197,6 +257,15 @@ export default function BookingForm() {
     <a className="btn" href="tel:+48691242691">📞 ZADZWOŃ I ZAPYTAJ O CENĘ</a>
   </div> : null;
 
+  const AdditionalStopBox = () => !additionalStopEnabled ? <button type="button" className="btn secondary additional-stop-toggle" onClick={()=>setAdditionalStopEnabled(true)}>+ DODAJ DODATKOWY ADRES / PRZYSTANEK</button> : <div className="additional-stop-box">
+    <div className="additional-stop-head"><div><strong>Dodatkowy adres / przystanek</strong><small>+20,00 zł za każdy użyty kierunek. Dopłata kilometrowa tylko za faktyczny objazd poza normalną trasę.</small></div><button type="button" className="btn secondary" onClick={()=>{setAdditionalStopEnabled(false);setAdditionalStopAddress("");setAdditionalStopPrimary(true);setAdditionalStopReturn(false);setAdditionalStopSuggestions([]);setAdditionalStopQuote(null);setAdditionalStopError("");}}>USUŃ</button></div>
+    <label>Adres dodatkowego przystanku<input value={additionalStopAddress} onChange={e=>setAdditionalStopAddress(e.target.value)} autoComplete="off" placeholder="Wpisz drugi adres"/>{additionalStopSuggestions.length>0&&<div className="address-suggestions">{additionalStopSuggestions.slice(0,5).map((x,i)=><button key={x.placeId??i} type="button" onClick={()=>{setAdditionalStopAddress(x.text??"");setAdditionalStopSuggestions([]);}}>{x.text}</button>)}</div>}</label>
+    {serviceType==="roundtrip"?<div className="additional-stop-directions"><label><input type="checkbox" checked={additionalStopPrimary} onChange={e=>setAdditionalStopPrimary(e.target.checked)}/> Wyjazd na lotnisko (+20 zł)</label><label><input type="checkbox" checked={additionalStopReturn} onChange={e=>setAdditionalStopReturn(e.target.checked)}/> Powrót z lotniska (+20 zł)</label></div>:<p className="muted">Przystanek dotyczy tego przejazdu · +20,00 zł.</p>}
+    {additionalStopBusy&&<div className="route-status">Obliczanie objazdu...</div>}
+    {additionalStopError&&<div className="booking-error">{additionalStopError}</div>}
+    {additionalStopQuote&&!additionalStopBusy&&<div className="route-status ok">{Number(additionalStopQuote.totalExtraKm||0)>0?`Objazd poza normalną trasę: ${Number(additionalStopQuote.totalExtraKm).toFixed(1)} km · dopłata ${Number(additionalStopQuote.stopExtraPrice).toFixed(2)} zł`:"✓ Przystanek jest na trasie — bez dopłaty kilometrowej."}</div>}
+  </div>;
+
   if(mobile){
     return <div className="mobile-booking-wizard" onClickCapture={markFunnelStarted} onInputCapture={markFunnelStarted}>
       <div className="wizard-header">
@@ -221,6 +290,7 @@ export default function BookingForm() {
         </label>
         <AirportSelect/>
         <OtherAirportBox/>
+        {airport!=="other"&&<AdditionalStopBox/>}
         <div className="wizard-nav"><button className="btn secondary" onClick={()=>go(1)}>WSTECZ</button>{airport!=="other"&&<button className="btn" disabled={!valid(2)} onClick={()=>go(3)}>DALEJ</button>}</div>
       </section>}
 
@@ -287,6 +357,9 @@ export default function BookingForm() {
           <div><span>Termin</span><strong>{travelDate} {travelTime}</strong></div>
           <div><span>Pojazd</span><strong>{vehicle==="car"?"Samochód osobowy":"Bus do 8 osób"}</strong></div>
           <div><span>Pasażerowie</span><strong>{passengers}</strong></div>
+          {additionalStopEnabled&&additionalStopAddress&&<div><span>Dodatkowy przystanek</span><strong>{additionalStopAddress}</strong></div>}
+          {quote.stopFee>0&&<div><span>Opłata za przystanek</span><strong>{quote.stopFee.toFixed(2)} zł</strong></div>}
+          {quote.stopExtraKm>0&&<div><span>Objazd poza trasą</span><strong>{quote.stopExtraKm.toFixed(1)} km · {quote.stopExtra.toFixed(2)} zł</strong></div>}
           <div><span>Płatność</span><strong>{paymentMethodText}</strong></div>
           <div className="total"><span>Razem</span><strong>{quote.total.toFixed(2)} zł</strong></div>
         </div>
@@ -310,6 +383,7 @@ export default function BookingForm() {
         <AirportSelect/>
       </div>
       <OtherAirportBox/>
+      {airport!=="other"&&<AdditionalStopBox/>}
       <h3>Termin</h3>
       <p className="muted flight-time-hint">Dla wyjazdu na lotnisko podaj godzinę wyjazdu spod wskazanego adresu. Przy odbiorze z lotniska podaj godzinę przylotu z rozkładu lotu.</p>
       <div className="grid">
@@ -360,6 +434,9 @@ export default function BookingForm() {
         <div className="row"><span>Trasa</span><strong>{routeText}</strong></div>
         <div className="row"><span>Cena bazowa</span><strong>{quote.base.toFixed(2)} zł</strong></div>
         <div className="row"><span>Dopłata</span><strong>{quote.extra.toFixed(2)} zł</strong></div>
+        {additionalStopEnabled&&additionalStopAddress&&<div className="row"><span>Dodatkowy przystanek</span><strong style={{textAlign:"right",maxWidth:"60%"}}>{additionalStopAddress}</strong></div>}
+        {quote.stopFee>0&&<div className="row"><span>Opłata za przystanek</span><strong>{quote.stopFee.toFixed(2)} zł</strong></div>}
+        {quote.stopExtraKm>0&&<div className="row"><span>Objazd poza trasą</span><strong>{quote.stopExtraKm.toFixed(1)} km · {quote.stopExtra.toFixed(2)} zł</strong></div>}
         <div className="row"><span>VAT</span><strong>{quote.vat.toFixed(2)} zł</strong></div>
         <div className="row"><span>Płatność</span><strong>{paymentMethodText}</strong></div>
         <div className="row total"><span>Razem</span><strong>{quote.total.toFixed(2)} zł</strong></div>

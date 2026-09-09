@@ -33,7 +33,10 @@ export async function POST(req: NextRequest) {
       airportKey: String(body.airport || ""),
       vehicleType: String(body.vehicleType || "car"),
       serviceType: String(body.serviceType || "to_airport"),
-      termsId: body.termsId ? String(body.termsId) : null
+      termsId: body.termsId ? String(body.termsId) : null,
+      additionalStopAddress: body.additionalStopAddress ? String(body.additionalStopAddress) : null,
+      additionalStopPrimary: Boolean(body.additionalStopPrimary),
+      additionalStopReturn: Boolean(body.additionalStopReturn)
     });
 
     return NextResponse.json(quote);

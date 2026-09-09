@@ -1,4 +1,6 @@
 import { PRICES } from "@/lib/pricing";
+import { calculateAdditionalStopDetour } from "@/lib/additionalStopServer";
+import { ADDITIONAL_STOP_FEE_B2B_NET, additionalStopDirectionCount } from "@/lib/additionalStopConfig";
 
 export const B2B_VAT_RATE = 8;
 
@@ -20,6 +22,14 @@ export type CompanyQuote = {
   baseOneWayNet: number;
   basePriceNet: number;
   extraPriceNet: number;
+  additionalStopAddress: string | null;
+  additionalStopPrimary: boolean;
+  additionalStopReturn: boolean;
+  additionalStopPrimaryExtraKm: number;
+  additionalStopReturnExtraKm: number;
+  additionalStopExtraKm: number;
+  additionalStopFeeNet: number;
+  additionalStopExtraPriceNet: number;
   net: number;
   vatRate: number;
   vat: number;
@@ -173,6 +183,9 @@ export async function calculateCompanyQuote(
     vehicleType: string;
     serviceType: string;
     termsId?: string | null;
+    additionalStopAddress?: string | null;
+    additionalStopPrimary?: boolean;
+    additionalStopReturn?: boolean;
   }
 ): Promise<CompanyQuote> {
   const airport = PRICES[input.airportKey];
@@ -255,7 +268,31 @@ export async function calculateCompanyQuote(
   const extraPriceNet = money(
     billableKm * extraKmRateNet * multiplier
   );
-  const net = money(basePriceNet + extraPriceNet);
+
+  const additionalStopAddress = String(input.additionalStopAddress || "").trim();
+  const additionalStopPrimary = Boolean(additionalStopAddress && input.additionalStopPrimary);
+  const additionalStopReturn = Boolean(
+    additionalStopAddress && serviceType === "roundtrip" && input.additionalStopReturn
+  );
+  const additionalStop = await calculateAdditionalStopDetour({
+    serviceType,
+    pickupAddress,
+    airportKey: input.airportKey,
+    stopAddress: additionalStopAddress,
+    primary: additionalStopPrimary,
+    returnLeg: additionalStopReturn,
+    // W B2B objazd liczymy względem normalnej trasy z siedziby kontrahenta
+    // do lotniska. Jeżeli dodatkowy adres leży na tej trasie, dopłata km = 0.
+    routeBaseAddress: originAddress
+  });
+  const additionalStopCount = additionalStopDirectionCount({
+    serviceType,
+    primary: additionalStop.primary,
+    returnLeg: additionalStop.returnLeg
+  });
+  const additionalStopFeeNet = money(additionalStopCount * ADDITIONAL_STOP_FEE_B2B_NET);
+  const additionalStopExtraPriceNet = money(additionalStop.totalExtraKm * extraKmRateNet);
+  const net = money(basePriceNet + extraPriceNet + additionalStopFeeNet + additionalStopExtraPriceNet);
   const vatRate = money(Number(terms.vat_rate ?? B2B_VAT_RATE));
   const vat = money(net * (vatRate / 100));
   const gross = money(net + vat);
@@ -281,6 +318,14 @@ export async function calculateCompanyQuote(
     base_one_way_net: baseOneWayNet,
     base_price_net: basePriceNet,
     extra_price_net: extraPriceNet,
+    additional_stop_address: additionalStop.stopAddress,
+    additional_stop_primary: additionalStop.primary,
+    additional_stop_return: additionalStop.returnLeg,
+    additional_stop_primary_extra_km: additionalStop.primaryExtraKm,
+    additional_stop_return_extra_km: additionalStop.returnExtraKm,
+    additional_stop_extra_km: additionalStop.totalExtraKm,
+    additional_stop_fee_net: additionalStopFeeNet,
+    additional_stop_extra_price_net: additionalStopExtraPriceNet,
     price_net: net,
     vat_rate: vatRate,
     vat_amount: vat,
@@ -306,6 +351,14 @@ export async function calculateCompanyQuote(
     baseOneWayNet,
     basePriceNet,
     extraPriceNet,
+    additionalStopAddress: additionalStop.stopAddress,
+    additionalStopPrimary: additionalStop.primary,
+    additionalStopReturn: additionalStop.returnLeg,
+    additionalStopPrimaryExtraKm: additionalStop.primaryExtraKm,
+    additionalStopReturnExtraKm: additionalStop.returnExtraKm,
+    additionalStopExtraKm: additionalStop.totalExtraKm,
+    additionalStopFeeNet,
+    additionalStopExtraPriceNet,
     net,
     vatRate,
     vat,
@@ -335,6 +388,13 @@ export function bookingPricingFields(quote: CompanyQuote) {
     pricing_snapshot: quote.snapshot,
     base_price: quote.basePriceNet,
     extra_price: quote.extraPriceNet,
+    additional_stop_address: quote.additionalStopAddress,
+    additional_stop_primary: quote.additionalStopPrimary,
+    additional_stop_return: quote.additionalStopReturn,
+    additional_stop_primary_extra_km: quote.additionalStopPrimaryExtraKm,
+    additional_stop_return_extra_km: quote.additionalStopReturnExtraKm,
+    additional_stop_fee: quote.additionalStopFeeNet,
+    additional_stop_extra_price: quote.additionalStopExtraPriceNet,
     vat_price: quote.vat,
     total_price: quote.gross,
     distance_km: quote.distanceKm
