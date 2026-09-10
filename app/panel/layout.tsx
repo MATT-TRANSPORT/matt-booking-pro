@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import PwaServiceWorker from "@/components/PwaServiceWorker";
+import AdminPushControls from "@/components/AdminPushControls";
 
 export const metadata: Metadata = {
   title: "MATT Administrator | MATT Booking PRO",
@@ -19,6 +20,7 @@ export default function PanelLayout({ children }: { children: React.ReactNode })
   return (
     <>
       <PwaServiceWorker />
+      <AdminPushControls />
       {children}
     </>
   );
