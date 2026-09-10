@@ -156,6 +156,94 @@ export async function sendDriverPush(
   return { sent, failed, skipped: false };
 }
 
+export async function sendAdminPush(
+  admin: any,
+  {
+    title,
+    body,
+    url = "/panel",
+    tag = "matt-admin",
+    userId = null
+  }: {
+    title: string;
+    body: string;
+    url?: string;
+    tag?: string;
+    userId?: string | null;
+  }
+) {
+  let query = admin
+    .from("admin_push_subscriptions")
+    .select("*")
+    .eq("active", true);
+
+  if (userId) {
+    query = query.eq("user_id", userId);
+  }
+
+  const { data: subscriptions, error } = await query;
+
+  if (error) {
+    throw new Error(`Admin push: ${error.message}`);
+  }
+
+  if (!subscriptions?.length) {
+    return {
+      sent: 0,
+      failed: 0,
+      skipped: true
+    };
+  }
+
+  configureWebPush();
+
+  let sent = 0;
+  let failed = 0;
+
+  const payload = JSON.stringify({
+    title,
+    body,
+    url,
+    tag,
+    renotify: true
+  });
+
+  for (const sub of subscriptions) {
+    try {
+      await webpush.sendNotification(
+        {
+          endpoint: sub.endpoint,
+          keys: {
+            p256dh: sub.p256dh,
+            auth: sub.auth
+          }
+        },
+        payload,
+        {
+          TTL: 60 * 60
+        }
+      );
+
+      sent += 1;
+    } catch (error: any) {
+      failed += 1;
+
+      const statusCode = Number(error?.statusCode || 0);
+      if (statusCode === 404 || statusCode === 410) {
+        await admin
+          .from("admin_push_subscriptions")
+          .update({
+            active: false,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", sub.id);
+      }
+    }
+  }
+
+  return { sent, failed, skipped: false };
+}
+
 export async function sendFlightAlertPush(
   admin: any,
   booking: any,
