@@ -1,6 +1,7 @@
 import { NextRequest,NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMattEmail } from "@/lib/email";
+import { sendNewWeddingAdminPush } from "@/lib/adminNotifications";
 
 export async function POST(req:NextRequest){
   const b=await req.json();
@@ -47,5 +48,16 @@ export async function POST(req:NextRequest){
       <p><a href="${adminUrl}" style="display:inline-block;background:#d5ae5d;color:#111;padding:14px 18px;border-radius:10px;text-decoration:none;font-weight:bold">OTWÓRZ W PANELU</a></p></div></div>`
     })
   ]);
-  return NextResponse.json(data);
+
+  let adminPushResult:any=null;
+  try{
+    adminPushResult=await sendNewWeddingAdminPush(s,data);
+  }catch(pushError){
+    console.error("Admin push po nowym weselu:",pushError);
+  }
+
+  return NextResponse.json({
+    ...data,
+    admin_push_sent:Number(adminPushResult?.sent||0)
+  });
 }

@@ -5,6 +5,7 @@ import { calculateAdditionalStopDetour } from "@/lib/additionalStopServer";
 import { ADDITIONAL_STOP_B2C_KM_RATE, ADDITIONAL_STOP_FEE_B2C, additionalStopDirectionCount } from "@/lib/additionalStopConfig";
 import { sendMattEmail } from "@/lib/email";
 import { sendBookingNotification } from "@/lib/customerNotifications";
+import { sendNewBookingAdminPush } from "@/lib/adminNotifications";
 import {
   receivedEmail,
   adminNewBookingEmail
@@ -334,12 +335,20 @@ export async function POST(req: NextRequest) {
     console.error("Powiadomienie po rezerwacji:", notificationError);
   }
 
+  let adminPushResult: any = null;
+  try {
+    adminPushResult = await sendNewBookingAdminPush(supabase, data, "B2C");
+  } catch (pushError) {
+    console.error("Admin push po nowej rezerwacji B2C:", pushError);
+  }
+
   return NextResponse.json({
     ...data,
     email_sent: customerEmailSent,
     admin_email_sent: adminEmailSent,
     email_warning: emailWarning,
     customer_notification_sent: Boolean(notificationResult?.sent),
-    customer_notification_channel: notificationChannel
+    customer_notification_channel: notificationChannel,
+    admin_push_sent: Number(adminPushResult?.sent || 0)
   });
 }

@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMattEmail } from "@/lib/email";
 import { receivedEmail, adminNewBookingEmail } from "@/lib/emailTemplates";
 import { bookingPricingFields, calculateCompanyQuote } from "@/lib/companyPricing";
+import { sendNewBookingAdminPush } from "@/lib/adminNotifications";
 
 export const runtime = "nodejs";
 
@@ -263,11 +264,19 @@ export async function POST(req: NextRequest) {
     console.error("Historia e-mail B2B:", emailHistoryError);
   }
 
+  let adminPushResult: any = null;
+  try {
+    adminPushResult = await sendNewBookingAdminPush(admin, data, "B2B");
+  } catch (pushError) {
+    console.error("Admin push po nowej rezerwacji B2B:", pushError);
+  }
+
   return NextResponse.json({
     ...data,
     quote,
     email_sent: emailSent,
     admin_email_sent: adminEmailSent,
-    email_warning: emailWarning
+    email_warning: emailWarning,
+    admin_push_sent: Number(adminPushResult?.sent || 0)
   });
 }
