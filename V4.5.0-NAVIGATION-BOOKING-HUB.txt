@@ -1,0 +1,15 @@
+MATT Booking PRO v4.5.0 — NAVIGATION & BOOKING HUB
+
+Zakres wydania:
+- uproszczona nawigacja panelu administratora,
+- wspólna chronologia aktywnych, zakończonych i anulowanych przejazdów,
+- pełniejszy kalendarz i historia B2B,
+- publiczny hub usług /booking,
+- nowy transport punkt A → punkt B z indywidualną wyceną,
+- wspólna tabela bookings dla transportów lotniskowych i A→B,
+- obsługa planu kursów, kierowców i kalendarza dla nowych transportów,
+- limit pasażerów rozszerzony do 30 dla przewozów grupowych.
+
+Wydanie wymaga migracji: supabase/migrations-v4.5.0-navigation-booking-hub.sql
+
+Release candidate: końcowa walidacja przed publikacją produkcyjną.
