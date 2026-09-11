@@ -1,5 +1,6 @@
 import DriverTrips from "@/components/DriverTrips";
 import DriverAppControls from "@/components/DriverAppControls";
+import DriverIssueReporter from "@/components/DriverIssueReporter";
 import { driverClient } from "@/lib/driver";
 import { driverProgressFromHistory } from "@/lib/driverOps";
 
@@ -16,8 +17,6 @@ export default async function Page() {
 
   const selection = "*,companies(name),vehicles:vehicles!bookings_vehicle_id_fkey(name,registration,color),return_vehicle:vehicles!bookings_return_vehicle_id_fkey(name,registration,color)";
 
-  // Osobne zapytania są celowe: roundtrip może mieć wyjazd dawno temu,
-  // a powrót nadal przed kierowcą. Łączymy oba zbiory po id rezerwacji.
   const [primaryResult, returnResult] = await Promise.all([
     admin
       .from("bookings")
@@ -53,21 +52,9 @@ export default async function Page() {
 
   if (bookingIds.length) {
     const [flightsResult, alertsResult, historyResult] = await Promise.all([
-      admin
-        .from("booking_flights")
-        .select("*")
-        .in("booking_id", bookingIds),
-      admin
-        .from("booking_flight_alerts")
-        .select("*")
-        .in("booking_id", bookingIds)
-        .eq("active", true)
-        .order("updated_at", { ascending: false }),
-      admin
-        .from("booking_history")
-        .select("booking_id,event,created_at")
-        .in("booking_id", bookingIds)
-        .order("created_at", { ascending: true })
+      admin.from("booking_flights").select("*").in("booking_id", bookingIds),
+      admin.from("booking_flight_alerts").select("*").in("booking_id", bookingIds).eq("active", true).order("updated_at", { ascending: false }),
+      admin.from("booking_history").select("booking_id,event,created_at").in("booking_id", bookingIds).order("created_at", { ascending: true })
     ]);
 
     flightRows = flightsResult.data ?? [];
@@ -100,9 +87,7 @@ export default async function Page() {
     .map((booking: any) => {
       const progress = driverProgressFromHistory(historyByBooking.get(booking.id) ?? []);
       const primaryAssigned = String(booking.driver_id || "") === String(driver.id);
-      const returnAssigned =
-        booking.service_type === "roundtrip" &&
-        String(booking.return_driver_id || "") === String(driver.id);
+      const returnAssigned = booking.service_type === "roundtrip" && String(booking.return_driver_id || "") === String(driver.id);
       const primaryCompleted = progress.primary?.status === "completed";
 
       let driverLeg: "primary" | "return" = "primary";
@@ -111,17 +96,12 @@ export default async function Page() {
 
       if (booking.service_type === "roundtrip") {
         if (primaryCompleted) {
-          // Po zakończeniu wyjazdu rezerwację widzi już kierowca POWROTU.
           driverLeg = "return";
           assignedToCurrentDriver = returnAssigned;
         } else if (primaryAssigned) {
-          // Jeżeli ten sam kierowca ma również powrót, do czasu zakończenia
-          // wyjazdu pokazujemy mu aktywną pierwszą nogę.
           driverLeg = "primary";
           assignedToCurrentDriver = true;
         } else if (returnAssigned) {
-          // Inny kierowca powrotny musi widzieć swój przyszły kurs od razu,
-          // ale workflow pozostaje zablokowany do zakończenia WYJAZDU.
           driverLeg = "return";
           driverLegLocked = true;
           assignedToCurrentDriver = true;
@@ -145,6 +125,7 @@ export default async function Page() {
   return (
     <main className="container driver-app-shell driver-pro-shell">
       <DriverAppControls />
+      <DriverIssueReporter bookings={bookingsForDriver} />
       <DriverTrips driver={driver} bookings={bookingsForDriver} />
     </main>
   );
