@@ -12,20 +12,33 @@ export default function DriverIssueReporter({ bookings }: { bookings: any[] }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
 
-  const options = useMemo(() => bookings.map((b) => ({
-    id: b.id,
-    label: `${b.booking_number} · ${b.customer_name} · ${b.travel_date}`
-  })), [bookings]);
+  const options = useMemo(() => bookings.map((b) => {
+    const leg: "primary" | "return" = b._driverLeg === "return" ? "return" : "primary";
+    const date = leg === "return" ? b.return_date : b.travel_date;
+    return {
+      id: b.id,
+      leg,
+      label: `${b.booking_number} · ${b.customer_name} · ${leg === "return" ? "POWRÓT" : "WYJAZD"} · ${date || "—"}`
+    };
+  }), [bookings]);
 
   async function submit() {
     if (!bookingId || (!description.trim() && !mileage) || busy) {
       setMessage("Wybierz kurs i dodaj opis lub przebieg.");
       return;
     }
+
+    const selected = options.find((x) => x.id === bookingId);
+    if (!selected) {
+      setMessage("Wybrany kurs nie jest już dostępny.");
+      return;
+    }
+
     setBusy(true);
     setMessage("Wysyłanie zgłoszenia...");
     const data = new FormData();
     data.append("bookingId", bookingId);
+    data.append("leg", selected.leg);
     data.append("issueType", issueType);
     data.append("description", description);
     if (mileage) data.append("mileage", mileage);
@@ -36,12 +49,13 @@ export default function DriverIssueReporter({ bookings }: { bookings: any[] }) {
     setBusy(false);
     if (!r.ok) { setMessage(d.error || "Nie udało się wysłać zgłoszenia."); return; }
     setMessage("✓ Zgłoszenie zapisane i przekazane do MATT Administrator.");
+    setBookingId("");
     setDescription("");
     setMileage("");
     setPhoto(null);
   }
 
-  return <section className="card" style={{ marginBottom: 18 }}>
+  return <section className="card" style={{ marginTop: 18 }}>
     <div className="company-section-head">
       <div>
         <span className="badge">DRIVER PRO+</span>
