@@ -4,6 +4,7 @@ export type CustomerNotificationKind =
   | "received"
   | "confirmed"
   | "assigned"
+  | "reminder_24h"
   | "reminder_120"
   | "review_request"
   | "in_progress"
@@ -53,8 +54,7 @@ function configureWebPush() {
     "mailto:kontakt@matt-transport.pl";
   const publicKey =
     process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  const privateKey =
-    process.env.VAPID_PRIVATE_KEY;
+  const privateKey = process.env.VAPID_PRIVATE_KEY;
 
   if (!publicKey || !privateKey) {
     throw new Error("Brak kluczy VAPID w Vercel.");
@@ -141,10 +141,12 @@ export function customerUpdateText(
       return `Rezerwacja ${number} została potwierdzona. ${date} o ${time}, ${route}.`;
     case "assigned":
       return `Do rezerwacji ${number} przypisano kierowcę ${driver?.full_name || "MATT TRANSPORT"}${driver?.phone ? `, tel. ${driver.phone}` : ""}${vehicle ? `. Pojazd: ${vehicle.name}${vehicle.registration ? `, ${vehicle.registration}` : ""}` : ""}.`;
+    case "reminder_24h":
+      return `Przypominamy o jutrzejszym przejeździe ${number}: ${date} o ${time}. Trasa: ${route}. Szczegóły są dostępne w portalu rezerwacji.`;
     case "reminder_120":
       return `Przypomnienie: przejazd ${number} jest dzisiaj o ${time}. Trasa: ${route}.`;
     case "review_request":
-      return `Dziękujemy za podróż z MATT TRANSPORT. Jeśli masz chwilę, podziel się opinią w Google. Kliknięcie otworzy bezpośrednio formularz opinii naszej firmy.`;
+      return `Dziękujemy za podróż z MATT TRANSPORT. Oceń przejazd w skali 1–5. Zajmie to kilka sekund i pomoże nam utrzymać wysoki standard usług.`;
     case "in_progress":
       return `Kierowca ${driver?.full_name || "MATT TRANSPORT"} wyruszył na realizację rezerwacji ${number}${driver?.phone ? `. Kontakt: ${driver.phone}` : ""}.`;
     case "arrived":
