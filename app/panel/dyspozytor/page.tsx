@@ -6,43 +6,20 @@ import FlightAutomationStatus from "@/components/FlightAutomationStatus";
 import FlightStatusBadge from "@/components/FlightStatusBadge";
 import FlightAlertBadge from "@/components/FlightAlertBadge";
 import { statusPl } from "@/lib/status";
+import { bookingRouteText } from "@/lib/bookingRoute";
+import { splitUnifiedBookings } from "@/lib/unifiedBookingSort";
 
-type DispatcherView = "active" | "all" | "completed";
-
-export default async function Page({
-  searchParams
-}: {
-  searchParams: Promise<{ view?: string }>;
-}) {
-  const { view = "active" } = await searchParams;
-  const selectedView: DispatcherView = ["all", "completed"].includes(view)
-    ? (view as DispatcherView)
-    : "active";
-
+export default async function Page() {
   const { s } = await panelClient();
-
-  let bookingsQuery = s
-    .from("bookings")
-    .select("*,companies(name),drivers:drivers!bookings_driver_id_fkey(full_name,color)");
-
-  if (selectedView === "completed") {
-    bookingsQuery = bookingsQuery
-      .eq("status", "completed")
-      .order("travel_date", { ascending: false })
-      .order("travel_time", { ascending: false });
-  } else {
-    bookingsQuery = bookingsQuery
-      .not("status", "in", "(completed,cancelled)")
-      .order("travel_date")
-      .order("travel_time");
-  }
 
   const [
     { data: bookings, error: bookingsError },
     { data: drivers },
     { data: vehicles }
   ] = await Promise.all([
-    bookingsQuery.limit(selectedView === "completed" ? 300 : 500),
+    s.from("bookings")
+      .select("*,companies(name),drivers:drivers!bookings_driver_id_fkey(full_name,color)")
+      .limit(800),
     s.from("drivers").select("*").eq("active", true).order("full_name"),
     s.from("vehicles").select("*").eq("active", true).order("name")
   ]);
@@ -50,44 +27,32 @@ export default async function Page({
   const bookingRows = bookings ?? [];
   const bookingIds = bookingRows.map((b: any) => b.id);
   let flightRows: any[] = [];
+  let alertRows: any[] = [];
 
   if (bookingIds.length) {
-    const { data } = await s
-      .from("booking_flights")
-      .select("*")
-      .in("booking_id", bookingIds);
-
-    flightRows = data ?? [];
+    const [flightResult, alertResult] = await Promise.all([
+      s.from("booking_flights").select("*").in("booking_id", bookingIds),
+      s.from("booking_flight_alerts")
+        .select("*")
+        .in("booking_id", bookingIds)
+        .eq("active", true)
+        .order("updated_at", { ascending: false })
+    ]);
+    flightRows = flightResult.data ?? [];
+    alertRows = alertResult.data ?? [];
   }
 
   const flightByBookingLeg = new Map(
     flightRows.map((f: any) => [`${f.booking_id}:${f.leg || "primary"}`, f])
   );
 
-  let alertRows: any[] = [];
-
-  if (bookingIds.length) {
-    const { data } = await s
-      .from("booking_flight_alerts")
-      .select("*")
-      .in("booking_id", bookingIds)
-      .eq("active", true)
-      .order("updated_at", { ascending: false });
-
-    alertRows = data ?? [];
-  }
-
   const alertByBookingLeg = new Map<string, any>();
-
   for (const alert of alertRows) {
     const key = `${alert.booking_id}:${alert.leg || "primary"}`;
     const current = alertByBookingLeg.get(key);
     const rank = alert.severity === "critical" ? 3 : alert.severity === "warning" ? 2 : 1;
     const currentRank = current?.severity === "critical" ? 3 : current?.severity === "warning" ? 2 : current ? 1 : 0;
-
-    if (!current || rank > currentRank) {
-      alertByBookingLeg.set(key, alert);
-    }
+    if (!current || rank > currentRank) alertByBookingLeg.set(key, alert);
   }
 
   const { data: lastRun } = await s
@@ -97,7 +62,7 @@ export default async function Page({
     .limit(1)
     .maybeSingle();
 
-  const bookingsWithFlights = bookingRows.map((b: any) => ({
+  const enriched = bookingRows.map((b: any) => ({
     ...b,
     flight: flightByBookingLeg.get(`${b.id}:primary`) ?? null,
     returnFlight: flightByBookingLeg.get(`${b.id}:return`) ?? null,
@@ -105,26 +70,16 @@ export default async function Page({
     returnFlightAlert: alertByBookingLeg.get(`${b.id}:return`) ?? null
   }));
 
+  const { active, history } = splitUnifiedBookings(enriched);
+
   return (
     <main className="container">
       <span className="badge">MATT DISPATCHER PRO</span>
-      <h1>Dyspozytornia</h1>
+      <h1>Plan kursów</h1>
       <p className="muted">
-        Priorytety operacyjne, najbliższe kursy, obsada, konflikty i loty — w jednym miejscu.
+        Jedno miejsce do obsługi wszystkich bieżących przejazdów. Aktywne kursy są zawsze ułożone chronologicznie od najbliższego.
       </p>
       <PanelNav />
-
-      <div className="booking-view-tabs" style={{ marginBottom: 16 }}>
-        <a className={selectedView === "active" ? "active" : ""} href="/panel/dyspozytor">
-          PLAN BIEŻĄCY
-        </a>
-        <a className={selectedView === "all" ? "active" : ""} href="/panel/dyspozytor?view=all">
-          WSZYSTKIE
-        </a>
-        <a className={selectedView === "completed" ? "active" : ""} href="/panel/dyspozytor?view=completed">
-          ✓ ZAKOŃCZONE
-        </a>
-      </div>
 
       {bookingsError && (
         <div className="card" style={{ borderColor: "#dc2626", marginBottom: 16 }}>
@@ -135,70 +90,60 @@ export default async function Page({
       <FlightAutomationStatus lastRun={lastRun} />
       <div className="dispatcher-flight-toolbar">
         <FlightRefreshAllButton />
-        <span className="muted">
-          AirLabs · cache 20 min · maks. 8 zapytań na jedno zbiorcze odświeżenie
-        </span>
+        <span className="muted">AirLabs · cache 20 min · maks. 8 zapytań na jedno zbiorcze odświeżenie</span>
       </div>
 
-      {selectedView === "active" ? (
-        <DispatcherClient
-          bookings={bookingsWithFlights}
-          drivers={drivers ?? []}
-          vehicles={vehicles ?? []}
-        />
-      ) : (
-        <ReadOnlyDispatcherList
-          bookings={bookingsWithFlights}
-          title={selectedView === "completed" ? "Zakończone przejazdy" : "Wszystkie aktywne przejazdy"}
-          emptyText={selectedView === "completed" ? "Brak zakończonych przejazdów." : "Brak aktywnych przejazdów."}
-        />
-      )}
+      <DispatcherClient
+        bookings={active}
+        drivers={drivers ?? []}
+        vehicles={vehicles ?? []}
+      />
+
+      <ReadOnlyDispatcherList
+        bookings={history}
+        title="Historia · zakończone i anulowane"
+        emptyText="Brak zakończonych lub anulowanych przejazdów."
+      />
     </main>
   );
 }
 
-function ReadOnlyDispatcherList({
-  bookings,
-  title,
-  emptyText
-}: {
+function ReadOnlyDispatcherList({ bookings, title, emptyText }: {
   bookings: any[];
   title: string;
   emptyText: string;
 }) {
   return (
-    <section className="card" style={{ marginTop: 16 }}>
+    <section className="card" style={{ marginTop: 24 }}>
       <div className="company-section-head">
         <div>
-          <h2>{title}</h2>
+          <span className="badge">HISTORIA</span>
+          <h2 style={{ marginTop: 8 }}>{title}</h2>
           <p className="muted" style={{ marginBottom: 0 }}>
-            Widok podglądowy. Kliknij numer rezerwacji, aby otworzyć pełne szczegóły.
+            Najnowsze zakończone i anulowane przejazdy są na górze tej sekcji.
           </p>
         </div>
         <strong>{bookings.length}</strong>
       </div>
 
       {!bookings.length ? (
-        <div className="empty-state">
-          <strong>{emptyText}</strong>
-        </div>
+        <div className="empty-state"><strong>{emptyText}</strong></div>
       ) : (
         <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
           {bookings.map((b: any) => {
             const company = Array.isArray(b.companies) ? b.companies[0] : b.companies;
-            const route = b.service_type === "from_airport"
-              ? `${b.airport_label} → ${b.pickup_address}`
-              : b.service_type === "roundtrip"
-              ? `${b.pickup_address} ↔ ${b.airport_label}`
-              : `${b.pickup_address} → ${b.airport_label}`;
+            const route = bookingRouteText(b);
+            const pointToPoint = b.booking_category === "point_to_point";
 
             return (
               <article className={`dashboard-feed-card booking-stage-card ${b.status || ""}`} key={b.id}>
-                <div className="feed-icon">{b.company_id ? "🏢" : "✈️"}</div>
+                <div className="feed-icon">{b.company_id ? "🏢" : pointToPoint ? "🚐" : "✈️"}</div>
                 <div style={{ minWidth: 0 }}>
                   <div className="booking-origin">
                     {b.company_id ? (
                       <span className="origin-badge b2b">B2B · {company?.name ?? "Firma"}</span>
+                    ) : pointToPoint ? (
+                      <span className="origin-badge private">TRANSPORT A → B</span>
                     ) : (
                       <span className="origin-badge private">INDYWIDUALNY</span>
                     )}
@@ -214,23 +159,19 @@ function ReadOnlyDispatcherList({
                       POWRÓT: {b.return_date} {String(b.return_time || "").slice(0, 5)}
                     </small>
                   )}
-                  <div className="dispatcher-flight-stack" style={{ marginTop: 8 }}>
-                    {b.flight_number && (
-                      <FlightStatusBadge flight={b.flight} flightNumber={b.flight_number} compact={false} />
-                    )}
-                    {b.flightAlert && <FlightAlertBadge alert={b.flightAlert} compact />}
-                    {b.return_flight_number && (
-                      <div className="dispatcher-return-flight">
-                        <small>POWRÓT</small>
-                        <FlightStatusBadge
-                          flight={b.returnFlight}
-                          flightNumber={b.return_flight_number}
-                          compact={false}
-                        />
-                        {b.returnFlightAlert && <FlightAlertBadge alert={b.returnFlightAlert} compact />}
-                      </div>
-                    )}
-                  </div>
+                  {!pointToPoint && (
+                    <div className="dispatcher-flight-stack" style={{ marginTop: 8 }}>
+                      {b.flight_number && <FlightStatusBadge flight={b.flight} flightNumber={b.flight_number} compact={false} />}
+                      {b.flightAlert && <FlightAlertBadge alert={b.flightAlert} compact />}
+                      {b.return_flight_number && (
+                        <div className="dispatcher-return-flight">
+                          <small>POWRÓT</small>
+                          <FlightStatusBadge flight={b.returnFlight} flightNumber={b.return_flight_number} compact={false} />
+                          {b.returnFlightAlert && <FlightAlertBadge alert={b.returnFlightAlert} compact />}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="dashboard-feed-meta">
                   <span className={`status ${b.status}`}>{statusPl(b.status)}</span>
