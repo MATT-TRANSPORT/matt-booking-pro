@@ -1,5 +1,3 @@
-import type { BookingMail } from "@/lib/emailTemplates";
-
 function esc(value: unknown) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -8,7 +6,7 @@ function esc(value: unknown) {
     .replace(/"/g, "&quot;");
 }
 
-export function reviewRatingEmail(booking: BookingMail, ratingUrl: string) {
+export function reviewRatingEmail(booking: any, ratingUrl: string) {
   return {
     subject: `Jak minęła podróż? – ${booking.booking_number}`,
     html: `<div style="font-family:Arial,sans-serif;background:#0b0e13;color:#fff;padding:28px">
