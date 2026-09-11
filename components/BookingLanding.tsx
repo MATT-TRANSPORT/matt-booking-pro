@@ -19,19 +19,17 @@ export default function BookingLanding({initialEntry}: {initialEntry?: BookingEn
   {initialEntry?.chooseService ? <section className="card" aria-labelledby="service-choice-title">
    <span className="badge">MATT TRANSPORT</span>
    <h1 id="service-choice-title">Jakiego transportu potrzebujesz?</h1>
-   <p>Wybierz usługę, aby przejść do odpowiedniego formularza.</p>
-   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(min(100%, 250px), 1fr))",gap:16}}>
-    <div className="card"><h2>Transfer lotniskowy</h2><p>Wybierz lotnisko, termin i pojazd. Sprawdź cenę przejazdu.</p><a className="btn" href="/?entry=transport_choice_airport">SPRAWDŹ CENĘ I ZAREZERWUJ</a></div>
-    <div className="card"><h2>Transport dla firmy</h2><p>Stałe dojazdy pracowników i przewozy dopasowane do harmonogramu zmian.</p><a className="btn" href="https://matt-transport.pl/transport-pracownikow-slask/#matt-b2b-wycena">ZAPYTAJ O WYCENĘ DLA FIRMY</a></div>
-    <div className="card"><h2>Transport weselny</h2><p>Prześlij szczegóły przewozu i rozwożenia gości weselnych.</p><a className="btn" href="/wesele">PRZEJDŹ DO FORMULARZA</a></div>
-    <div className="card"><h2>Bus, autokar lub inny przejazd</h2><p>Podaj trasę, termin i liczbę osób. Ustalimy dostępność i przygotujemy wycenę.</p><a className="btn" href="https://matt-transport.pl/kontakt/">ZAPYTAJ O PRZEWÓZ</a></div>
+   <p>Wybierz jedną z trzech głównych usług.</p>
+   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(min(100%, 260px), 1fr))",gap:16,marginTop:18}}>
+    <div className="card" style={{display:"flex",flexDirection:"column",gap:10}}><div style={{fontSize:34}}>✈️</div><h2>Transfery na lotniska</h2><p className="muted" style={{flex:1}}>Wybierz lotnisko, termin i pojazd. System od razu obliczy cenę przejazdu.</p><a className="btn" href="/booking?entry=transport_choice_airport">TRANSFER LOTNISKOWY</a></div>
+    <div className="card" style={{display:"flex",flexDirection:"column",gap:10}}><div style={{fontSize:34}}>💍</div><h2>Transport weselny</h2><p className="muted" style={{flex:1}}>Rozwożenie gości i transport weselny. Prześlij dane potrzebne do przygotowania umowy.</p><a className="btn wedding-cta" href="/wesele">TRANSPORT WESELNY</a></div>
+    <div className="card" style={{display:"flex",flexDirection:"column",gap:10}}><div style={{fontSize:34}}>🚐</div><h2>Transport pozostały</h2><p className="muted" style={{flex:1}}>Przejazd z punktu A do punktu B: prywatny, grupowy, bus lub autokar. Przygotujemy indywidualną wycenę.</p><a className="btn" href="/transport">TRANSPORT A → B</a></div>
    </div>
-   <p>Wolisz porozmawiać? <a href="tel:+48691242691">+48 691 242 691</a></p>
+   <p style={{marginTop:18}}>Wolisz porozmawiać? <a href="tel:+48691242691">+48 691 242 691</a></p>
   </section> : <BookingForm initialEntry={initialEntry}/>}
   {!initialEntry?.chooseService&&step===1&&<section className="booking-site-bridge" aria-label="Pełna oferta MATT TRANSPORT">
-   <div><strong>Chcesz najpierw poznać pełną ofertę?</strong><span>Transfery, przewozy prywatne i firmowe, wesela oraz pozostałe usługi MATT TRANSPORT.</span></div>
-   <a href={MAIN_SITE_URL}>PRZEJDŹ NA MATT-TRANSPORT.PL</a>
+   <div><strong>Inny rodzaj transportu?</strong><span>Wróć do wyboru usług albo zobacz pełną ofertę MATT TRANSPORT.</span></div>
+   <div style={{display:"flex",gap:10,flexWrap:"wrap"}}><a href="/booking">WYBIERZ INNĄ USŁUGĘ</a><a href={MAIN_SITE_URL}>PEŁNA OFERTA ↗</a></div>
   </section>}
-  {!initialEntry?.chooseService&&step===1&&<section className="wedding-service-tile"><div className="wedding-rings">💍</div><div><span className="badge wedding-badge">TRANSPORT WESELNY</span><h2>Rozwożenie gości weselnych</h2><p>Potrzebujesz transportu dla gości po przyjęciu? Prześlij dane potrzebne do przygotowania umowy.</p></div><a className="btn wedding-cta" href="/wesele">PRZEJDŹ DO FORMULARZA</a></section>}
  </>;
 }
