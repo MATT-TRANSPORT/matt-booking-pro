@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./v45.css";
 import GrowthTracker from "@/components/GrowthTracker";
 
 export const metadata: Metadata = {
@@ -14,11 +15,7 @@ export const viewport: Viewport = {
   viewportFit: "cover"
 };
 
-export default function RootLayout({
-  children
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pl">
       <body><GrowthTracker />{children}</body>
