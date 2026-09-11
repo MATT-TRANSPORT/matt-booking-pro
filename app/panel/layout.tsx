@@ -20,8 +20,8 @@ export default function PanelLayout({ children }: { children: React.ReactNode })
   return (
     <>
       <PwaServiceWorker />
-      <AdminPushControls />
       {children}
+      <AdminPushControls />
     </>
   );
 }
