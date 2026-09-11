@@ -22,7 +22,8 @@ export default function GeneralTransportForm() {
   const [travelTime, setTravelTime] = useState("");
   const [returnDate, setReturnDate] = useState("");
   const [returnTime, setReturnTime] = useState("");
-  const [passengers, setPassengers] = useState(1);
+  const [passengers, setPassengers] = useState("1");
+  const passengerCount = passengers === "" ? 0 : Number(passengers);
   const [vehicleType, setVehicleType] = useState("auto");
   const [category, setCategory] = useState("private");
   const [customerName, setCustomerName] = useState("");
@@ -83,15 +84,18 @@ export default function GeneralTransportForm() {
   }, [roundtrip]);
 
   const vehicleHint = useMemo(() => {
-    if (passengers > 8) return "Dla tej liczby pasażerów rekomendujemy autokar.";
-    if (passengers > 3) return "Dla tej liczby pasażerów rekomendujemy bus.";
+    if (passengerCount > 8) return "Dla tej liczby pasażerów rekomendujemy autokar.";
+    if (passengerCount > 3) return "Dla tej liczby pasażerów rekomendujemy bus.";
     return "Możesz pozostawić dobór pojazdu po stronie MATT TRANSPORT.";
-  }, [passengers]);
+  }, [passengerCount]);
 
   async function submit() {
     setMessage("");
     if (!origin.trim() || !destination.trim() || !travelDate || !travelTime || !customerName.trim() || !phone.trim() || !email.trim()) {
       setMessage("Uzupełnij wymagane pola."); return;
+    }
+    if (!Number.isInteger(passengerCount) || passengerCount < 1 || passengerCount > 30) {
+      setMessage("Podaj liczbę pasażerów od 1 do 30."); return;
     }
     if (roundtrip && (!returnDate || !returnTime)) { setMessage("Uzupełnij termin powrotu."); return; }
     setSaving(true);
@@ -99,7 +103,7 @@ export default function GeneralTransportForm() {
       const r = await fetch("/api/general-bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ origin, destination, roundtrip, travelDate, travelTime, returnDate, returnTime, passengers, vehicleType, category, customerName, phone, email, invoiceRequired, notes })
+        body: JSON.stringify({ origin, destination, roundtrip, travelDate, travelTime, returnDate, returnTime, passengers: passengerCount, vehicleType, category, customerName, phone, email, invoiceRequired, notes })
       });
       const d = await r.json();
       if (!r.ok) { setMessage(d.error || "Nie udało się wysłać zgłoszenia."); setSaving(false); return; }
@@ -155,7 +159,7 @@ export default function GeneralTransportForm() {
 
       <h2>3. Pasażerowie i pojazd</h2>
       <div className="grid">
-        <label>Liczba pasażerów<input type="number" min={1} max={30} value={passengers} onChange={(e)=>setPassengers(Math.max(1,Math.min(30,Number(e.target.value)||1)))} /></label>
+        <label>Liczba pasażerów<input type="number" min={1} max={30} step={1} inputMode="numeric" value={passengers} onChange={(e)=>setPassengers(e.target.value)} onBlur={()=>setPassengers(String(Math.max(1,Math.min(30,Number(passengers)||1))))} /></label>
         <label>Preferowany pojazd<select value={vehicleType} onChange={(e)=>setVehicleType(e.target.value)}><option value="auto">Dobierzcie pojazd</option><option value="car">Samochód osobowy</option><option value="bus">Bus do 8 pasażerów</option><option value="coach">Autokar do 30 pasażerów</option></select></label>
         <label>Rodzaj przewozu<select value={category} onChange={(e)=>setCategory(e.target.value)}><option value="private">Prywatny</option><option value="event">Impreza / wydarzenie</option><option value="school_club">Szkoła / klub / grupa</option><option value="employee">Pracowniczy / firmowy</option><option value="other">Inny</option></select></label>
       </div>
@@ -180,7 +184,7 @@ export default function GeneralTransportForm() {
       {roundtrip && <p><strong>+ transport powrotny</strong></p>}
       <div className="row"><span>Dystans</span><strong>{routeBusy?"liczę...":route?`${route.distanceKm.toFixed(1)} km`:"—"}</strong></div>
       {route?.durationSeconds ? <div className="row"><span>Szac. czas jazdy</span><strong>{formatDuration(route.durationSeconds)}</strong></div> : null}
-      <div className="row"><span>Pasażerowie</span><strong>{passengers}</strong></div>
+      <div className="row"><span>Pasażerowie</span><strong>{passengerCount || "—"}</strong></div>
       <div className="row"><span>Wycena</span><strong>INDYWIDUALNA</strong></div>
       <p className="muted">Po wysłaniu zapytania dyspozytor sprawdzi pojazd, dostępność i ostateczną cenę.</p>
     </aside>
