@@ -87,11 +87,11 @@ export async function POST(req: NextRequest) {
     `${body.travelDate}T${body.travelTime}`
   );
 
-  if (when.getTime() - Date.now() < 48 * 3600 * 1000) {
+  if (when.getTime() - Date.now() < 24 * 3600 * 1000) {
     return NextResponse.json(
       {
         error:
-          "Rezerwacja online wymaga minimum 48 godzin wyprzedzenia. Zadzwoń: +48 691 242 691"
+          "Rezerwacja online wymaga minimum 24 godzin wyprzedzenia. W pilnej sprawie zadzwoń: +48 691 242 691"
       },
       { status: 400 }
     );
