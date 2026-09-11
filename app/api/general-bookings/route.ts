@@ -64,7 +64,9 @@ export async function POST(req: NextRequest) {
   }
 
   const admin = createAdminClient();
-  const serviceType = roundtrip ? "point_to_point_roundtrip" : "point_to_point";
+  // Dla przejazdu powrotnego korzystamy z istniejącego, przetestowanego workflow roundtrip.
+  // destination_address + booking_source rozróżniają transport A→B od transferu lotniskowego.
+  const serviceType = roundtrip ? "roundtrip" : "point_to_point";
   const { data, error } = await admin.from("bookings").insert({
     service_type: serviceType,
     pickup_address: origin,
