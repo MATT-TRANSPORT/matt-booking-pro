@@ -125,8 +125,8 @@ export default async function Page() {
   return (
     <main className="container driver-app-shell driver-pro-shell">
       <DriverAppControls />
-      <DriverIssueReporter bookings={bookingsForDriver} />
       <DriverTrips driver={driver} bookings={bookingsForDriver} />
+      <DriverIssueReporter bookings={bookingsForDriver} />
     </main>
   );
 }
