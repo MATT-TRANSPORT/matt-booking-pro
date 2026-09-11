@@ -14,6 +14,12 @@ alter table public.vehicles
 comment on column public.vehicles.operating_cost_per_km is
   'Opcjonalny szacunkowy koszt operacyjny pojazdu za 1 km. Używany wyłącznie do raportu rentowności.';
 
+alter table public.drivers
+  add column if not exists cost_per_trip numeric;
+
+comment on column public.drivers.cost_per_trip is
+  'Opcjonalny szacunkowy koszt kierowcy za jeden kurs. Używany wyłącznie do raportu rentowności.';
+
 create table if not exists public.booking_reviews (
   id uuid primary key default gen_random_uuid(),
   booking_id uuid not null unique references public.bookings(id) on delete cascade,
