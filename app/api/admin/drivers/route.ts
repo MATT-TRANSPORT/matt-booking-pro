@@ -13,6 +13,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Brak uprawnień." }, { status: 403 });
 
   const b = await req.json();
+  const rawCost = String(b.costPerTrip ?? "").trim();
+  const costPerTrip = rawCost === "" ? null : Number(rawCost);
+  if (costPerTrip !== null && (!Number.isFinite(costPerTrip) || costPerTrip < 0)) {
+    return NextResponse.json({ error: "Koszt kierowcy / kurs musi być liczbą ≥ 0." }, { status: 400 });
+  }
 
   if (b.action === "create") {
     const { data, error } = await admin.from("drivers").insert({
@@ -23,6 +28,7 @@ export async function POST(req: NextRequest) {
       user_id: b.userId || null,
       notes: b.notes || null,
       color: b.color || "#D6AD55",
+      cost_per_trip: costPerTrip,
       active: true,
       status: "available"
     }).select("*").single();
@@ -39,6 +45,7 @@ export async function POST(req: NextRequest) {
       user_id: b.userId || null,
       notes: b.notes || null,
       color: b.color || "#D6AD55",
+      cost_per_trip: costPerTrip,
       active: Boolean(b.active),
       status: b.active ? "available" : "inactive"
     }).eq("id", b.id).select("*").single();
