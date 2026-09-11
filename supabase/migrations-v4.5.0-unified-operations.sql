@@ -5,6 +5,11 @@ alter table public.bookings
   add column if not exists destination_address text,
   add column if not exists price_quote_required boolean not null default false;
 
+-- Transport pozostały obsługuje także własny autokar SCANIA do 30 pasażerów.
+alter table public.bookings drop constraint if exists bookings_passengers_check;
+alter table public.bookings
+  add constraint bookings_passengers_check check (passengers >= 1 and passengers <= 30);
+
 create index if not exists bookings_category_schedule_idx
   on public.bookings (booking_category, travel_date, travel_time);
 
