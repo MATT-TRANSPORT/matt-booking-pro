@@ -18,21 +18,12 @@ export function localDateTimeKey(date: unknown, time: unknown) {
 export function localKeyToSerialMinutes(key: string) {
   const match = String(key || "").match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
   if (!match) return Number.NaN;
-  return Math.floor(
-    Date.UTC(
-      Number(match[1]),
-      Number(match[2]) - 1,
-      Number(match[3]),
-      Number(match[4]),
-      Number(match[5])
-    ) / 60000
-  );
+  return Math.floor(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(match[4]), Number(match[5])) / 60000);
 }
 
 export function shiftLocalDateTime(date: unknown, time: unknown, minutes: number) {
   const key = localDateTimeKey(date, time);
   if (!key) return { date: "", time: "", key: "" };
-
   const serial = localKeyToSerialMinutes(key);
   const value = new Date((serial + minutes) * 60_000);
   const pad = (x: number) => String(x).padStart(2, "0");
@@ -50,18 +41,13 @@ export function bookingLegScheduledTime(booking: any, leg: BookingLegKind) {
 }
 
 export function isAirportPickupLeg(booking: any, leg: BookingLegKind) {
-  return (
-    booking?.service_type === "from_airport" ||
-    (booking?.service_type === "roundtrip" && leg === "return")
-  );
+  if (booking?.booking_category === "point_to_point") return false;
+  return booking?.service_type === "from_airport" || (booking?.service_type === "roundtrip" && leg === "return");
 }
 
 export function bookingLegWindowOffsets(booking: any, leg: BookingLegKind) {
-  // MATT v4.1.2:
-  // NA LOTNISKO: klient podaje godzinę WYJAZDU na lotnisko.
-  // Zajętość kierowcy zaczyna się 30 min wcześniej i trwa 4 h.
-  // Z LOTNISKA: klient podaje godzinę PRZYLOTU.
-  // Zajętość zaczyna się 30 min wcześniej i trwa 3 h 30 min.
+  // Transfer z lotniska korzysta z godziny przylotu. Pozostałe kursy,
+  // w tym A→B, korzystają z podanej godziny wyjazdu.
   return isAirportPickupLeg(booking, leg)
     ? { startOffsetMinutes: -30, durationMinutes: 210, endOffsetMinutes: 180 }
     : { startOffsetMinutes: -30, durationMinutes: 240, endOffsetMinutes: 210 };
@@ -74,7 +60,6 @@ export function bookingLegOperationalWindow(booking: any, leg: BookingLegKind) {
   const offsets = bookingLegWindowOffsets(booking, leg);
   const start = shiftLocalDateTime(scheduledDate, scheduledTime, offsets.startOffsetMinutes);
   const end = shiftLocalDateTime(scheduledDate, scheduledTime, offsets.endOffsetMinutes);
-
   return {
     leg,
     scheduledDate,
