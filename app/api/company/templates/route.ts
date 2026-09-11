@@ -15,6 +15,14 @@ async function access() {
   return { user, membership, admin: createAdminClient() } as any;
 }
 
+function daysBetween(from?: string | null, to?: string | null) {
+  if (!from || !to) return 0;
+  const a = Date.parse(`${String(from).slice(0,10)}T12:00:00Z`);
+  const b = Date.parse(`${String(to).slice(0,10)}T12:00:00Z`);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return 0;
+  return Math.max(0, Math.round((b - a) / 86400000));
+}
+
 export async function POST(req: NextRequest) {
   const ctx = await access();
   if (ctx.error) return ctx.error;
@@ -45,6 +53,9 @@ export async function POST(req: NextRequest) {
       vehicle_type: booking.vehicle_type,
       passengers: booking.passengers || 1,
       flight_number: booking.flight_number || null,
+      return_offset_days: daysBetween(booking.travel_date, booking.return_date),
+      return_time: booking.return_time ? String(booking.return_time).slice(0,5) : null,
+      return_flight_number: booking.return_flight_number || null,
       notes: booking.notes || null,
       payment_method: booking.payment_method || null,
       additional_stop_address: booking.additional_stop_address || null,
@@ -66,6 +77,9 @@ export async function POST(req: NextRequest) {
     vehicle_type: String(body.vehicleType || "car"),
     passengers: Math.max(1, Math.min(8, Number(body.passengers || 1))),
     flight_number: String(body.flightNumber || "").trim() || null,
+    return_offset_days: Math.max(0, Math.min(60, Number(body.returnOffsetDays || 0))),
+    return_time: String(body.returnTime || "").slice(0,5) || null,
+    return_flight_number: String(body.returnFlightNumber || "").trim() || null,
     notes: String(body.notes || "").trim() || null,
     payment_method: String(body.paymentMethod || "company_transfer"),
     additional_stop_address: String(body.additionalStopAddress || "").trim() || null,
@@ -76,6 +90,9 @@ export async function POST(req: NextRequest) {
   };
   if (!payload.name || !payload.pickup_address || !payload.airport_key || !payload.employee_id) {
     return NextResponse.json({ error: "Uzupełnij nazwę, pracownika, adres i lotnisko." }, { status: 400 });
+  }
+  if (payload.service_type === "roundtrip" && !payload.return_time) {
+    return NextResponse.json({ error: "Dla kursu w obie strony podaj godzinę powrotu." }, { status: 400 });
   }
 
   if (action === "update") {
