@@ -2,6 +2,8 @@
 -- Alerts, B2B templates/recurrence, driver issue reports, review funnel and profitability.
 
 create extension if not exists pgcrypto;
+create extension if not exists pg_net;
+create extension if not exists pg_cron;
 
 alter table public.bookings
   add column if not exists admin_pending_escalation_sent_at timestamptz;
@@ -73,3 +75,30 @@ alter table public.driver_issue_reports enable row level security;
 insert into storage.buckets (id, name, public)
 values ('driver-issues', 'driver-issues', false)
 on conflict (id) do update set public = false;
+
+-- Zastępujemy stary cron customer-notifications nową wersją OPERATIONS+.
+-- Używa tego samego sekretu w Supabase Vault, więc nie wymaga nowych ENV.
+select cron.unschedule(jobid)
+from cron.job
+where jobname = 'matt-customer-notifications-15m';
+
+select cron.schedule(
+  'matt-customer-notifications-15m',
+  '*/15 * * * *',
+  $cron$
+  select net.http_post(
+    url := 'https://panel.matt-transport.pl/api/cron/operations-plus',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'x-customer-notifications-secret',
+      (
+        select decrypted_secret
+        from vault.decrypted_secrets
+        where name = 'matt_customer_notifications_cron_secret'
+        limit 1
+      )
+    ),
+    body := '{}'::jsonb
+  );
+  $cron$
+);
