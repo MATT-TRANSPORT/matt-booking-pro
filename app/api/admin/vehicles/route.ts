@@ -13,6 +13,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Brak uprawnień." }, { status: 403 });
 
   const b = await req.json();
+  const rawCost = String(b.operatingCostPerKm ?? "").trim();
+  const operatingCostPerKm = rawCost === "" ? null : Number(rawCost);
+  if (operatingCostPerKm !== null && (!Number.isFinite(operatingCostPerKm) || operatingCostPerKm < 0)) {
+    return NextResponse.json({ error: "Koszt / km musi być liczbą ≥ 0." }, { status: 400 });
+  }
+
   const payload = {
     name: b.name,
     registration: b.registration,
@@ -20,6 +26,7 @@ export async function POST(req: NextRequest) {
     seats: Number(b.seats || 4),
     type: b.type || "car",
     mileage: b.mileage ? Number(b.mileage) : null,
+    operating_cost_per_km: operatingCostPerKm,
     inspection_date: b.inspectionDate || null,
     insurance_date: b.insuranceDate || null,
     notes: b.notes || null,

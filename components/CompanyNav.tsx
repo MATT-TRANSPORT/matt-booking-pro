@@ -2,6 +2,7 @@ export default function CompanyNav() {
   return <nav className="nav company-nav">
     <a href="/firma">Dashboard</a>
     <a href="/firma/nowa-rezerwacja">+ Nowa rezerwacja</a>
+    <a href="/firma/szablony">Szablony i cykliczne</a>
     <a href="/firma/kalendarz">Kalendarz</a>
     <a href="/firma/cennik">Cennik i warunki</a>
     <a href="/firma/pracownicy">Pracownicy</a>

@@ -11,12 +11,12 @@ function daysUntil(date?:string|null){
 
 export default function VehiclesManager({vehicles}:{vehicles:any[]}) {
   const router=useRouter();
-  const empty={id:"",name:"",registration:"",color:"",seats:4,type:"car",mileage:"",inspectionDate:"",insuranceDate:"",notes:"",active:true};
+  const empty={id:"",name:"",registration:"",color:"",seats:4,type:"car",mileage:"",operatingCostPerKm:"",inspectionDate:"",insuranceDate:"",notes:"",active:true};
   const [form,setForm]=useState<any>(empty);
   const [message,setMessage]=useState("");
   const [saving,setSaving]=useState(false);
 
-  function edit(x:any){setForm({id:x.id,name:x.name||"",registration:x.registration||"",color:x.color||"",seats:x.seats||4,type:x.type||"car",mileage:x.mileage??"",inspectionDate:x.inspection_date||"",insuranceDate:x.insurance_date||"",notes:x.notes||"",active:x.active!==false});window.scrollTo({top:0,behavior:"smooth"});}
+  function edit(x:any){setForm({id:x.id,name:x.name||"",registration:x.registration||"",color:x.color||"",seats:x.seats||4,type:x.type||"car",mileage:x.mileage??"",operatingCostPerKm:x.operating_cost_per_km??"",inspectionDate:x.inspection_date||"",insuranceDate:x.insurance_date||"",notes:x.notes||"",active:x.active!==false});window.scrollTo({top:0,behavior:"smooth"});}
   async function save(){
     if(!form.name||!form.registration){setMessage("Podaj nazwę i rejestrację.");return}
     setSaving(true);
@@ -35,9 +35,11 @@ export default function VehiclesManager({vehicles}:{vehicles:any[]}) {
         <label>Liczba miejsc<input type="number" min={1} max={60} value={form.seats} onChange={e=>setForm({...form,seats:Number(e.target.value)})}/></label>
         <label>Typ<select value={form.type} onChange={e=>setForm({...form,type:e.target.value})}><option value="car">Samochód</option><option value="bus">Bus</option><option value="coach">Autokar</option></select></label>
         <label>Przebieg (km)<input type="number" min={0} value={form.mileage} onChange={e=>setForm({...form,mileage:e.target.value})}/></label>
+        <label>Szac. koszt operacyjny / km (zł)<input type="number" min={0} step="0.01" value={form.operatingCostPerKm} onChange={e=>setForm({...form,operatingCostPerKm:e.target.value})} placeholder="np. 1.35"/></label>
         <label>Przegląd ważny do<input type="date" value={form.inspectionDate} onChange={e=>setForm({...form,inspectionDate:e.target.value})}/></label>
         <label>Ubezpieczenie ważne do<input type="date" value={form.insuranceDate} onChange={e=>setForm({...form,insuranceDate:e.target.value})}/></label>
       </div>
+      <p className="muted">Koszt / km jest opcjonalny i służy wyłącznie do szacunkowego raportu rentowności. System nie narzuca żadnej stawki.</p>
       <label style={{marginTop:12}}>Uwagi<textarea rows={3} value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})}/></label>
       {form.id&&<label style={{marginTop:12}}>Status<select value={form.active?"1":"0"} onChange={e=>setForm({...form,active:e.target.value==="1"})}><option value="1">Aktywny</option><option value="0">Nieaktywny</option></select></label>}
       <div className="manager-actions"><button className="btn" disabled={saving} onClick={save}>{saving?"ZAPISYWANIE...":form.id?"ZAPISZ ZMIANY":"DODAJ POJAZD"}</button>{form.id&&<button className="btn secondary" onClick={()=>setForm(empty)}>ANULUJ</button>}</div>
@@ -45,8 +47,8 @@ export default function VehiclesManager({vehicles}:{vehicles:any[]}) {
     </div>
     <div className="card" style={{marginTop:18}}>
       <h2>Pojazdy</h2>
-      <table className="table"><thead><tr><th>Pojazd</th><th>Rejestracja</th><th>Przegląd</th><th>Ubezpieczenie</th><th>Status</th><th></th></tr></thead>
-      <tbody>{vehicles.map((x:any)=>{const a=daysUntil(x.inspection_date),b=daysUntil(x.insurance_date);return <tr key={x.id}><td><strong>{x.name}</strong><br/><span className="muted">{x.color||"—"} · {x.seats} miejsc</span></td><td>{x.registration}</td><td><Expiry date={x.inspection_date} days={a}/></td><td><Expiry date={x.insurance_date} days={b}/></td><td>{x.active===false?"Nieaktywny":"Aktywny"}</td><td><button className="btn secondary company-small-btn" onClick={()=>edit(x)}>EDYTUJ</button></td></tr>})}</tbody></table>
+      <table className="table"><thead><tr><th>Pojazd</th><th>Rejestracja</th><th>Koszt/km</th><th>Przegląd</th><th>Ubezpieczenie</th><th>Status</th><th></th></tr></thead>
+      <tbody>{vehicles.map((x:any)=>{const a=daysUntil(x.inspection_date),b=daysUntil(x.insurance_date);return <tr key={x.id}><td><strong>{x.name}</strong><br/><span className="muted">{x.color||"—"} · {x.seats} miejsc · {x.mileage?`${Number(x.mileage).toLocaleString("pl-PL")} km`:"brak przebiegu"}</span></td><td>{x.registration}</td><td>{x.operating_cost_per_km!==null&&x.operating_cost_per_km!==undefined?`${Number(x.operating_cost_per_km).toFixed(2)} zł`:"—"}</td><td><Expiry date={x.inspection_date} days={a}/></td><td><Expiry date={x.insurance_date} days={b}/></td><td>{x.active===false?"Nieaktywny":"Aktywny"}</td><td><button className="btn secondary company-small-btn" onClick={()=>edit(x)}>EDYTUJ</button></td></tr>})}</tbody></table>
     </div>
   </>;
 }

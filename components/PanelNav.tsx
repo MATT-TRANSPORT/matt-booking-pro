@@ -4,6 +4,7 @@ export default function PanelNav() {
     <a href="/panel/dyspozytor">Plan kursów</a>
     <a href="/panel/rezerwacje">Rezerwacje</a>
     <a href="/panel/kalendarz">Kalendarz</a>
+    <a href="/panel/zgloszenia">Zgłoszenia kierowców</a>
     <a href="/panel/firmy">Firmy B2B</a>
     <a href="/panel/kierowcy">Kierowcy</a>
     <a href="/panel/pojazdy">Pojazdy</a>
