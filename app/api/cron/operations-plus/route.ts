@@ -95,13 +95,18 @@ async function historyMap(admin: any, ids: string[]) {
   return map;
 }
 
-async function sendReminderEmail(booking: any, leg: "primary" | "return", operational: any) {
+async function sendReminderEmail(
+  booking: any,
+  leg: "primary" | "return",
+  serviceDate: string,
+  serviceTime: string
+) {
   if (!booking.email) return false;
   const portal = `${appBaseUrl()}/rezerwacja/${booking.customer_access_token}`;
   const result = await sendMattEmail({
     to: booking.email,
     subject: `Przypomnienie o przejeździe – ${booking.booking_number}`,
-    html: `<div style="font-family:Arial,sans-serif;background:#0b0e13;color:#fff;padding:28px"><div style="max-width:650px;margin:auto;background:#151923;border:1px solid #343b49;border-radius:16px;padding:28px"><h2 style="color:#f1d28b">MATT TRANSPORT</h2><h1>Przypomnienie o przejeździe</h1><p style="color:#aab1bc;line-height:1.7">Rezerwacja <strong>${booking.booking_number}</strong> · ${operational.startDate} · ${operational.startTime}</p><p style="color:#aab1bc;line-height:1.7">${routeText(booking, leg)}</p><p><a href="${portal}" style="display:inline-block;background:#d5ae5d;color:#111;padding:14px 20px;border-radius:11px;text-decoration:none;font-weight:800">OTWÓRZ REZERWACJĘ</a></p></div></div>`
+    html: `<div style="font-family:Arial,sans-serif;background:#0b0e13;color:#fff;padding:28px"><div style="max-width:650px;margin:auto;background:#151923;border:1px solid #343b49;border-radius:16px;padding:28px"><h2 style="color:#f1d28b">MATT TRANSPORT</h2><h1>Przypomnienie o przejeździe</h1><p style="color:#aab1bc;line-height:1.7">Rezerwacja <strong>${booking.booking_number}</strong> · ${serviceDate} · ${shortTime(serviceTime)}</p><p style="color:#aab1bc;line-height:1.7">${routeText(booking, leg)}</p><p><a href="${portal}" style="display:inline-block;background:#d5ae5d;color:#111;padding:14px 20px;border-radius:11px;text-decoration:none;font-weight:800">OTWÓRZ REZERWACJĘ</a></p></div></div>`
   });
   return Boolean(result.sent);
 }
@@ -117,20 +122,22 @@ async function runCustomerReminders(admin: any, from: string, to: string) {
     const progress = driverProgressFromHistory(events);
     const leg = currentDriverLeg(booking, progress);
     const operational = bookingLegOperationalWindow(booking, leg);
-    const until = minutesUntil(operational.startDate, operational.startTime);
+    const serviceDate = String(leg === "return" ? booking.return_date : booking.travel_date || "").slice(0, 10);
+    const serviceTime = shortTime(leg === "return" ? booking.return_time : booking.travel_time);
+    const until = minutesUntil(serviceDate, serviceTime);
 
     try {
       if (until >= 1410 && until <= 1470) {
         const marker = `REMINDER_24H:${leg}:${operational.startDate}:${operational.startTime}`;
         if (!events.some((x: any) => String(x.event || "").includes(marker))) {
           const [emailSent, push] = await Promise.all([
-            sendReminderEmail(booking, leg, operational).catch(() => false),
+            sendReminderEmail(booking, leg, serviceDate, serviceTime).catch(() => false),
             sendBookingNotification(admin, booking, {
               kind: "reminder_24h",
               leg,
               eventKey: `reminder24:${booking.id}:${leg}:${operational.startDate}:${operational.startTime}`,
-              serviceDate: operational.startDate,
-              serviceTime: operational.startTime
+              serviceDate,
+              serviceTime
             }).catch(() => null)
           ]);
           if (emailSent || push?.sent) {
@@ -149,8 +156,8 @@ async function runCustomerReminders(admin: any, from: string, to: string) {
           kind: "reminder_120",
           leg,
           eventKey: `reminder120:${booking.id}:${leg}:${operational.startDate}:${operational.startTime}`,
-          serviceDate: operational.startDate,
-          serviceTime: operational.startTime
+          serviceDate,
+          serviceTime
         });
         if (push.sent) stats.reminder120 += 1;
       }
@@ -328,7 +335,7 @@ export async function POST(req: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    service: "MATT Operations+ v4.4.0",
+    service: "MATT Operations+ v4.4.0.1",
     jobs: ["customer_reminder_24h", "customer_reminder_120", "driver_reminder_60", "post_trip_rating", "admin_pending_20m"],
     method: "POST"
   });
