@@ -6,14 +6,16 @@ export type BookingEntry = {
   chooseService: boolean;
 };
 
-// Only these public choices may be preselected by a price-table link.
-// Prices, dates, passenger details and payment settings never come from the URL.
+// Linki z cennika mogą nadal otworzyć od razu formularz lotniskowy.
+// Zwykłe wejście na /booking pokazuje wybór 3 głównych usług.
 export function parseBookingEntry(params: Record<string, string | string[] | undefined>): BookingEntry {
-  const airport = typeof params.airport === "string" && Object.prototype.hasOwnProperty.call(PRICES, params.airport)
-    ? params.airport : "balice";
+  const hasAirportParam = typeof params.airport === "string" && Object.prototype.hasOwnProperty.call(PRICES, params.airport);
+  const airport = hasAirportParam ? String(params.airport) : "balice";
+  const directAirport = hasAirportParam || params.entry === "transport_choice_airport";
+
   return {
     airport,
     vehicle: params.vehicle === "bus" ? "bus" : "car",
-    chooseService: params.service === "transport" || params.entry === "home_transport_link"
+    chooseService: !directAirport
   };
 }
