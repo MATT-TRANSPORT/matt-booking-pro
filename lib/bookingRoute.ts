@@ -14,7 +14,18 @@ export function additionalStopLegLabel(booking: any) {
 
 export function bookingRouteText(booking: any, leg?: "primary" | "return") {
   const pickup = text(booking?.pickup_address);
-  const airport = text(booking?.airport_label, "Lotnisko");
+  const pointToPoint = booking?.booking_category === "point_to_point";
+  const destination = text(booking?.destination_address || booking?.airport_label, pointToPoint ? "Punkt B" : "Lotnisko");
+
+  if (pointToPoint) {
+    if (leg === "return") return `${destination} → ${pickup}`;
+    if (leg === "primary") return `${pickup} → ${destination}`;
+    return booking?.service_type === "roundtrip"
+      ? `${pickup} ↔ ${destination}`
+      : `${pickup} → ${destination}`;
+  }
+
+  const airport = destination;
   const stop = text(booking?.additional_stop_address, "");
   const usePrimary = Boolean(stop && booking?.additional_stop_primary);
   const useReturn = Boolean(stop && booking?.additional_stop_return);
