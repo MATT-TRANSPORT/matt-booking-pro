@@ -16,25 +16,42 @@ export async function POST(req: NextRequest) {
 
   const form = await req.formData();
   const bookingId = String(form.get("bookingId") || "");
-  const issueType = String(form.get("issueType") || "other").slice(0, 40);
+  const leg: "primary" | "return" = String(form.get("leg") || "primary") === "return" ? "return" : "primary";
+  const rawIssueType = String(form.get("issueType") || "other").slice(0, 40);
+  const issueType = ["mileage", "vehicle", "passenger", "other"].includes(rawIssueType) ? rawIssueType : "other";
   const description = String(form.get("description") || "").trim().slice(0, 2000);
   const mileageRaw = String(form.get("mileage") || "").trim();
-  const mileage = mileageRaw ? Math.max(0, Math.round(Number(mileageRaw))) : null;
+  let mileage: number | null = null;
+
+  if (mileageRaw) {
+    const parsedMileage = Number(mileageRaw);
+    if (!Number.isFinite(parsedMileage) || parsedMileage < 0) {
+      return NextResponse.json({ error: "Przebieg musi być poprawną liczbą ≥ 0." }, { status: 400 });
+    }
+    mileage = Math.round(parsedMileage);
+  }
+
   const photo = form.get("photo");
 
   if (!bookingId) return NextResponse.json({ error: "Wybierz kurs." }, { status: 400 });
   if (!description && mileage === null) return NextResponse.json({ error: "Dodaj opis albo przebieg." }, { status: 400 });
 
   const { data: booking } = await admin.from("bookings")
-    .select("id,booking_number,driver_id,return_driver_id,vehicle_id,return_vehicle_id")
+    .select("id,booking_number,service_type,driver_id,return_driver_id,vehicle_id,return_vehicle_id")
     .eq("id", bookingId).maybeSingle();
   if (!booking) return NextResponse.json({ error: "Nie znaleziono kursu." }, { status: 404 });
 
-  const primary = String(booking.driver_id || "") === String(driver.id);
-  const returned = String(booking.return_driver_id || "") === String(driver.id);
-  if (!primary && !returned) return NextResponse.json({ error: "Ten kurs nie jest przypisany do Ciebie." }, { status: 403 });
-  const vehicleId = returned && !primary ? booking.return_vehicle_id : booking.vehicle_id || booking.return_vehicle_id;
-  if (!vehicleId) return NextResponse.json({ error: "Kurs nie ma przypisanego pojazdu." }, { status: 409 });
+  if (leg === "return" && booking.service_type !== "roundtrip") {
+    return NextResponse.json({ error: "Ten kurs nie ma osobnego powrotu." }, { status: 400 });
+  }
+
+  const assignedDriverId = leg === "return" ? booking.return_driver_id : booking.driver_id;
+  if (String(assignedDriverId || "") !== String(driver.id)) {
+    return NextResponse.json({ error: "Ta część kursu nie jest przypisana do Ciebie." }, { status: 403 });
+  }
+
+  const vehicleId = leg === "return" ? booking.return_vehicle_id : booking.vehicle_id;
+  if (!vehicleId) return NextResponse.json({ error: "Ta część kursu nie ma przypisanego pojazdu." }, { status: 409 });
 
   let photoPath: string | null = null;
   if (photo instanceof File && photo.size > 0) {
@@ -68,7 +85,7 @@ export async function POST(req: NextRequest) {
 
   await sendAdminPush(admin, {
     title: issueType === "mileage" ? "🚐 PRZEBIEG POJAZDU" : "⚠ ZGŁOSZENIE KIEROWCY",
-    body: `${driver.full_name} · ${booking.booking_number} · ${description || `${mileage} km`}`.slice(0, 180),
+    body: `${driver.full_name} · ${booking.booking_number} · ${leg === "return" ? "POWRÓT" : "WYJAZD"} · ${description || `${mileage} km`}`.slice(0, 180),
     url: "/panel/zgloszenia",
     tag: `driver-issue-${report.id}`
   }).catch((err) => console.error("Driver issue admin push:", err));
