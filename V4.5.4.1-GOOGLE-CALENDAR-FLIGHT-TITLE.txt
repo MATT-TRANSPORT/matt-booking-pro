@@ -1,0 +1,10 @@
+MATT Booking PRO v4.5.4.1 — GOOGLE CALENDAR FLIGHT TITLE
+
+Zmiana:
+- przy wydarzeniach typu LĄDOWANIE numer lotu jest dopisywany do tytułu,
+- przykładowy tytuł: LĄDOWANIE 30.09.2026 20:05 · ENT7692 · Katowice-Pyrzowice → …,
+- przy wydarzeniach typu WYJAZD numer lotu nie jest dopisywany do tytułu,
+- numer lotu nadal pozostaje również w opisie wydarzenia,
+- brak zmian SQL i ENV.
+
+WERSJA: 4.5.4.1
