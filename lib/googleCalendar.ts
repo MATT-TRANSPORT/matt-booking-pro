@@ -1,4 +1,4 @@
-import { bookingLegOperationalWindow } from "@/lib/bookingOperationalWindow";
+import { bookingLegOperationalWindow, isAirportPickupLeg } from "@/lib/bookingOperationalWindow";
 import { bookingRouteText } from "@/lib/bookingRoute";
 import {
   createPrivateKey,
@@ -99,6 +99,12 @@ function paymentDateLabel(value: unknown) {
     hour: "2-digit",
     minute: "2-digit"
   }).format(date);
+}
+
+function calendarTitleDateLabel(value: unknown) {
+  const raw = String(value || "").slice(0, 10);
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return match ? `${match[3]}.${match[2]}.${match[1]}` : raw;
 }
 
 type CalendarResult = {
@@ -406,11 +412,10 @@ function bookingEventBody(
   const operational = bookingLegOperationalWindow(booking, leg);
   const startDateTime = `${operational.startKey}:00`;
   const endDateTime = `${operational.endKey}:00`;
+  const airportPickup = isAirportPickupLeg(booking, leg);
 
   const summary =
-    `MATT · ${String(
-      booking.booking_number || ""
-    )} · ${route}`;
+    `${airportPickup ? "LĄDOWANIE" : "WYJAZD"} ${calendarTitleDateLabel(operational.scheduledDate)} ${operational.scheduledTime} · ${route}`;
 
   const panelBase = (
     process.env.NEXT_PUBLIC_APP_URL ||
@@ -423,8 +428,7 @@ function bookingEventBody(
     `Klient: ${booking.customer_name || "—"}`,
     `Telefon: ${booking.phone || "—"}`,
     `Trasa: ${route}`,
-    `Okno operacyjne: ${operational.startDate} ${operational.startTime} – ${operational.endDate} ${operational.endTime}`,
-    `${leg === "return" || booking.service_type === "from_airport" ? "Godzina przylotu" : "Godzina wyjazdu od klienta"}: ${operational.scheduledDate} ${operational.scheduledTime}`,
+    `${airportPickup ? "Godzina przylotu" : "Godzina wyjazdu od klienta"}: ${operational.scheduledDate} ${operational.scheduledTime}`,
     `Pasażerowie: ${booking.passengers || "—"}`,
     `Lot: ${flight || "—"}`,
     `Płatność: ${paymentMethodLabel(booking)}`,
