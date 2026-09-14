@@ -1,0 +1,20 @@
+MATT Booking PRO v4.5.4 — GOOGLE CALENDAR TITLE
+
+ZMIANY:
+- tytuł wydarzenia Google Calendar nie zawiera już numeru rezerwacji,
+- tytuł pokazuje WYJAZD albo LĄDOWANIE + datę + godzinę + trasę,
+- data w tytule jest w formacie DD.MM.RRRR,
+- dla odbioru z lotniska oraz powrotu lotniskowego używany jest napis LĄDOWANIE,
+- dla wyjazdu od klienta i transportów pozostałych używany jest napis WYJAZD,
+- z opisu wydarzenia usunięto wiersz „Okno operacyjne”,
+- numer rezerwacji pozostaje w opisie wydarzenia,
+- wewnętrzne okno operacyjne nadal steruje początkiem i końcem bloku w Google Calendar — zmieniamy tylko treść widoczną użytkownikowi.
+
+PRZYKŁAD TYTUŁU:
+WYJAZD 15.09.2026 07:30 · Buczyna 20, Czernica → Rydułtowska 7G, Gaszowice → Katowice-Pyrzowice
+
+BRAK:
+- brak zmian SQL,
+- brak nowych ENV.
+
+WERSJA: 4.5.4
