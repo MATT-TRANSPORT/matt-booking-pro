@@ -413,9 +413,12 @@ function bookingEventBody(
   const startDateTime = `${operational.startKey}:00`;
   const endDateTime = `${operational.endKey}:00`;
   const airportPickup = isAirportPickupLeg(booking, leg);
+  const titleFlight = airportPickup && String(flight || "").trim()
+    ? ` · ${String(flight).trim()}`
+    : "";
 
   const summary =
-    `${airportPickup ? "LĄDOWANIE" : "WYJAZD"} ${calendarTitleDateLabel(operational.scheduledDate)} ${operational.scheduledTime} · ${route}`;
+    `${airportPickup ? "LĄDOWANIE" : "WYJAZD"} ${calendarTitleDateLabel(operational.scheduledDate)} ${operational.scheduledTime}${titleFlight} · ${route}`;
 
   const panelBase = (
     process.env.NEXT_PUBLIC_APP_URL ||
