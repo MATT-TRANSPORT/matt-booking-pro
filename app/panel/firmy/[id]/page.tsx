@@ -5,6 +5,12 @@ import { notFound } from "next/navigation";
 import PanelNav from "@/components/PanelNav";
 import SettlementUpload from "@/components/SettlementUpload";
 import { panelClient } from "@/lib/panel";
+import {
+  companyBookingScheduleInfo,
+  companyWarsawNowKey,
+  sortCompanyBookings
+} from "@/lib/companyPortal";
+import { statusPl } from "@/lib/status";
 
 export default async function Page({
   params
@@ -24,7 +30,7 @@ export default async function Page({
   ] = await Promise.all([
     s.from("companies").select("*").eq("id", id).single(),
     s.from("company_employees").select("*").eq("company_id", id).order("last_name"),
-    s.from("bookings").select("*").eq("company_id", id).order("created_at", { ascending: false }).limit(200),
+    s.from("bookings").select("*").eq("company_id", id).order("travel_date", { ascending: true }).limit(200),
     s.from("company_users").select("id,user_id,role,active").eq("company_id", id),
     s.from("company_settlements").select("*").eq("company_id", id).order("period_month", { ascending: false }),
     s.from("company_pricing_terms")
@@ -46,6 +52,15 @@ export default async function Page({
         .order("airport_key")
     : { data: [] as any[] };
 
+  const nowKey = companyWarsawNowKey();
+  const visibleBookings = sortCompanyBookings(bookings ?? [], nowKey).slice(0, 50);
+  const activeBookings = visibleBookings.filter(
+    (booking: any) => !companyBookingScheduleInfo(booking, nowKey).archived
+  );
+  const archivedBookings = visibleBookings.filter(
+    (booking: any) => companyBookingScheduleInfo(booking, nowKey).archived
+  );
+
   const totalNet = (bookings ?? []).reduce(
     (sum: number, b: any) =>
       sum + Number(b.price_net ?? (b.company_id ? b.total_price : 0) ?? 0),
@@ -54,6 +69,18 @@ export default async function Page({
   const totalGross = (bookings ?? []).reduce(
     (sum: number, b: any) => sum + Number(b.price_gross ?? b.total_price ?? 0),
     0
+  );
+
+  const bookingRow = (b: any, archived = false) => (
+    <tr key={b.id} className={archived ? "company-booking-row-archive" : undefined}>
+      <td><span className="origin-badge b2b">🏢 B2B</span></td>
+      <td><a href={`/panel/rezerwacje/${b.id}`}>{b.booking_number}</a></td>
+      <td>{b.customer_name}</td>
+      <td>{b.travel_date}<br />{String(b.travel_time || "").slice(0, 5)}</td>
+      <td>{Number(b.price_net ?? b.total_price).toFixed(2)} zł</td>
+      <td>{Number(b.price_gross ?? b.total_price).toFixed(2)} zł</td>
+      <td><span className={`status ${String(b.status || "").toLowerCase()}`}>{statusPl(b.status)}</span></td>
+    </tr>
   );
 
   return (
@@ -150,23 +177,22 @@ export default async function Page({
       </div>
 
       <div className="card" style={{ marginTop: 18 }}>
-        <h2>Ostatnie rezerwacje</h2>
+        <h2>Rezerwacje firmy</h2>
+        <p className="muted" style={{ marginTop: -6, marginBottom: 14 }}>
+          Najbliższy termin jest najwyżej. Zakończone, anulowane i przejazdy po terminie są przenoszone do historii na dole.
+        </p>
         <table className="table">
           <thead>
             <tr><th>Typ</th><th>Numer</th><th>Pasażer</th><th>Termin</th><th>Netto</th><th>Brutto</th><th>Status</th></tr>
           </thead>
           <tbody>
-            {(bookings ?? []).slice(0, 50).map((b: any) => (
-              <tr key={b.id}>
-                <td><span className="origin-badge b2b">🏢 B2B</span></td>
-                <td><a href={`/panel/rezerwacje/${b.id}`}>{b.booking_number}</a></td>
-                <td>{b.customer_name}</td>
-                <td>{b.travel_date} {b.travel_time}</td>
-                <td>{Number(b.price_net ?? b.total_price).toFixed(2)} zł</td>
-                <td>{Number(b.price_gross ?? b.total_price).toFixed(2)} zł</td>
-                <td>{b.status}</td>
+            {activeBookings.map((b: any) => bookingRow(b))}
+            {archivedBookings.length > 0 && (
+              <tr className="company-booking-archive-divider">
+                <td colSpan={7}>HISTORIA · ZAKOŃCZONE / ANULOWANE / TERMIN MINĄŁ</td>
               </tr>
-            ))}
+            )}
+            {archivedBookings.map((b: any) => bookingRow(b, true))}
           </tbody>
         </table>
         <p className="muted" style={{ marginTop: 12 }}>

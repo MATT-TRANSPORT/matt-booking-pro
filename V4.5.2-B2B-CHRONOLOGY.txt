@@ -1,0 +1,24 @@
+MATT Booking PRO v4.5.2 — B2B CHRONOLOGY
+
+Zakres:
+- panel MATT > Firmy B2B > szczegóły firmy: rezerwacje sortowane wg terminu przejazdu, a nie daty utworzenia,
+- najbliższy aktywny termin jest zawsze najwyżej,
+- przejazdy zakończone, anulowane oraz z terminem, który już minął, trafiają pod separator HISTORIA,
+- statusy w tabeli szczegółów firmy są prezentowane po polsku,
+- portal firmy /firma/rezerwacje otrzymuje identyczny separator historii w tabeli i widoku kart mobilnych,
+- istniejący Dashboard firmy zachowuje tę samą logikę, dzięki czemu wszystkie widoki B2B są spójne,
+- archiwum jest sortowane od najnowszego zakończonego/minionego terminu w dół,
+- brak zmian w cenach, płatnościach, Stripe, mailach i bazie danych.
+
+SQL / ENV:
+- brak migracji SQL,
+- brak nowych zmiennych środowiskowych.
+
+TEST:
+1. Firma z transportami przyszłymi: kolejność od najbliższego terminu.
+2. Rezerwacja completed: pod separatorem HISTORIA.
+3. Rezerwacja cancelled: pod separatorem HISTORIA.
+4. Rezerwacja po terminie bez statusu completed: pod separatorem jako termin minął.
+5. Widok desktop i mobilny portalu firmy zachowują ten sam podział.
+
+WERSJA: 4.5.2
