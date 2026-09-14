@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { appBaseUrl, paymentCanStart } from "@/lib/payment";
-import { getStripe } from "@/lib/stripeServer";
+import { expireCheckoutSession, getStripe } from "@/lib/stripeServer";
 
 export const runtime = "nodejs";
 
@@ -78,6 +78,11 @@ export async function POST(
   }
 
   try {
+    // Administrator firmy i pracownik mogą wejść do płatności z dwóch różnych miejsc.
+    // Zawsze wygaszamy poprzednią otwartą sesję, żeby dla rezerwacji była aktywna
+    // tylko jedna sesja Stripe Checkout i nie doszło do podwójnej płatności.
+    await expireCheckoutSession(booking.payment_checkout_session_id);
+
     const stripe = getStripe();
     const base = appBaseUrl();
     const metadata = {
