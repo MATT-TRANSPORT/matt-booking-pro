@@ -11,6 +11,10 @@ import {
   assignedEmail,
   completedEmail
 } from "@/lib/emailTemplates";
+import {
+  b2bEmployeeAssignedEmail,
+  b2bEmployeeConfirmedEmail
+} from "@/lib/b2bEmployeeNotifications";
 
 async function recipientForBooking(admin:any, booking:any){
   if (booking.company_id) {
@@ -62,6 +66,29 @@ async function recipientForBooking(admin:any, booking:any){
   return booking.email
     ? String(booking.email).trim()
     : null;
+}
+
+async function employeeRecipientForBooking(admin: any, booking: any) {
+  if (!booking?.company_id) return null;
+
+  if (booking.email && String(booking.email).trim()) {
+    return String(booking.email).trim();
+  }
+
+  if (booking.company_employee_id) {
+    const { data: employee } = await admin
+      .from("company_employees")
+      .select("email")
+      .eq("id", booking.company_employee_id)
+      .eq("company_id", booking.company_id)
+      .maybeSingle();
+
+    if (employee?.email && String(employee.email).trim()) {
+      return String(employee.email).trim();
+    }
+  }
+
+  return null;
 }
 
 const ALLOWED_STATUSES = [
@@ -235,10 +262,11 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === "resend_confirmation") {
+    const enrichedCurrent = await enrichBooking(admin, current);
     const template =
       current.status === "assigned"
-        ? assignedEmail(await enrichBooking(admin, current))
-        : confirmedEmail(current);
+        ? assignedEmail(enrichedCurrent)
+        : confirmedEmail(enrichedCurrent);
 
     const mailResult = await sendMattEmail({
       to: await recipientForBooking(admin,current),
@@ -257,6 +285,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    let employeeEmailSent = false;
+    if (current.company_id && ["confirmed", "assigned"].includes(String(current.status || ""))) {
+      const employeeRecipient = await employeeRecipientForBooking(admin, current);
+      if (employeeRecipient) {
+        const employeeTemplate = current.status === "assigned"
+          ? b2bEmployeeAssignedEmail(enrichedCurrent)
+          : b2bEmployeeConfirmedEmail(enrichedCurrent);
+        const employeeResult = await sendMattEmail({
+          to: employeeRecipient,
+          subject: employeeTemplate.subject,
+          html: employeeTemplate.html
+        });
+        employeeEmailSent = employeeResult.sent;
+
+        await admin.from("booking_history").insert({
+          booking_id: id,
+          event: employeeResult.sent
+            ? `Ponownie wysłano e-mail PL/EN do pracownika: ${employeeTemplate.subject}`
+            : `BŁĄD ponownego e-maila PL/EN do pracownika: ${employeeResult.error || "nieznany błąd"}`,
+          created_by: user.id
+        });
+      }
+    }
+
     await admin.from("booking_history").insert({
       booking_id: id,
       event: "Ponownie wysłano potwierdzenie e-mail",
@@ -265,7 +317,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      email_sent: true
+      email_sent: true,
+      employee_email_sent: employeeEmailSent
     });
   }
 
@@ -542,13 +595,19 @@ export async function POST(req: NextRequest) {
 
   let emailSent = false;
   let emailError: string | null = null;
+  let employeeEmailSent = false;
+  let employeeEmailError: string | null = null;
 
   try {
     const enriched = await enrichBooking(admin, updated);
     let template: ReturnType<typeof confirmedEmail> | null = null;
+    let employeeTemplate: ReturnType<typeof b2bEmployeeConfirmedEmail> | null = null;
 
     if (statusChanged && nextStatus === "confirmed") {
       template = confirmedEmail(enriched);
+      if (updated.company_id) {
+        employeeTemplate = b2bEmployeeConfirmedEmail(enriched);
+      }
     } else if (
       !isRoundtripPrimaryCompletion &&
       (
@@ -561,6 +620,9 @@ export async function POST(req: NextRequest) {
       updated.vehicle_id
     ) {
       template = assignedEmail(enriched);
+      if (updated.company_id) {
+        employeeTemplate = b2bEmployeeAssignedEmail(enriched);
+      }
     } else if (statusChanged && nextStatus === "completed") {
       template = completedEmail(enriched);
     }
@@ -588,6 +650,38 @@ export async function POST(req: NextRequest) {
           : `BŁĄD e-mail: ${template.subject} · ${result.error || "nieznany błąd"}`,
         created_by: user.id
       });
+    }
+
+    if (employeeTemplate && updated.company_id) {
+      const employeeRecipient = await employeeRecipientForBooking(admin, updated);
+
+      if (employeeRecipient) {
+        try {
+          const employeeResult = await sendMattEmail({
+            to: employeeRecipient,
+            subject: employeeTemplate.subject,
+            html: employeeTemplate.html
+          });
+
+          employeeEmailSent = employeeResult.sent;
+          employeeEmailError = employeeResult.error ?? null;
+
+          await admin.from("booking_history").insert({
+            booking_id: id,
+            event: employeeResult.sent
+              ? `Wysłano e-mail PL/EN do pracownika: ${employeeTemplate.subject}`
+              : `BŁĄD e-maila PL/EN do pracownika: ${employeeTemplate.subject} · ${employeeResult.error || "nieznany błąd"}`,
+            created_by: user.id
+          });
+        } catch (employeeMailError) {
+          employeeEmailError = employeeMailError instanceof Error
+            ? employeeMailError.message
+            : "Nieznany błąd e-mail pracownika";
+          console.error("E-mail B2B do pracownika:", employeeMailError);
+        }
+      } else {
+        employeeEmailError = "Brak adresu e-mail pracownika.";
+      }
     }
   } catch (mailError) {
     emailError =
@@ -652,6 +746,8 @@ export async function POST(req: NextRequest) {
     ...updated,
     email_sent: emailSent,
     email_error: emailError,
+    employee_email_sent: employeeEmailSent,
+    employee_email_error: employeeEmailError,
     customer_notification_sent: Boolean(customerNotification?.sent),
     customer_notification_channel: customerNotification?.channel || null
   });
