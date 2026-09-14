@@ -1,0 +1,29 @@
+MATT Booking PRO v4.5.3 — ROUNDTRIP VALIDATION HOTFIX
+
+PRZYCZYNA:
+- formularz B2C na desktopie pozwalał wybrać „W obie strony”, ale nie renderował pól powrotu,
+- cena była poprawnie mnożona x2,
+- API /api/bookings nie wymagało returnDate / returnTime dla service_type=roundtrip,
+- w efekcie możliwa była rezerwacja roundtrip z ceną za dwie strony i bez operacyjnych danych powrotu.
+
+NAPRAWA:
+- przy „W obie strony” desktop ponownie pokazuje: Data powrotu, Godzina przylotu powrotnego, Lot powrotny,
+- mobilny i desktopowy formularz wymagają daty i godziny powrotu,
+- termin powrotu musi być późniejszy od terminu wyjazdu,
+- podsumowanie pokazuje termin powrotu,
+- po zmianie usługi z roundtrip na jednostronną dane powrotu są czyszczone,
+- Growth Funnel uznaje etap terminu za gotowy dopiero po kompletnym roundtrip,
+- backend ma niezależną twardą walidację — nie przyjmie roundtrip bez daty/godziny powrotu nawet przy błędzie UI.
+
+SQL / ENV:
+- brak migracji SQL,
+- brak nowych ENV.
+
+TEST:
+1. Desktop: wybierz „W obie strony” — pola powrotu muszą być widoczne.
+2. Próba rezerwacji bez powrotu musi być zablokowana.
+3. Powrót wcześniejszy/równy wyjazdowi musi być zablokowany.
+4. Poprawny roundtrip zapisuje return_date, return_time i opcjonalny return_flight_number.
+5. Panel MATT po zapisaniu poprawnego roundtrip pokazuje POWRÓT oraz osobną obsadę powrotną.
+
+WERSJA: 4.5.3
