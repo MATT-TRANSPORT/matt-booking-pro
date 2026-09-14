@@ -1,0 +1,37 @@
+MATT Booking PRO v4.5.1 — B2B EMPLOYEE NOTIFICATIONS
+
+Zakres:
+- pracownik B2B z zapisanym adresem e-mail otrzymuje dwujęzyczne wiadomości PL/EN,
+- po potwierdzeniu rezerwacji pracownik otrzymuje potwierdzenie, a przy płatności online także bezpieczny link do płatności,
+- po przypisaniu lub zmianie obsady pracownik otrzymuje aktualne dane kierowcy, telefon, pojazd i numer rejestracyjny,
+- dla roundtrip wiadomość pokazuje osobno WYJAZD / OUTBOUND i POWRÓT / RETURN,
+- dane kierowcy są wysyłane dla wszystkich metod płatności,
+- przy payment_method=employee_payment pracownik otrzymuje przycisk OPŁAĆ ONLINE / PAY ONLINE,
+- płatność pracownika działa przez osobny ekran /platnosc/[token], bez dostępu do edycji lub anulowania rezerwacji firmowej,
+- Stripe Checkout jest tworzony dopiero po kliknięciu; link w e-mailu jest stały,
+- przy uruchomieniu nowej płatności wygaszana jest wcześniejsza otwarta sesja Stripe, żeby ograniczyć ryzyko podwójnej płatności,
+- administrator firmy nadal zachowuje swój dotychczasowy portal i powiadomienia,
+- historia rezerwacji zapisuje wynik wysyłki e-maila PL/EN do pracownika.
+
+Baza / Supabase:
+- BRAK migracji SQL,
+- BRAK nowych tabel i kolumn,
+- wykorzystane są istniejące: bookings.email, company_employee_id, customer_access_token, driver_id, vehicle_id, return_driver_id, return_vehicle_id oraz pola Stripe.
+
+ENV:
+- BRAK nowych zmiennych środowiskowych,
+- wykorzystywana jest istniejąca konfiguracja Resend i Stripe.
+
+TEST PO WDROŻENIU:
+1. Utwórz B2B z adresem e-mail pracownika i metodą Przelew firmowy.
+2. Potwierdź, a następnie przypisz kierowcę + pojazd.
+3. Pracownik ma dostać mail PL/EN z kierowcą, telefonem, pojazdem i rejestracją — bez przycisku płatności.
+4. Utwórz B2B z adresem e-mail pracownika i metodą Płatność online firmy.
+5. Po potwierdzeniu pracownik ma dostać mail PL/EN z OPŁAĆ ONLINE / PAY ONLINE.
+6. Link ma otworzyć /platnosc/[token] i dopiero przyciskiem utworzyć Stripe Checkout.
+7. Po przypisaniu obsady pracownik ma dostać kolejny mail PL/EN z danymi kierowcy i nadal linkiem płatności, jeśli rezerwacja nie jest opłacona.
+8. Zmień kierowcę albo pojazd — pracownik powinien dostać zaktualizowane dane.
+9. Dla roundtrip przypisz inną obsadę powrotną — mail powinien pokazać osobno WYJAZD i POWRÓT.
+10. Sprawdź historię rezerwacji: wpis o wysłaniu e-maila PL/EN do pracownika.
+
+WERSJA: 4.5.1
