@@ -87,6 +87,30 @@ export async function POST(req: NextRequest) {
     `${body.travelDate}T${body.travelTime}`
   );
 
+  if (!Number.isFinite(when.getTime())) {
+    return NextResponse.json(
+      { error: "Podaj prawidłowy termin wyjazdu." },
+      { status: 400 }
+    );
+  }
+
+  if (body.serviceType === "roundtrip") {
+    if (!body.returnDate || !body.returnTime) {
+      return NextResponse.json(
+        { error: "Dla przejazdu w obie strony podaj datę i godzinę powrotu." },
+        { status: 400 }
+      );
+    }
+
+    const back = new Date(`${body.returnDate}T${body.returnTime}`);
+    if (!Number.isFinite(back.getTime()) || back.getTime() <= when.getTime()) {
+      return NextResponse.json(
+        { error: "Termin powrotu musi być późniejszy niż wyjazd." },
+        { status: 400 }
+      );
+    }
+  }
+
   if (when.getTime() - Date.now() < 24 * 3600 * 1000) {
     return NextResponse.json(
       {

@@ -69,7 +69,12 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
   },[address]);
 
   useEffect(()=>{
-    if(serviceType!=="roundtrip") setAdditionalStopReturn(false);
+    if(serviceType!=="roundtrip") {
+      setAdditionalStopReturn(false);
+      setReturnDate("");
+      setReturnTime("");
+      setReturnFlight("");
+    }
   },[serviceType]);
 
   useEffect(()=>{
@@ -165,8 +170,8 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
   }, [address, distanceKm, airport, otherAirport, serviceType, vehicle, quote.total]);
 
   useEffect(() => {
-    if (travelDate && travelTime) trackGrowthFunnelEvent("trip_ready", funnelDetails);
-  }, [travelDate, travelTime, serviceType, airport, vehicle, quote.total]);
+    if (travelDate && travelTime && roundtripScheduleReady()) trackGrowthFunnelEvent("trip_ready", funnelDetails);
+  }, [travelDate, travelTime, returnDate, returnTime, serviceType, airport, vehicle, quote.total]);
 
   useEffect(() => {
     const routeReady = Boolean(address.trim() && distanceKm > 0 && airport !== "other");
@@ -183,11 +188,11 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
 
   useEffect(() => {
     const customerReady = Boolean(name.trim() && phone.trim() && email.trim() && (!invoice || nip10(nip).length === 10));
-    const bookingReady = Boolean(address.trim() && distanceKm > 0 && travelDate && travelTime && airport !== "other" && customerReady);
+    const bookingReady = Boolean(address.trim() && distanceKm > 0 && travelDate && travelTime && roundtripScheduleReady() && airport !== "other" && customerReady);
     if (bookingReady && (!mobile || step === 6)) {
       trackGrowthFunnelEvent("ready_to_submit", funnelDetails);
     }
-  }, [name, phone, email, invoice, nip, address, distanceKm, travelDate, travelTime, airport, mobile, step, serviceType, vehicle, quote.total]);
+  }, [name, phone, email, invoice, nip, address, distanceKm, travelDate, travelTime, returnDate, returnTime, airport, mobile, step, serviceType, vehicle, quote.total]);
 
   function markFunnelStarted() {
     trackGrowthFunnelEvent("form_started", funnelDetails);
@@ -195,10 +200,17 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
 
   function nip10(v:string){ return v.replace(/\D/g,"").slice(0,10); }
   function go(n:number){setStep(n);if(typeof window!=="undefined"){window.dispatchEvent(new CustomEvent("matt:booking-step",{detail:{step:n}}));setTimeout(()=>window.scrollTo({top:0,behavior:"smooth"}),60);}}
+  function roundtripScheduleReady(){
+    if(serviceType!=="roundtrip") return true;
+    if(!travelDate||!travelTime||!returnDate||!returnTime) return false;
+    const outbound = new Date(`${travelDate}T${travelTime}`).getTime();
+    const back = new Date(`${returnDate}T${returnTime}`).getTime();
+    return Number.isFinite(outbound) && Number.isFinite(back) && back > outbound;
+  }
 
   function valid(n:number){
     if(n===2) return !!address && !!distanceKm && (airport!=="other" || otherAirport.trim().length>=3) && (!additionalStopEnabled || (!!additionalStopAddress.trim() && !additionalStopBusy && !!additionalStopQuote));
-    if(n===3) return !!travelDate && !!travelTime;
+    if(n===3) return !!travelDate && !!travelTime && roundtripScheduleReady();
     if(n===5) return !!name.trim() && !!phone.trim() && !!email.trim() && (!invoice || nip10(nip).length===10);
     return true;
   }
@@ -206,6 +218,8 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
   async function submit(){
     if(airport==="other"){ setMessage("Dla tego lotniska wycena jest indywidualna telefonicznie."); return; }
     if(!address||!distanceKm||!travelDate||!travelTime||!name||!phone||!email){ setMessage("Uzupełnij wymagane dane."); return; }
+    if(serviceType==="roundtrip"&&(!returnDate||!returnTime)){ setMessage("Dla przejazdu w obie strony podaj datę i godzinę powrotu."); return; }
+    if(serviceType==="roundtrip"&&!roundtripScheduleReady()){ setMessage("Termin powrotu musi być późniejszy niż wyjazd."); return; }
     if(invoice&&nip10(nip).length!==10){ setMessage("Podaj poprawny 10-cyfrowy NIP."); return; }
     if(additionalStopEnabled&&(!additionalStopAddress.trim()||(!additionalStopPrimary&&!(serviceType==="roundtrip"&&additionalStopReturn))||!additionalStopQuote)){ setMessage("Poczekaj na poprawne obliczenie dodatkowego przystanku."); return; }
     setSaving(true); setMessage("");
@@ -238,7 +252,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
       <span className="badge">MATT TRANSPORT</span>
       <h1>Dziękujemy! Rezerwacja przyjęta</h1><div className="pending-confirmation-badge">🕐 Oczekuje na potwierdzenie</div><div className="client-next-step"><strong>Co dalej?</strong><p>Twoje zgłoszenie zostało przyjęte. Potwierdzimy rezerwację najszybciej jak to możliwe.</p><p>Oczekuj wiadomości e-mail lub kontaktu z MATT TRANSPORT.</p></div>
       <div className="success-number"><span>Numer rezerwacji</span><strong>{success.booking_number}</strong></div>
-      <div className="success-details"><div><span>Trasa</span><strong>{routeText}</strong></div><div><span>Kwota</span><strong>{Number(success.total_price).toFixed(2)} zł</strong></div><div><span>Płatność</span><strong>{paymentMethodText}</strong></div></div>
+      <div className="success-details"><div><span>Trasa</span><strong>{routeText}</strong></div>{serviceType==="roundtrip"&&<div><span>Powrót</span><strong>{returnDate} {returnTime}</strong></div>}<div><span>Kwota</span><strong>{Number(success.total_price).toFixed(2)} zł</strong></div><div><span>Płatność</span><strong>{paymentMethodText}</strong></div></div>
       {success.customer_access_token && <CustomerPushControls token={success.customer_access_token} />}
       <div className="success-actions"><a className="btn" href="/booking">NOWA REZERWACJA</a></div>
     </div>;
@@ -309,13 +323,13 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
         <h1>Termin przejazdu</h1>
         <p className="muted flight-time-hint">Dla wyjazdu na lotnisko podaj godzinę, o której chcesz wyjechać spod wskazanego adresu. Przy odbiorze z lotniska podaj godzinę przylotu z rozkładu lotu.</p>
         <div className="grid">
-          <label>Data<input type="date" value={travelDate} onChange={e=>setTravelDate(e.target.value)}/></label>
-          <label>{serviceType === "from_airport" ? "Godzina przylotu" : "Godzina wyjazdu na lotnisko"}<input type="time" value={travelTime} onChange={e=>setTravelTime(e.target.value)}/></label>
-          <label>Numer lotu<input value={flight} onChange={e=>setFlight(e.target.value)} placeholder="np. FR8214"/></label>
+          <label>Data<input required type="date" value={travelDate} onChange={e=>setTravelDate(e.target.value)}/></label>
+          <label>{serviceType === "from_airport" ? "Godzina przylotu" : "Godzina wyjazdu na lotnisko"}<input required type="time" value={travelTime} onChange={e=>setTravelTime(e.target.value)}/></label>
+          <label>{serviceType==="roundtrip"?"Lot wylotowy":"Numer lotu"}<input value={flight} onChange={e=>setFlight(e.target.value)} placeholder="np. FR8214"/></label>
           <label>Pasażerowie<select value={passengers} onChange={e=>setPassengers(Number(e.target.value))}>{[1,2,3,4,5,6,7,8].map(n=><option key={n}>{n}</option>)}</select></label>
           {serviceType==="roundtrip"&&<>
-            <label>Data powrotu<input type="date" value={returnDate} onChange={e=>setReturnDate(e.target.value)}/></label>
-            <label>Godzina przylotu powrotnego<input type="time" value={returnTime} onChange={e=>setReturnTime(e.target.value)}/></label>
+            <label>Data powrotu<input required min={travelDate||undefined} type="date" value={returnDate} onChange={e=>setReturnDate(e.target.value)}/></label>
+            <label>Godzina przylotu powrotnego<input required type="time" value={returnTime} onChange={e=>setReturnTime(e.target.value)}/></label>
             <label>Lot powrotny<input value={returnFlight} onChange={e=>setReturnFlight(e.target.value)}/></label>
           </>}
         </div>
@@ -366,6 +380,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
         <div className="wizard-summary">
           <div><span>Trasa</span><strong>{routeText}</strong></div>
           <div><span>Termin</span><strong>{travelDate} {travelTime}</strong></div>
+          {serviceType==="roundtrip"&&<div><span>Powrót</span><strong>{returnDate} {returnTime}</strong></div>}
           <div><span>Pojazd</span><strong>{vehicle==="car"?"Samochód osobowy":"Bus do 8 osób"}</strong></div>
           <div><span>Pasażerowie</span><strong>{passengers}</strong></div>
           {additionalStopEnabled&&additionalStopAddress&&<div><span>Dodatkowy przystanek</span><strong>{additionalStopAddress}</strong></div>}
@@ -398,10 +413,15 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
       <h3>Termin</h3>
       <p className="muted flight-time-hint">Dla wyjazdu na lotnisko podaj godzinę wyjazdu spod wskazanego adresu. Przy odbiorze z lotniska podaj godzinę przylotu z rozkładu lotu.</p>
       <div className="grid">
-        <label>Data<input type="date" value={travelDate} onChange={e=>setTravelDate(e.target.value)}/></label>
-        <label>{serviceType === "from_airport" ? "Godzina przylotu" : "Godzina wyjazdu na lotnisko"}<input type="time" value={travelTime} onChange={e=>setTravelTime(e.target.value)}/></label>
-        <label>Numer lotu<input value={flight} onChange={e=>setFlight(e.target.value)}/></label>
+        <label>Data<input required type="date" value={travelDate} onChange={e=>setTravelDate(e.target.value)}/></label>
+        <label>{serviceType === "from_airport" ? "Godzina przylotu" : "Godzina wyjazdu na lotnisko"}<input required type="time" value={travelTime} onChange={e=>setTravelTime(e.target.value)}/></label>
+        <label>{serviceType==="roundtrip"?"Lot wylotowy":"Numer lotu"}<input value={flight} onChange={e=>setFlight(e.target.value)}/></label>
         <label>Pasażerowie<select value={passengers} onChange={e=>setPassengers(Number(e.target.value))}>{[1,2,3,4,5,6,7,8].map(n=><option key={n}>{n}</option>)}</select></label>
+        {serviceType==="roundtrip"&&<>
+          <label>Data powrotu<input required min={travelDate||undefined} type="date" value={returnDate} onChange={e=>setReturnDate(e.target.value)}/></label>
+          <label>Godzina przylotu powrotnego<input required type="time" value={returnTime} onChange={e=>setReturnTime(e.target.value)}/></label>
+          <label>Lot powrotny<input value={returnFlight} onChange={e=>setReturnFlight(e.target.value)}/></label>
+        </>}
       </div>
       <h3>Pojazd</h3>
       <div className="choice-grid vehicle-grid">
@@ -443,6 +463,8 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
         <a className="btn" style={{width:"100%",marginTop:16}} href="tel:+48691242691">📞 ZADZWOŃ</a>
       </>:<>
         <div className="row"><span>Trasa</span><strong>{routeText}</strong></div>
+        <div className="row"><span>Termin</span><strong>{travelDate||"—"} {travelTime||""}</strong></div>
+        {serviceType==="roundtrip"&&<div className="row"><span>Powrót</span><strong>{returnDate||"—"} {returnTime||""}</strong></div>}
         <div className="row"><span>Cena bazowa</span><strong>{quote.base.toFixed(2)} zł</strong></div>
         <div className="row"><span>Dopłata</span><strong>{quote.extra.toFixed(2)} zł</strong></div>
         {additionalStopEnabled&&additionalStopAddress&&<div className="row"><span>Dodatkowy przystanek</span><strong style={{textAlign:"right",maxWidth:"60%"}}>{additionalStopAddress}</strong></div>}
