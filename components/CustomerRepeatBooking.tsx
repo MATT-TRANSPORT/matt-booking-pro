@@ -80,6 +80,18 @@ export default function CustomerRepeatBooking({ expectedKind }: { expectedKind: 
     try {
       let response: Response;
       if (template.kind === "airport") {
+        // Cena B2C zależy od dystansu do adresu. Przy powtórzeniu liczymy go ponownie,
+        // zamiast ufać wartości przechowywanej w przeglądarce.
+        const routeResponse = await fetch("/api/route", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address: template.address })
+        });
+        const routeData = await routeResponse.json();
+        if (!routeResponse.ok || !Number.isFinite(Number(routeData.distanceKm))) {
+          throw new Error(routeData.error || "Nie udało się ponownie obliczyć trasy.");
+        }
+
         response = await fetch("/api/bookings", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -89,7 +101,7 @@ export default function CustomerRepeatBooking({ expectedKind }: { expectedKind: 
             airport: template.airport,
             vehicleType: template.vehicle,
             passengers: template.passengers,
-            distanceKm: Number(template.distanceKm || 0),
+            distanceKm: Number(routeData.distanceKm),
             travelDate,
             travelTime,
             returnDate: isRoundtrip ? returnDate : "",
