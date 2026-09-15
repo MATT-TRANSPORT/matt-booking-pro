@@ -29,7 +29,7 @@ export default function CustomerAppInstall() {
     const onInstalled = () => {
       setInstalled(true);
       setInstallPrompt(null);
-      setMessage("✓ Aplikacja MATT TRANSPORT została zainstalowana.");
+      setMessage("✓ Zainstalowano");
     };
 
     window.addEventListener("beforeinstallprompt", onBeforeInstall);
@@ -53,40 +53,31 @@ export default function CustomerAppInstall() {
 
       if (result.outcome === "accepted") {
         setInstalled(true);
-        setMessage("✓ Aplikacja MATT TRANSPORT została zainstalowana.");
+        setMessage("✓ Zainstalowano");
       }
       return;
     }
 
     if (isIos) {
-      setMessage("Na iPhone/iPad: otwórz tę stronę w Safari → Udostępnij → Do ekranu początkowego.");
+      setMessage("Safari → Udostępnij → Do ekranu początkowego");
       return;
     }
 
-    setMessage("Otwórz menu przeglądarki i wybierz „Zainstaluj aplikację” lub „Dodaj do ekranu głównego”.");
+    setMessage("Menu przeglądarki → Zainstaluj aplikację");
   }
 
   return (
-    <aside className="customer-app-card" aria-label="Aplikacja MATT TRANSPORT na telefon">
-      <div className="customer-app-copy">
-        <span className="customer-app-icon" aria-hidden="true">📲</span>
-        <div>
-          <strong>MATT TRANSPORT na Twoim telefonie</strong>
-          <span>Zainstaluj aplikację i przy kolejnym zamówieniu otwieraj rezerwacje jednym kliknięciem.</span>
-        </div>
-      </div>
-
-      <div className="customer-app-actions">
-        {!installed ? (
-          <button type="button" className="customer-app-install" onClick={install}>
-            ZAINSTALUJ APLIKACJĘ
-          </button>
-        ) : (
-          <span className="customer-app-installed">✓ APLIKACJA ZAINSTALOWANA</span>
-        )}
-      </div>
-
-      {message && <small className="customer-app-message">{message}</small>}
-    </aside>
+    <button
+      type="button"
+      className="customer-quick-card customer-quick-app"
+      onClick={install}
+      aria-label="Zainstaluj aplikację MATT TRANSPORT"
+    >
+      <span className="customer-quick-icon" aria-hidden="true">📲</span>
+      <strong>{installed ? "Aplikacja gotowa" : "Aplikacja"}</strong>
+      <small>{installed ? "MATT TRANSPORT jest na telefonie." : "MATT TRANSPORT na telefonie."}</small>
+      <b>{installed ? "ZAINSTALOWANA ✓" : "INSTALUJ →"}</b>
+      {message && <em className="customer-quick-message">{message}</em>}
+    </button>
   );
 }
