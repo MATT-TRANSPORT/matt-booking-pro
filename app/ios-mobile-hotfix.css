@@ -1,0 +1,78 @@
+/* MATT Booking PRO v4.7.0.1 — iOS Chrome/Safari mobile layout hotfix */
+
+/*
+ * iOS WebKit automatycznie powiększa stronę po fokusie pola o font-size < 16px.
+ * Dotyczy to również Chrome na iPhonie. W naszym formularzu pola dziedziczą 13px
+ * z label, dlatego po wyborze adresu viewport potrafił zostać w powiększonym stanie.
+ */
+@supports (-webkit-touch-callout: none) {
+  input:not([type="radio"]):not([type="checkbox"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Radio/checkbox nie mogą dziedziczyć globalnego width:100% pól formularza. */
+.payment-method-choice input[type="radio"] {
+  width: 20px !important;
+  min-width: 20px;
+  max-width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  margin: 2px 0 0;
+  padding: 0;
+}
+
+.payment-method-choice {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.payment-method-choice > span {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.payment-method-choice strong,
+.payment-method-choice small {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+@media (max-width: 900px) {
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .container,
+  .card,
+  .payment-method-section,
+  .payment-method-grid,
+  .address-suggestions {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .payment-method-grid {
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .address-suggestions {
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .address-suggestions button {
+    max-width: 100%;
+    font-size: 16px;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+}
