@@ -1,0 +1,14 @@
+MATT Booking PRO v4.7.1 — COMPACT CUSTOMER SHORTCUTS
+
+ZMIANY:
+- „Moje przejazdy” i instalacja aplikacji MATT TRANSPORT są teraz dwoma kompaktowymi kafelkami obok siebie na hubie /booking,
+- skrócone opisy i CTA,
+- zachowana funkcja logowania do „Moich przejazdów”,
+- zachowana natywna instalacja PWA oraz instrukcja iOS,
+- układ zoptymalizowany pod telefon, aby oba skróty mieściły się w jednym rzędzie.
+
+BEZ ZMIAN:
+- brak zmian w bazie danych,
+- brak zmian w płatnościach,
+- brak zmian w formularzach rezerwacji,
+- brak zmian w MATT DRIVER.
