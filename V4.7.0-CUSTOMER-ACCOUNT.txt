@@ -1,0 +1,38 @@
+MATT Booking PRO v4.7.0 — MATT CUSTOMER / MOJE PRZEJAZDY
+
+NOWE:
+- „Moje przejazdy” dostępne z publicznego hubu /booking,
+- logowanie bez hasła: klient podaje e-mail i otrzymuje jednorazowy link,
+- link logowania ważny 15 minut i możliwy do użycia tylko raz,
+- sesja klienta: 30 dni, token sesji przechowywany wyłącznie jako hash po stronie serwera,
+- cookie HttpOnly + Secure + SameSite=Lax,
+- jednakowa odpowiedź dla istniejącego i nieistniejącego e-maila (ochrona przed enumeracją kont),
+- lista najbliższych przejazdów chronologicznie od najbliższego terminu,
+- zakończone / anulowane / termin minął pod separatorem HISTORIA,
+- obsługa prywatnych B2C: transfer lotniskowy, Transport A→B i transport weselny,
+- rezerwacje B2B są celowo wykluczone z konta prywatnego i pozostają w panelu firmy,
+- szybki przycisk SZCZEGÓŁY do istniejącego portalu konkretnej rezerwacji,
+- „ZAMÓW PONOWNIE”: kopiuje trasę i dane kontaktowe, ale wymaga podania nowego terminu,
+- dla transferu lotniskowego trasa/dystans są ponownie przeliczane przed wysłaniem nowej rezerwacji,
+- nowe zamówienie przechodzi przez istniejące API rezerwacji i wszystkie aktualne walidacje,
+- skrót „Moje przejazdy” w MATT CUSTOMER PWA.
+
+BAZA / SUPABASE:
+- migracja: supabase/migrations-v4.7.0-customer-account.sql,
+- wygenerowane, znormalizowane pola e-mail do bezpiecznego i wydajnego wyszukiwania,
+- tabela customer_portal_login_tokens,
+- tabela customer_portal_sessions,
+- RLS włączone na obu nowych tabelach,
+- brak dostępu anon/authenticated; operacje wyłącznie z backendu service_role.
+
+ENV:
+- brak nowych zmiennych środowiskowych,
+- wykorzystywane istniejące RESEND_API_KEY i NEXT_PUBLIC_BOOKING_URL (z bezpiecznym fallbackiem do booking.matt-transport.pl).
+
+TESTY PRZED PRODUKCJĄ:
+- Next/Vercel Preview dla obu projektów,
+- migracja Supabase + zapytania weryfikacyjne,
+- Supabase Security/Performance Advisors,
+- test publicznego /moje-przejazdy,
+- test routingu „Zamów ponownie” dla lotniska / A→B / wesele,
+- production deploy dopiero po zielonych testach.

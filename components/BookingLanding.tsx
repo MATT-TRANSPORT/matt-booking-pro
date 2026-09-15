@@ -33,6 +33,11 @@ export default function BookingLanding({initialEntry}: {initialEntry?: BookingEn
       <span className="booking-service-icon">🚐</span><strong>Transport pozostały</strong><small>Przejazd z punktu A do punktu B, grupy, wydarzenia, szkoły i inne przewozy.</small><b>WYBIERAM →</b>
     </a>
    </div>
+   <a className="customer-trips-entry" href="/moje-przejazdy">
+    <span aria-hidden="true">👤</span>
+    <div><strong>Moje przejazdy</strong><small>Najbliższe transporty, historia i szybkie „Zamów ponownie”. Logowanie linkiem na e-mail — bez hasła.</small></div>
+    <b>OTWÓRZ →</b>
+   </a>
    <CustomerAppInstall />
    <p className="booking-hub-contact">Wolisz porozmawiać? <a href="tel:+48691242691">+48 691 242 691</a></p>
   </section> : <>

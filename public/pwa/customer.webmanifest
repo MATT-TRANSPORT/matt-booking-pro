@@ -31,6 +31,13 @@
   ],
   "shortcuts": [
     {
+      "name": "Moje przejazdy",
+      "short_name": "Moje przejazdy",
+      "description": "Sprawdź najbliższe przejazdy, historię i zamów ponownie.",
+      "url": "/moje-przejazdy",
+      "icons": [{ "src": "/pwa/icon-192.png", "sizes": "192x192" }]
+    },
+    {
       "name": "Transfer na lotnisko",
       "short_name": "Lotnisko",
       "description": "Zarezerwuj transfer na lotnisko lub odbiór z lotniska.",
