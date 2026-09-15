@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./v45.css";
+import "./customer-repeat.css";
 import GrowthTracker from "@/components/GrowthTracker";
 
 export const metadata: Metadata = {
