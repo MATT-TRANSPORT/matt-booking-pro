@@ -1,141 +1,124 @@
-.customer-app-card {
-  margin-top: 18px;
-  padding: 18px;
-  border: 1px solid rgba(212, 175, 55, 0.35);
-  border-radius: 18px;
-  background: linear-gradient(135deg, rgba(212, 175, 55, 0.10), rgba(255, 255, 255, 0.025));
+.customer-quick-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 14px 18px;
-  align-items: center;
-}
-
-.customer-app-copy {
-  display: flex;
-  align-items: center;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+  margin-top: 18px;
+}
+
+.customer-quick-card {
   min-width: 0;
-}
-
-.customer-app-copy > div {
+  min-height: 164px;
+  padding: 17px;
+  border-radius: 18px;
   display: grid;
-  gap: 4px;
-}
-
-.customer-app-copy strong {
-  font-size: 1rem;
-}
-
-.customer-app-copy span:not(.customer-app-icon) {
-  color: var(--muted, #a8adb7);
-  line-height: 1.45;
-  font-size: 0.9rem;
-}
-
-.customer-app-icon {
-  width: 46px;
-  height: 46px;
-  flex: 0 0 46px;
-  border-radius: 14px;
-  display: grid;
-  place-items: center;
-  font-size: 1.45rem;
-  background: rgba(212, 175, 55, 0.12);
-  border: 1px solid rgba(212, 175, 55, 0.28);
-}
-
-.customer-app-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.customer-app-install {
-  border: 1px solid #d4af37;
-  background: #d4af37;
-  color: #090b10;
-  min-height: 44px;
-  padding: 0 16px;
-  border-radius: 12px;
+  grid-template-rows: auto auto auto 1fr auto;
+  gap: 7px;
+  align-content: start;
+  text-align: left;
+  text-decoration: none;
+  color: inherit;
   font: inherit;
-  font-weight: 800;
   cursor: pointer;
-  white-space: nowrap;
+  overflow: hidden;
 }
 
-.customer-app-install:hover {
+.customer-quick-trips {
+  border: 1px solid rgba(87, 139, 207, 0.48);
+  background: linear-gradient(135deg, rgba(61, 111, 177, 0.16), rgba(255,255,255,.025));
+}
+
+.customer-quick-app {
+  border: 1px solid rgba(212, 175, 55, 0.42);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.12), rgba(255,255,255,.025));
+}
+
+.customer-quick-card:hover {
   filter: brightness(1.06);
 }
 
-.customer-app-installed {
-  color: #8ee0a2;
-  font-weight: 800;
-  font-size: 0.84rem;
-  letter-spacing: 0.02em;
+.customer-quick-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  font-size: 1.25rem;
+  background: rgba(255,255,255,.055);
+  border: 1px solid rgba(255,255,255,.11);
+}
+
+.customer-quick-card strong {
+  font-size: 1rem;
+  line-height: 1.2;
+  color: #fff;
+  overflow-wrap: anywhere;
+}
+
+.customer-quick-card small {
+  color: var(--muted, #a8adb7);
+  font-size: .84rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.customer-quick-card b {
+  align-self: end;
+  font-size: .82rem;
+  letter-spacing: .025em;
   white-space: nowrap;
 }
 
-.customer-app-message {
+.customer-quick-trips b { color: #9bc6ff; }
+.customer-quick-app b { color: #e2bd4a; }
+
+.customer-quick-message {
+  display: block;
   grid-column: 1 / -1;
+  font-style: normal;
+  font-size: .72rem;
+  line-height: 1.25;
   color: var(--muted, #a8adb7);
-  line-height: 1.45;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
-
-.customer-trips-entry {
-  margin-top: 18px;
-  padding: 17px 18px;
-  border: 1px solid rgba(87, 139, 207, 0.42);
-  border-radius: 18px;
-  background: linear-gradient(135deg, rgba(61, 111, 177, 0.13), rgba(255,255,255,.02));
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 14px;
-  color: inherit;
-  text-decoration: none;
-}
-
-.customer-trips-entry > span {
-  width: 46px;
-  height: 46px;
-  border-radius: 14px;
-  display: grid;
-  place-items: center;
-  background: rgba(61, 111, 177, .15);
-  border: 1px solid rgba(87, 139, 207, .28);
-  font-size: 1.35rem;
-}
-
-.customer-trips-entry > div { display: grid; gap: 4px; }
-.customer-trips-entry strong { font-size: 1rem; }
-.customer-trips-entry small { color: var(--muted, #a8adb7); line-height: 1.45; }
-.customer-trips-entry b { color: #9bc6ff; white-space: nowrap; font-size: .86rem; }
-.customer-trips-entry:hover { border-color: rgba(112, 164, 231, .7); }
 
 @media (max-width: 720px) {
-  .customer-app-card {
-    grid-template-columns: 1fr;
-    padding: 16px;
+  .customer-quick-grid {
+    gap: 10px;
+    margin-top: 14px;
   }
 
-  .customer-app-actions {
-    justify-content: stretch;
+  .customer-quick-card {
+    min-height: 150px;
+    padding: 14px;
+    border-radius: 16px;
+    gap: 6px;
   }
 
-  .customer-app-install {
-    width: 100%;
+  .customer-quick-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    font-size: 1.12rem;
   }
 
-  .customer-app-installed {
-    white-space: normal;
+  .customer-quick-card strong {
+    font-size: .94rem;
   }
 
-  .customer-trips-entry {
-    grid-template-columns: auto 1fr;
-    padding: 16px;
+  .customer-quick-card small {
+    font-size: .76rem;
   }
 
-  .customer-trips-entry b {
-    grid-column: 1 / -1;
-    text-align: right;
+  .customer-quick-card b {
+    font-size: .75rem;
   }
+}
+
+@media (max-width: 380px) {
+  .customer-quick-grid { gap: 8px; }
+  .customer-quick-card { padding: 12px; min-height: 148px; }
+  .customer-quick-card strong { font-size: .88rem; }
+  .customer-quick-card small { font-size: .71rem; }
+  .customer-quick-card b { font-size: .69rem; }
 }
