@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
       .select([
         "id","booking_number","service_type","pickup_address","destination_address",
         "airport_key","airport_label","travel_date","travel_time","return_date","return_time",
-        "passengers","vehicle_type","customer_name","phone","email","invoice_required","company_nip",
+        "passengers","vehicle_type","distance_km","customer_name","phone","email","invoice_required","company_nip",
         "notes","status","booking_source","customer_access_token","payment_method","payment_status",
         "online_payment_requested","total_price","flight_number","return_flight_number","transport_category",
         "additional_stop_address","additional_stop_primary","additional_stop_return","created_at"
