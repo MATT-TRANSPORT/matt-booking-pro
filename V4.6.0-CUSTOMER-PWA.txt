@@ -1,0 +1,24 @@
+MATT Booking PRO v4.6.0 — CUSTOMER PWA
+
+NOWE:
+- osobna instalowalna aplikacja MATT TRANSPORT dla klientów B2C,
+- manifest /pwa/customer.webmanifest niezależny od MATT DRIVER,
+- start aplikacji: /booking,
+- zakres aplikacji obejmuje /booking, /transport i /wesele,
+- przycisk „ZAINSTALUJ APLIKACJĘ” na głównym hubie rezerwacji,
+- automatyczny natywny prompt instalacji na obsługiwanych Android/Chrome,
+- instrukcja Safari → Udostępnij → Do ekranu początkowego na iPhone/iPad,
+- wykrywanie uruchomienia w trybie standalone,
+- skróty aplikacji: Transfer na lotnisko, Transport A → B, Transport weselny,
+- Apple Web App metadata,
+- wykorzystanie istniejącego service workera bez zmian w MATT DRIVER.
+
+BEZ ZMIAN:
+- brak SQL,
+- brak nowych ENV,
+- brak zmian w płatnościach i rezerwacjach,
+- MATT DRIVER zachowuje własny manifest i własny ekran instalacji.
+
+TESTY:
+- npm/Next build przez Vercel Preview,
+- weryfikacja obu projektów Vercel przed merge do main.
