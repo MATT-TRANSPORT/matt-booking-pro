@@ -1,6 +1,6 @@
 {
   "name": "matt-booking-pro",
-  "version": "4.5.4.1",
+  "version": "4.6.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
