@@ -1,6 +1,7 @@
 "use client";
 import {useEffect,useState} from "react";
 import BookingForm from "@/components/BookingForm";
+import CustomerAppInstall from "@/components/CustomerAppInstall";
 import type { BookingEntry } from "@/lib/bookingEntry";
 
 const MAIN_SITE_URL = "https://www.matt-transport.pl/";
@@ -32,6 +33,7 @@ export default function BookingLanding({initialEntry}: {initialEntry?: BookingEn
       <span className="booking-service-icon">🚐</span><strong>Transport pozostały</strong><small>Przejazd z punktu A do punktu B, grupy, wydarzenia, szkoły i inne przewozy.</small><b>WYBIERAM →</b>
     </a>
    </div>
+   <CustomerAppInstall />
    <p className="booking-hub-contact">Wolisz porozmawiać? <a href="tel:+48691242691">+48 691 242 691</a></p>
   </section> : <>
     <div className="booking-change-service"><a href="/booking">← ZMIEŃ RODZAJ TRANSPORTU</a></div>

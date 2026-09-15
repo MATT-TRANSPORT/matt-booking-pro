@@ -1,0 +1,55 @@
+{
+  "name": "MATT TRANSPORT",
+  "short_name": "MATT Transport",
+  "description": "Rezerwacja transportu MATT TRANSPORT — transfery lotniskowe, transport A-B i wesela.",
+  "id": "/booking",
+  "start_url": "/booking",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#090b10",
+  "theme_color": "#090b10",
+  "orientation": "portrait-primary",
+  "lang": "pl-PL",
+  "categories": ["travel", "business"],
+  "icons": [
+    {
+      "src": "/pwa/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/pwa/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/pwa/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Transfer na lotnisko",
+      "short_name": "Lotnisko",
+      "description": "Zarezerwuj transfer na lotnisko lub odbiór z lotniska.",
+      "url": "/booking?service=airport",
+      "icons": [{ "src": "/pwa/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Transport A → B",
+      "short_name": "Transport",
+      "description": "Wyślij zapytanie o transport z punktu A do punktu B.",
+      "url": "/transport",
+      "icons": [{ "src": "/pwa/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Transport weselny",
+      "short_name": "Wesele",
+      "description": "Zamów transport gości weselnych.",
+      "url": "/wesele",
+      "icons": [{ "src": "/pwa/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
