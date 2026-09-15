@@ -1,0 +1,25 @@
+MATT Booking PRO v4.7.0.1 — iOS MOBILE HOTFIX
+
+PROBLEM:
+- na iPhone (Chrome/Safari) po fokusie pola adresu i wyborze podpowiedzi strona mogła pozostać automatycznie powiększona,
+- sekcja „Sposób płatności” mogła się rozszerzyć poziomo i wypchnąć opis kart poza ekran.
+
+PRZYCZYNA:
+- pola formularza dziedziczyły font-size 13px z label; iOS WebKit automatycznie zoomuje pola mniejsze niż 16px,
+- globalne input{width:100%} obejmowało także input[type=radio], więc radio w karcie płatności mogło zajmować pełną szerokość flexboxa.
+
+NAPRAWA:
+- iOS WebKit: minimum 16px dla input/select/textarea (z wyjątkiem radio/checkbox),
+- radio w payment-method-choice ma stałe 20x20 px i flex:0 0 20px,
+- karty płatności i ich treść mają min-width:0 / max-width:100%,
+- mobilne payment grid i address suggestions są zabezpieczone przed poziomowym overflow,
+- przyciski podpowiedzi adresu zawijają długie adresy i mają 16px na urządzeniach mobilnych.
+
+BEZ ZMIAN:
+- brak SQL,
+- brak nowych ENV,
+- brak zmian w logice rezerwacji, cenach, płatnościach i danych klienta.
+
+TEST:
+- Vercel Preview dla obu projektów przed merge,
+- po wdrożeniu test na iPhone Chrome: adres -> wybór podpowiedzi -> sekcja płatności bez zoomu/overflow.
