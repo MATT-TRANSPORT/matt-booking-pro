@@ -1,0 +1,19 @@
+MATT Booking PRO v4.7.2 — REVIEW ADMIN NOTIFICATIONS
+
+NOWE:
+- po każdej ocenie klienta 1–5/5 system wysyła e-mail do ADMIN_EMAIL lub kontakt@matt-transport.pl,
+- e-mail zawiera numer rezerwacji, klienta, ocenę, komentarz oraz link do rezerwacji w panelu,
+- dla oceny 5/5 e-mail informuje, że klient otrzymał możliwość przejścia do opinii Google,
+- po pierwszym kliknięciu „Opinia Google” system wysyła osobny e-mail do administratora,
+- kliknięcie Google jest dodatkowo zapisywane w historii rezerwacji,
+- ponowne kliknięcia / odświeżenia nie generują kolejnych maili o przejściu do Google,
+- obecny admin push dla ocen poniżej 5/5 pozostaje bez zmian.
+
+BEZ ZMIAN:
+- brak zmian w bazie danych,
+- brak nowych zmiennych środowiskowych,
+- brak zmian w formularzu oceny klienta,
+- brak zmian w logice Google Review URL.
+
+UWAGA:
+- mail o kliknięciu Google potwierdza przejście klienta do formularza Google, nie publikację opinii.
