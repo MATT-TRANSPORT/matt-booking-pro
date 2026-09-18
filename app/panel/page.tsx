@@ -1,6 +1,7 @@
 import PanelNav from "@/components/PanelNav";
 import EmailTestButton from "@/components/EmailTestButton";
 import DashboardQuickActions from "@/components/DashboardQuickActions";
+import DashboardPaymentBadge from "@/components/DashboardPaymentBadge";
 import FlightStatusBadge from "@/components/FlightStatusBadge";
 import FlightRefreshAllButton from "@/components/FlightRefreshAllButton";
 import FlightAlertBadge from "@/components/FlightAlertBadge";
@@ -88,7 +89,7 @@ export default async function PanelPage() {
         const b=x.data,leg=x.leg;const company=Array.isArray(b.companies)?b.companies[0]:b.companies;const primaryDriver=Array.isArray(b.drivers)?b.drivers[0]:b.drivers;const returnDriver=Array.isArray(b.return_drivers)?b.return_drivers[0]:b.return_drivers;const driver=leg?.kind==="return"?returnDriver:primaryDriver;const overdue=isDispatcherOverdue(b,nowKey);const flight=flightByBookingLeg.get(`${b.id}:${leg.kind}`)??null;const flightAlert=alertByBookingLeg.get(`${b.id}:${leg.kind}`)??null;const general=String(b.service_type||"").startsWith("point_to_point");
         return <div className={`dashboard-feed-card booking-stage-card ${statusStageClass(b.status)} ${b.company_id?"b2b-order":""} ${overdue?"booking-overdue":""}`} key={`${b.id}-${leg.kind}`}>
           <div className="feed-icon">{b.company_id?"🏢":general?"🚐":"✈️"}</div><div>{b.company_id?<span className="origin-badge b2b">B2B · {company?.name??"Firma"}</span>:<span className="origin-badge private">{general?"TRANSPORT A→B":"INDYWIDUALNY"}</span>}{b.quote_required&&<span className="quote-required-badge">WYCENA</span>}<span className="dashboard-upcoming-leg">{leg.kind==="return"?"↩ POWRÓT":"→ WYJAZD"}</span><a href={`/panel/rezerwacje/${b.id}`}><strong>{b.booking_number} · {b.customer_name}</strong></a><span className="dashboard-upcoming-time">{leg.date} {String(leg.time||"").slice(0,5)} · {driverRouteText(b,leg.kind)}</span>{(leg.kind==="return"?b.return_flight_number:b.flight_number)&&<FlightStatusBadge flight={flight} flightNumber={leg.kind==="return"?b.return_flight_number:b.flight_number}/>} {flightAlert&&<FlightAlertBadge alert={flightAlert} compact/>}{overdue&&<span className="overdue-badge">⚠ TERMIN MINĄŁ — status niezamknięty</span>}<DashboardQuickActions booking={b}/></div>
-          <div className="dashboard-feed-meta">{driver&&<span className="driver-color-badge" style={{borderColor:driver.color||"#D6AD55"}}><i style={{background:driver.color||"#D6AD55"}}/>{driver.full_name}</span>}<div className={`feed-status ${b.status}`}>{statusPl(b.status)}</div></div>
+          <div className="dashboard-feed-footer">{driver?<span className="driver-color-badge" style={{borderColor:driver.color||"#D6AD55"}}><i style={{background:driver.color||"#D6AD55"}}/>{driver.full_name}</span>:<span className="dashboard-driver-empty">— bez kierowcy</span>}<DashboardPaymentBadge booking={b}/><div className={`feed-status ${b.status}`}>{statusPl(b.status)}</div></div>
         </div>
       })}</div>
     </section>
