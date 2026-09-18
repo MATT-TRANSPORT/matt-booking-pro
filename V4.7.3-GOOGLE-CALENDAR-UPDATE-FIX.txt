@@ -4,7 +4,7 @@ Zakres:
 - naprawa aktualizacji istniejących wydarzeń Google Calendar po zmianie kierowcy / pojazdu,
 - przy błędzie PATCH 403 system usuwa starą kopię wydarzenia i odtwarza ją z nowym, bezpiecznym ID,
 - nowe ID wydarzenia jest zapisywane z powrotem do bookings,
-- brak duplikatu: fallback najpierw usuwa stary event, dopiero potem tworzy nowy,
+- brak trwałego duplikatu: fallback tworzy nową kopię, usuwa starą, a przy błędzie DELETE wycofuje nową kopię,
 - pełniejsza diagnostyka błędów Google: operacja HTTP + status + reason + message,
 - synchronizacja korzysta z aktualnego google_calendar_event_id / google_calendar_return_event_id zamiast zawsze zakładać pierwotne ID,
 - obsługa WYJAZD i POWRÓT,
