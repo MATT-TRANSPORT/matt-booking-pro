@@ -1,0 +1,18 @@
+MATT Booking PRO v4.7.4 — DASHBOARD PAYMENT BADGES
+
+Zakres:
+- główny Dashboard MATT TRANSPORT: dolny pasek karty = kierowca | płatność | status kursu,
+- główny Dashboard firmy B2B: ten sam kompaktowy pasek na kartach mobilnych,
+- Dashboard firmy na desktopie: dodana kolumna Kierowca,
+- wspólny dynamiczny badge płatności:
+  ✅ OPŁACONO
+  💵 GOTÓWKA
+  💳 ONLINE
+  🏦 PRZELEW
+  ⚠ WERYFIKACJA
+  ❌ NIEUDANA
+  ↩ ZWROT
+- badge wynika bezpośrednio z payment_status / payment_method,
+- po powrocie firmy ze Stripe badge krótko odświeża status płatności,
+- roundtrip w Panelu Firmy pokazuje obu różnych kierowców jako „WYJAZD / POWRÓT” w kompaktowej formie,
+- bez migracji SQL i bez nowych ENV.

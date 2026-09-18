@@ -680,7 +680,7 @@
 /* v2.4.2.2 — company dashboard mobile/status fix */
 .company-bookings-table{width:100%;overflow-x:auto}
 .company-bookings-cards{display:none}
-.company-table{table-layout:fixed;min-width:940px}
+.company-table{table-layout:fixed;min-width:1080px}
 .company-table th:nth-child(1),.company-table td:nth-child(1){width:150px}
 .company-table th:nth-child(2),.company-table td:nth-child(2){width:120px}
 .company-table th:nth-child(3),.company-table td:nth-child(3){width:150px}
@@ -2082,3 +2082,120 @@
 
 /* v4.3.3 B2B ACCESS + COMPANY ADMIN HOTFIX */
 .portal-access-actions{display:flex;gap:8px;flex-wrap:wrap}.portal-access-success{color:#bde7cc!important}.portal-access-error{color:#ffb2b2!important}.temporary-password-box{margin-top:8px;padding:14px;border:1px solid rgba(213,174,93,.45);border-radius:12px;background:rgba(213,174,93,.06);display:grid;gap:8px}.temporary-password-box>span{font-size:10px;letter-spacing:.08em;color:var(--muted);font-weight:800}.temporary-password-box>strong{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:20px;letter-spacing:.04em;color:var(--gold2);overflow-wrap:anywhere}.temporary-password-box small{line-height:1.45}.company-admin-actions{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}.company-admin-action-buttons{display:flex;gap:8px;flex-wrap:wrap}.company-admin-edit-form{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02)}.company-admin-edit-form .btn{grid-column:1/-1}.company-active-toggle{grid-column:1/-1;display:flex!important;align-items:center;gap:8px}.company-active-toggle input{width:auto}.company-delete-btn{border-color:rgba(255,91,91,.55)!important;color:#ffb2b2!important}.company-delete-confirm{margin-top:14px;padding:14px;border:1px solid rgba(255,91,91,.48);border-radius:12px;background:rgba(255,91,91,.06)}.company-delete-confirm p{color:var(--muted);font-size:12px;line-height:1.55}.company-delete-confirm-btn{background:#7c2727!important;color:#fff!important;border-color:#a53a3a!important}@media(max-width:700px){.company-admin-edit-form{grid-template-columns:1fr}.portal-access-actions>*{width:100%}.company-admin-action-buttons>*{width:100%}}
+
+
+/* v4.7.4 — dashboard payment badges */
+.dashboard-feed-card.booking-stage-card{
+  grid-template-columns:46px minmax(0,1fr);
+}
+.dashboard-feed-footer,
+.company-dashboard-footer{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+  align-items:center;
+  gap:8px;
+  min-width:0;
+  margin-top:5px;
+  padding-top:10px;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+.dashboard-feed-footer{
+  grid-column:2/-1;
+}
+.dashboard-feed-footer .driver-color-badge,
+.company-dashboard-footer .driver-color-badge{
+  justify-self:start;
+  max-width:100%;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.dashboard-feed-footer .feed-status,
+.company-dashboard-footer .status{
+  justify-self:end;
+  text-align:right;
+  line-height:1.2;
+}
+.dashboard-driver-empty{
+  justify-self:start;
+  color:var(--muted);
+  font-size:10px;
+  white-space:nowrap;
+}
+.dashboard-payment-status{
+  justify-self:center;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:26px;
+  padding:5px 9px;
+  border:1px solid var(--line);
+  border-radius:999px;
+  font-size:9px;
+  line-height:1;
+  font-weight:900;
+  letter-spacing:.025em;
+  white-space:nowrap;
+}
+.dashboard-payment-status.paid{
+  color:#bde7cc;
+  border-color:rgba(79,189,125,.48);
+  background:rgba(79,189,125,.11);
+}
+.dashboard-payment-status.cash{
+  color:#f1d28b;
+  border-color:rgba(213,174,93,.46);
+  background:rgba(213,174,93,.09);
+}
+.dashboard-payment-status.online{
+  color:#c9deff;
+  border-color:rgba(93,160,230,.46);
+  background:rgba(93,160,230,.10);
+}
+.dashboard-payment-status.transfer{
+  color:#d9e9ff;
+  border-color:rgba(113,145,185,.4);
+  background:rgba(113,145,185,.09);
+}
+.dashboard-payment-status.review,
+.dashboard-payment-status.failed{
+  color:#ffb7b7;
+  border-color:rgba(223,105,105,.5);
+  background:rgba(223,105,105,.10);
+}
+.dashboard-payment-status.refunded{
+  color:#d8c9ff;
+  border-color:rgba(149,119,221,.46);
+  background:rgba(149,119,221,.10);
+}
+.company-dashboard-footer{
+  margin-top:12px;
+}
+@media(max-width:800px){
+  .dashboard-feed-card.booking-stage-card{
+    grid-template-columns:38px minmax(0,1fr);
+  }
+  .dashboard-feed-footer{
+    grid-column:2/-1;
+  }
+}
+@media(max-width:430px){
+  .dashboard-feed-footer,
+  .company-dashboard-footer{
+    gap:5px;
+  }
+  .dashboard-payment-status{
+    padding:5px 7px;
+    font-size:8px;
+  }
+  .dashboard-feed-footer .driver-color-badge,
+  .company-dashboard-footer .driver-color-badge{
+    padding:4px 6px;
+    font-size:9px;
+  }
+  .dashboard-feed-footer .feed-status,
+  .company-dashboard-footer .status{
+    font-size:9px;
+  }
+}
