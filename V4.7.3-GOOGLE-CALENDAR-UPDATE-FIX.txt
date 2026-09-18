@@ -1,0 +1,14 @@
+MATT Booking PRO v4.7.3 — GOOGLE CALENDAR UPDATE FIX
+
+Zakres:
+- naprawa aktualizacji istniejących wydarzeń Google Calendar po zmianie kierowcy / pojazdu,
+- przy błędzie PATCH 403 system usuwa starą kopię wydarzenia i odtwarza ją z nowym, bezpiecznym ID,
+- nowe ID wydarzenia jest zapisywane z powrotem do bookings,
+- brak duplikatu: fallback najpierw usuwa stary event, dopiero potem tworzy nowy,
+- pełniejsza diagnostyka błędów Google: operacja HTTP + status + reason + message,
+- synchronizacja korzysta z aktualnego google_calendar_event_id / google_calendar_return_event_id zamiast zawsze zakładać pierwotne ID,
+- obsługa WYJAZD i POWRÓT,
+- bez migracji SQL i bez nowych zmiennych ENV.
+
+Powód:
+Produkcja pokazała, że pierwsze INSERT wydarzenia działały, natomiast kolejne PATCH po zmianie obsady potrafiły zwracać 403 Forbidden. v4.7.3 dodaje bezpieczny mechanizm naprawczy dla takiej sytuacji.
