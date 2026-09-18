@@ -619,27 +619,13 @@ async function replaceForbiddenEvent(
 ) {
   // W praktyce Google potrafi zezwolić kontu serwisowemu na INSERT,
   // a później odrzucić PATCH tego samego wpisu kodem 403.
-  // Usuwamy wtedy starą kopię i tworzymy świeżą z nowym ID.
-  // Najpierw DELETE, więc nie zostawiamy dwóch aktywnych wydarzeń.
-  try {
-    await deleteEvent(calendarId, oldId);
-  } catch (deleteError) {
-    const deleteMessage =
-      deleteError instanceof Error
-        ? deleteError.message
-        : "Nieznany błąd usuwania wydarzenia.";
-
-    throw new Error(
-      `${googleCalendarError("PATCH", originalFailure)} · fallback DELETE: ${deleteMessage}`
-    );
-  }
-
+  // Tworzymy wtedy nową kopię z nowym ID, usuwamy starą i dopiero
+  // po powodzeniu zapisujemy nowe ID w bookings.
   let lastFailure: {
     response: Response;
     data: any;
   } | null = null;
 
-  // Nowy identyfikator omija tombstone Google po usuniętym event ID.
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const nextId =
       replacementEventId(bookingId, leg);
@@ -651,20 +637,50 @@ async function replaceForbiddenEvent(
         body
       );
 
-    if (insert.response.ok) {
+    if (!insert.response.ok) {
+      lastFailure = insert;
+
+      // Kolizja losowego ID jest skrajnie mało prawdopodobna,
+      // ale w takim przypadku próbujemy ponownie.
+      if (insert.response.status === 409) {
+        continue;
+      }
+
+      break;
+    }
+
+    try {
+      await deleteEvent(
+        calendarId,
+        oldId
+      );
+
       return {
         data: insert.data,
         id: nextId,
         replaced: true
       };
-    }
+    } catch (deleteError) {
+      // Rollback: jeśli starego wpisu nie udało się usunąć,
+      // usuwamy właśnie utworzoną kopię, żeby nie zostawić duplikatu.
+      try {
+        await deleteEvent(
+          calendarId,
+          nextId
+        );
+      } catch {
+        // Jeśli także rollback zawiedzie, zwracamy pierwotny błąd DELETE.
+        // Panel pokaże pełną diagnostykę i nie zapisze nowego ID.
+      }
 
-    lastFailure = insert;
+      const deleteMessage =
+        deleteError instanceof Error
+          ? deleteError.message
+          : "Nieznany błąd usuwania wydarzenia.";
 
-    // Kolizja losowego ID jest skrajnie mało prawdopodobna,
-    // ale w takim przypadku próbujemy ponownie.
-    if (insert.response.status !== 409) {
-      break;
+      throw new Error(
+        `${googleCalendarError("PATCH", originalFailure)} · fallback DELETE: ${deleteMessage}`
+      );
     }
   }
 
