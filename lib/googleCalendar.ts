@@ -2,7 +2,8 @@ import { bookingLegOperationalWindow, isAirportPickupLeg } from "@/lib/bookingOp
 import { bookingRouteText } from "@/lib/bookingRoute";
 import {
   createPrivateKey,
-  createSign
+  createSign,
+  randomBytes
 } from "node:crypto";
 
 const GOOGLE_TOKEN_URL =
@@ -547,11 +548,146 @@ async function googleRequest(
   };
 }
 
-async function upsertEvent(
+function googleCalendarError(
+  operation: string,
+  result: {
+    response: Response;
+    data: any;
+  }
+) {
+  const reason =
+    result.data?.error?.errors?.[0]?.reason ||
+    result.data?.error?.status ||
+    null;
+
+  const message =
+    result.data?.error?.message ||
+    result.data?.error?.errors?.[0]?.message ||
+    null;
+
+  return [
+    `Google Calendar ${operation} HTTP ${result.response.status}`,
+    reason,
+    message
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function replacementEventId(
+  bookingId: string,
+  leg: "primary" | "return"
+) {
+  const normalized =
+    String(bookingId)
+      .toLowerCase()
+      .replace(/[^a-f0-9]/g, "");
+
+  const suffix =
+    randomBytes(5).toString("hex");
+
+  return `matt${normalized}${leg === "return" ? "r" : "p"}${suffix}`;
+}
+
+async function insertEvent(
   calendarId: string,
   id: string,
   body: any
 ) {
+  return googleRequest(
+    `/calendars/${encodeURIComponent(calendarId)}/events`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        id,
+        ...body
+      })
+    }
+  );
+}
+
+async function replaceForbiddenEvent(
+  calendarId: string,
+  oldId: string,
+  bookingId: string,
+  leg: "primary" | "return",
+  body: any,
+  originalFailure: {
+    response: Response;
+    data: any;
+  }
+) {
+  // W praktyce Google potrafi zezwolić kontu serwisowemu na INSERT,
+  // a później odrzucić PATCH tego samego wpisu kodem 403.
+  // Usuwamy wtedy starą kopię i tworzymy świeżą z nowym ID.
+  // Najpierw DELETE, więc nie zostawiamy dwóch aktywnych wydarzeń.
+  try {
+    await deleteEvent(calendarId, oldId);
+  } catch (deleteError) {
+    const deleteMessage =
+      deleteError instanceof Error
+        ? deleteError.message
+        : "Nieznany błąd usuwania wydarzenia.";
+
+    throw new Error(
+      `${googleCalendarError("PATCH", originalFailure)} · fallback DELETE: ${deleteMessage}`
+    );
+  }
+
+  let lastFailure: {
+    response: Response;
+    data: any;
+  } | null = null;
+
+  // Nowy identyfikator omija tombstone Google po usuniętym event ID.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const nextId =
+      replacementEventId(bookingId, leg);
+
+    const insert =
+      await insertEvent(
+        calendarId,
+        nextId,
+        body
+      );
+
+    if (insert.response.ok) {
+      return {
+        data: insert.data,
+        id: nextId,
+        replaced: true
+      };
+    }
+
+    lastFailure = insert;
+
+    // Kolizja losowego ID jest skrajnie mało prawdopodobna,
+    // ale w takim przypadku próbujemy ponownie.
+    if (insert.response.status !== 409) {
+      break;
+    }
+  }
+
+  throw new Error(
+    lastFailure
+      ? `${googleCalendarError("PATCH", originalFailure)} · fallback: ${googleCalendarError("INSERT", lastFailure)}`
+      : googleCalendarError("PATCH", originalFailure)
+  );
+}
+
+async function upsertEvent(
+  calendarId: string,
+  id: string,
+  body: any,
+  context: {
+    bookingId: string;
+    leg: "primary" | "return";
+  }
+): Promise<{
+  data: any;
+  id: string;
+  replaced?: boolean;
+}> {
   const encodedCalendar =
     encodeURIComponent(calendarId);
 
@@ -567,32 +703,53 @@ async function upsertEvent(
   );
 
   if (patch.response.ok) {
-    return patch.data;
+    return {
+      data: patch.data,
+      id
+    };
+  }
+
+  // Hotfix v4.7.3:
+  // nowe wydarzenie można utworzyć, ale Google czasem zwraca
+  // 403 podczas późniejszego PATCH. Odtwarzamy wtedy wpis
+  // bez duplikatu i zapamiętujemy nowe ID w bookings.
+  if (patch.response.status === 403) {
+    return replaceForbiddenEvent(
+      calendarId,
+      id,
+      context.bookingId,
+      context.leg,
+      body,
+      patch
+    );
   }
 
   if (patch.response.status !== 404) {
     throw new Error(
-      patch.data?.error?.message ||
-        `Google Calendar PATCH HTTP ${patch.response.status}`
+      googleCalendarError(
+        "PATCH",
+        patch
+      )
     );
   }
 
-  const insert = await googleRequest(
-    `/calendars/${encodedCalendar}/events`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        id,
-        ...body
-      })
-    }
-  );
+  const insert =
+    await insertEvent(
+      calendarId,
+      id,
+      body
+    );
 
-  // 409 = event exists, e.g. prior insert succeeded
-  // but our response was lost. Patch it once more.
-  if (
-    insert.response.status === 409
-  ) {
+  if (insert.response.ok) {
+    return {
+      data: insert.data,
+      id
+    };
+  }
+
+  // 409 = event istnieje mimo wcześniejszego 404 (race / opóźnienie API).
+  // Próbujemy jeszcze raz PATCH; 403 uruchamia ten sam bezpieczny fallback.
+  if (insert.response.status === 409) {
     const retry =
       await googleRequest(
         `/calendars/${encodedCalendar}/events/${encodedEvent}`,
@@ -602,24 +759,38 @@ async function upsertEvent(
         }
       );
 
-    if (!retry.response.ok) {
-      throw new Error(
-        retry.data?.error?.message ||
-          `Google Calendar retry HTTP ${retry.response.status}`
+    if (retry.response.ok) {
+      return {
+        data: retry.data,
+        id
+      };
+    }
+
+    if (retry.response.status === 403) {
+      return replaceForbiddenEvent(
+        calendarId,
+        id,
+        context.bookingId,
+        context.leg,
+        body,
+        retry
       );
     }
 
-    return retry.data;
-  }
-
-  if (!insert.response.ok) {
     throw new Error(
-      insert.data?.error?.message ||
-        `Google Calendar INSERT HTTP ${insert.response.status}`
+      googleCalendarError(
+        "PATCH RETRY",
+        retry
+      )
     );
   }
 
-  return insert.data;
+  throw new Error(
+    googleCalendarError(
+      "INSERT",
+      insert
+    )
+  );
 }
 
 async function deleteEvent(
@@ -645,8 +816,10 @@ async function deleteEvent(
   }
 
   throw new Error(
-    result.data?.error?.message ||
-      `Google Calendar DELETE HTTP ${result.response.status}`
+    googleCalendarError(
+      "DELETE",
+      result
+    )
   );
 }
 
@@ -735,12 +908,14 @@ export async function syncBookingCalendar(
   }
 
   const primaryId =
+    booking.google_calendar_event_id ||
     eventId(
       booking.id,
       "primary"
     );
 
   const returnId =
+    booking.google_calendar_return_event_id ||
     eventId(
       booking.id,
       "return"
@@ -788,15 +963,31 @@ export async function syncBookingCalendar(
     let syncedReturnId: string | null = null;
 
     if (primaryAssigned) {
-      await upsertEvent(config.calendarId, primaryId, bookingEventBody(enriched, "primary"));
-      syncedPrimaryId = primaryId;
+      const primarySync = await upsertEvent(
+        config.calendarId,
+        primaryId,
+        bookingEventBody(enriched, "primary"),
+        {
+          bookingId: booking.id,
+          leg: "primary"
+        }
+      );
+      syncedPrimaryId = primarySync.id;
     } else {
       await deleteEvent(config.calendarId, primaryId);
     }
 
     if (returnRequired && returnAssigned) {
-      await upsertEvent(config.calendarId, returnId, bookingEventBody(enriched, "return"));
-      syncedReturnId = returnId;
+      const returnSync = await upsertEvent(
+        config.calendarId,
+        returnId,
+        bookingEventBody(enriched, "return"),
+        {
+          bookingId: booking.id,
+          leg: "return"
+        }
+      );
+      syncedReturnId = returnSync.id;
     } else {
       await deleteEvent(config.calendarId, returnId);
     }
