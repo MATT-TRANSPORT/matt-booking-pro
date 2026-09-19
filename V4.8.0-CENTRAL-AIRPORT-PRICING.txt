@@ -1,0 +1,31 @@
+MATT Booking PRO v4.8.0 — CENTRALNY CENNIK LOTNISK
+
+NOWE:
+- Panel MATT -> Cennik.
+- Centralna tabela airport_pricing w Supabase.
+- Edycja nazwy, adresu Google Maps, ceny samochodu, ceny busa, kolejności i aktywności.
+- Dodawanie nowych lotnisk bez zmiany kodu i bez kolejnego wdrożenia.
+- Ukrywanie / ponowne aktywowanie lotniska bez kasowania historii.
+- Formularz B2C pobiera aktywny katalog lotnisk z API.
+- Backend B2C zawsze przelicza cenę wg centralnego cennika.
+- Portal B2B korzysta z tego samego katalogu jako standard MATT.
+- Indywidualne ceny firm B2B nadal mają pierwszeństwo nad ceną standardową.
+- Cennik firmy i szablony B2B automatycznie widzą nowe aktywne lotniska.
+- Dodatkowe przystanki korzystają z adresu lotniska zapisanego w centralnym katalogu.
+- Istniejące rezerwacje zachowują zapisane ceny; edycja istniejącej rezerwacji może nadal odczytać nieaktywne lotnisko.
+- Statyczny lib/pricing.ts pozostaje wyłącznie awaryjnym fallbackiem, gdy tabela centralnego cennika nie jest dostępna.
+
+BEZPIECZEŃSTWO:
+- airport_pricing ma RLS.
+- anon i authenticated nie mają bezpośrednich grantów do tabeli.
+- odczyt publiczny idzie przez /api/airports.
+- zapis jest dostępny wyłącznie dla administratora MATT przez /api/admin/airports.
+- service_role pozostaje tylko po stronie backendu.
+
+MIGRACJA:
+- supabase/migrations-v4.8.0-central-airport-pricing.sql
+- startowe ceny przeniesione 1:1 z dotychczasowego lib/pricing.ts.
+
+BRAK:
+- brak zmian w już zapisanych kwotach istniejących rezerwacji,
+- brak nowych ENV.
