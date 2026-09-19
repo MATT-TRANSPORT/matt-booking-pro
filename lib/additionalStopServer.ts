@@ -72,6 +72,7 @@ export async function calculateAdditionalStopDetour(input: {
   primary?: boolean;
   returnLeg?: boolean;
   routeBaseAddress?: string | null;
+  airportAddress?: string | null;
 }): Promise<AdditionalStopDetour> {
   const serviceType = ["to_airport", "from_airport", "roundtrip"].includes(input.serviceType)
     ? input.serviceType
@@ -79,7 +80,9 @@ export async function calculateAdditionalStopDetour(input: {
   const stopAddress = String(input.stopAddress || "").trim();
   const pickupAddress = String(input.pickupAddress || "").trim();
   const routeBaseAddress = String(input.routeBaseAddress || pickupAddress).trim();
-  const airportAddress = AIRPORT_ROUTE_ADDRESSES[String(input.airportKey || "")];
+  const airportAddress =
+    String(input.airportAddress || "").trim() ||
+    AIRPORT_ROUTE_ADDRESSES[String(input.airportKey || "")];
   // Dla przejazdu w jedną stronę każdy podany dodatkowy adres dotyczy
   // tego jedynego kierunku. W roundtrip kierunki są wybierane osobno.
   const primary = Boolean(

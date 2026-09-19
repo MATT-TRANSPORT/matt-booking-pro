@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { PRICES } from "@/lib/pricing";
+import { getAirportCatalog } from "@/lib/airportPricingServer";
 
 function n(value: unknown, fallback = 0) {
   const parsed = Number(value);
@@ -77,7 +77,8 @@ export async function POST(
     );
   }
 
-  const priceRows = Object.keys(PRICES).map((airportKey) => {
+  const airportCatalog = await getAirportCatalog(admin);
+  const priceRows = airportCatalog.map(({ airport_key: airportKey }) => {
     const row = body.prices?.[airportKey] || {};
     const car = String(row.car ?? "").trim();
     const bus = String(row.bus ?? "").trim();

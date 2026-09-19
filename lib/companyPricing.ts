@@ -1,4 +1,4 @@
-import { PRICES } from "@/lib/pricing";
+import { getAirportPricing } from "@/lib/airportPricingServer";
 import { calculateAdditionalStopDetour } from "@/lib/additionalStopServer";
 import { ADDITIONAL_STOP_FEE_B2B_NET, additionalStopDirectionCount } from "@/lib/additionalStopConfig";
 
@@ -186,13 +186,23 @@ export async function calculateCompanyQuote(
     additionalStopAddress?: string | null;
     additionalStopPrimary?: boolean;
     additionalStopReturn?: boolean;
+    allowInactiveAirport?: boolean;
   }
 ): Promise<CompanyQuote> {
-  const airport = PRICES[input.airportKey];
+  const airportPricing = await getAirportPricing(admin, input.airportKey, {
+    includeInactive: Boolean(input.allowInactiveAirport)
+  });
 
-  if (!airport) {
-    throw new Error("Nieprawidłowe lotnisko.");
+  if (!airportPricing) {
+    throw new Error("Nieprawidłowe lub nieaktywne lotnisko.");
   }
+
+  const airport = {
+    label: airportPricing.label,
+    car: airportPricing.car_price,
+    bus: airportPricing.bus_price,
+    routeAddress: airportPricing.route_address
+  };
 
   const terms = await getCompanyPricingTerms(admin, input.companyId, {
     termsId: input.termsId
@@ -283,7 +293,8 @@ export async function calculateCompanyQuote(
     returnLeg: additionalStopReturn,
     // W B2B objazd liczymy względem normalnej trasy z siedziby kontrahenta
     // do lotniska. Jeżeli dodatkowy adres leży na tej trasie, dopłata km = 0.
-    routeBaseAddress: originAddress
+    routeBaseAddress: originAddress,
+    airportAddress: airport.routeAddress
   });
   const additionalStopCount = additionalStopDirectionCount({
     serviceType,

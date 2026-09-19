@@ -296,7 +296,8 @@ export async function POST(
       airportKey: airport,
       vehicleType: vehicle,
       serviceType,
-      termsId: current.company_pricing_terms_id || null
+      termsId: current.company_pricing_terms_id || null,
+      allowInactiveAirport: true
     });
   } catch (error) {
     return NextResponse.json(

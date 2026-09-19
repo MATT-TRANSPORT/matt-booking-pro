@@ -2199,3 +2199,41 @@
     font-size:9px;
   }
 }
+
+
+/* v4.8.0 — CENTRAL AIRPORT PRICING */
+.airport-pricing-manager{margin-top:18px}
+.airport-pricing-add{display:grid;grid-template-columns:minmax(220px,.75fr) minmax(0,1.6fr);gap:20px;align-items:end}
+.airport-pricing-add h2{margin:8px 0 6px}
+.airport-pricing-add-grid{display:grid;grid-template-columns:1.4fr 2fr .7fr .7fr .65fr auto;gap:9px;align-items:end}
+.airport-pricing-add-grid .btn{min-height:42px}
+.airport-pricing-list{display:grid;gap:10px}
+.airport-pricing-row{display:grid;grid-template-columns:160px 1.1fr 1.7fr 105px 105px 82px auto;gap:9px;align-items:end;padding:12px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.018)}
+.airport-pricing-row.inactive{opacity:.62;border-style:dashed}
+.airport-pricing-title{align-self:center;min-width:0}
+.airport-pricing-title strong,.airport-pricing-title small{display:block}
+.airport-pricing-title strong{color:var(--gold2);overflow-wrap:anywhere}
+.airport-pricing-title small{margin-top:4px;color:var(--muted);font-size:9px}
+.airport-pricing-row label{font-size:9px;text-transform:uppercase;letter-spacing:.05em}
+.airport-pricing-row input{padding:9px;margin-top:4px}
+.airport-pricing-actions{display:flex;gap:6px}
+.airport-pricing-actions .btn{padding:10px 11px;font-size:10px;white-space:nowrap}
+.airport-enable{border-color:rgba(79,189,125,.5)!important;color:#bde7cc!important}
+.airport-pricing-message{margin-top:14px;padding:12px;border:1px solid rgba(223,105,105,.5);border-radius:11px;background:rgba(223,105,105,.07);color:#ffd1d4}
+.airport-pricing-message.ok{border-color:rgba(79,189,125,.45);background:rgba(79,189,125,.07);color:#bde7cc}
+@media(max-width:1100px){
+  .airport-pricing-add{grid-template-columns:1fr}
+  .airport-pricing-add-grid{grid-template-columns:1fr 1fr}
+  .airport-pricing-row{grid-template-columns:1fr 1fr 1fr}
+  .airport-pricing-title{grid-column:1/-1}
+  .airport-pricing-row label:nth-of-type(2){grid-column:1/-1}
+  .airport-pricing-actions{grid-column:1/-1}
+}
+@media(max-width:620px){
+  .airport-pricing-add-grid{grid-template-columns:1fr}
+  .airport-pricing-row{grid-template-columns:1fr 1fr}
+  .airport-pricing-row label:nth-of-type(1),
+  .airport-pricing-row label:nth-of-type(2){grid-column:1/-1}
+  .airport-pricing-actions{display:grid;grid-template-columns:1fr 1fr}
+  .airport-pricing-actions .btn{width:100%}
+}

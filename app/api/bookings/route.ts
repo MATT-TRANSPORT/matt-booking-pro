@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { PRICES, calculateQuote } from "@/lib/pricing";
+import { calculateQuote } from "@/lib/pricing";
+import { getAirportPricing } from "@/lib/airportPricingServer";
 import { calculateAdditionalStopDetour } from "@/lib/additionalStopServer";
 import { ADDITIONAL_STOP_B2C_KM_RATE, ADDITIONAL_STOP_FEE_B2C, additionalStopDirectionCount } from "@/lib/additionalStopConfig";
 import { sendMattEmail } from "@/lib/email";
@@ -45,6 +46,7 @@ function validFunnelSessionId(value: unknown) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
+  const supabase = createAdminClient();
 
   const required = [
     "serviceType",
@@ -66,9 +68,11 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  if (!PRICES[body.airport as keyof typeof PRICES]) {
+  const airportPricing = await getAirportPricing(supabase, String(body.airport || ""));
+
+  if (!airportPricing) {
     return NextResponse.json(
-      { error: "Nieprawidłowe lotnisko." },
+      { error: "Nieprawidłowe lub nieaktywne lotnisko." },
       { status: 400 }
     );
   }
@@ -147,7 +151,8 @@ export async function POST(req: NextRequest) {
         airportKey: body.airport,
         stopAddress: additionalStopAddress,
         primary: additionalStopPrimary,
-        returnLeg: additionalStopReturn
+        returnLeg: additionalStopReturn,
+        airportAddress: airportPricing.route_address
       });
     } catch (error) {
       return NextResponse.json(
@@ -172,11 +177,19 @@ export async function POST(req: NextRequest) {
     additionalStopCount,
     additionalStopExtraKm: additionalStop.totalExtraKm,
     additionalStopFee: ADDITIONAL_STOP_FEE_B2C,
-    additionalStopKmRate: ADDITIONAL_STOP_B2C_KM_RATE
+    additionalStopKmRate: ADDITIONAL_STOP_B2C_KM_RATE,
+    priceRow: {
+      label: airportPricing.label,
+      car: airportPricing.car_price,
+      bus: airportPricing.bus_price
+    }
   });
 
-  const airport =
-    PRICES[body.airport as keyof typeof PRICES];
+  const airport = {
+    label: airportPricing.label,
+    car: airportPricing.car_price,
+    bus: airportPricing.bus_price
+  };
 
   const vehicleType =
     body.vehicleType === "bus" ? "bus" : "car";
@@ -190,7 +203,6 @@ export async function POST(req: NextRequest) {
     ? "online"
     : "cash";
 
-  const supabase = createAdminClient();
   const growth = growthFields(body);
 
   const { data, error } = await supabase

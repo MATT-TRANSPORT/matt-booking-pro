@@ -1,7 +1,8 @@
 import CompanyNav from "@/components/CompanyNav";
 import CompanyTermsSummaryCard from "@/components/CompanyTermsSummaryCard";
 import { companyClient } from "@/lib/company";
-import { PRICES } from "@/lib/pricing";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getAirportCatalog } from "@/lib/airportPricingServer";
 
 function money(value: unknown) {
   return Number(value ?? 0).toFixed(2);
@@ -9,6 +10,8 @@ function money(value: unknown) {
 
 export default async function Page() {
   const { s, company } = await companyClient();
+  const admin = createAdminClient();
+  const airportCatalog = await getAirportCatalog(admin);
   const today = new Date().toISOString().slice(0, 10);
 
   const { data: allTerms } = await s
@@ -39,13 +42,14 @@ export default async function Page() {
     airportRows.map((row: any) => [row.airport_key, row])
   );
 
-  const priceRows = Object.entries(PRICES).map(([key, standard]) => {
+  const priceRows = airportCatalog.map((standard) => {
+    const key = standard.airport_key;
     const custom = customByAirport.get(key) as any;
     const customEnabled = Boolean(current?.use_custom_pricing);
     const hasCar = customEnabled && custom?.car_price_net !== null && custom?.car_price_net !== undefined;
     const hasBus = customEnabled && custom?.bus_price_net !== null && custom?.bus_price_net !== undefined;
-    const car = hasCar ? Number(custom.car_price_net) : Number(standard.car);
-    const bus = hasBus ? Number(custom.bus_price_net) : Number(standard.bus);
+    const car = hasCar ? Number(custom.car_price_net) : Number(standard.car_price);
+    const bus = hasBus ? Number(custom.bus_price_net) : Number(standard.bus_price);
 
     return {
       key,

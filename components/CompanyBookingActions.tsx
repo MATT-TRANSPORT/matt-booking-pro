@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { PRICES } from "@/lib/pricing";
+import { useAirportPricing } from "@/lib/useAirportPricing";
 
 export default function CompanyBookingActions({ booking }: { booking: any }) {
   const router = useRouter();
+  const { airports } = useAirportPricing();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -207,7 +208,8 @@ export default function CompanyBookingActions({ booking }: { booking: any }) {
           <label>
             Lotnisko
             <select value={form.airport} onChange={(e) => setForm({ ...form, airport: e.target.value })}>
-              {Object.entries(PRICES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+              {!airports[form.airport] && <option value={form.airport}>{booking.airport_label || form.airport} · nieaktywne</option>}
+              {Object.entries(airports).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
             </select>
           </label>
           <div className="grid">

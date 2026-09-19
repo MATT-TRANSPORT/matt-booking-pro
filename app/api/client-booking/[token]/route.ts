@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMattEmail } from "@/lib/email";
-import { PRICES } from "@/lib/pricing";
+import { getAirportPricing } from "@/lib/airportPricingServer";
 import { expireCheckoutSession } from "@/lib/stripeServer";
 import { syncBookingCalendar } from "@/lib/googleCalendar";
 import { sendBookingNotification } from "@/lib/customerNotifications";
@@ -77,7 +77,8 @@ export async function PATCH(
   }
 
   const airport = String(booking.airport_key);
-  if (!(airport in PRICES)) {
+  const airportPricing = await getAirportPricing(admin, airport, { includeInactive: true });
+  if (!airportPricing) {
     return NextResponse.json({ error: "Nie udało się odczytać cennika tej rezerwacji. Skontaktuj się z MATT TRANSPORT." }, { status: 400 });
   }
 
@@ -100,7 +101,8 @@ export async function PATCH(
         airportKey: airport,
         vehicleType,
         serviceType: booking.service_type,
-        termsId: booking.company_pricing_terms_id || null
+        termsId: booking.company_pricing_terms_id || null,
+        allowInactiveAirport: true
       });
       pricingUpdate = bookingPricingFields(quote);
       total = quote.gross;
@@ -115,9 +117,9 @@ export async function PATCH(
   } else {
     // B2C: zachowujemy dotychczasowy model. Zmiana adresu wymaga ponownego
     // potwierdzenia, a dystans pozostaje kontrolowany przez MATT.
-    const price = PRICES[airport as keyof typeof PRICES];
     const multiplier = booking.service_type === "roundtrip" ? 2 : 1;
-    const base = Number(price[vehicleType as "car" | "bus"]) * multiplier;
+    const unitPrice = vehicleType === "bus" ? airportPricing.bus_price : airportPricing.car_price;
+    const base = Number(unitPrice) * multiplier;
     const extra = Math.max(0, Number(booking.distance_km ?? 0) - 40) * 2.4 * multiplier;
     const subtotal = base + extra;
     const vat = invoiceRequired ? subtotal * 0.08 : 0;
