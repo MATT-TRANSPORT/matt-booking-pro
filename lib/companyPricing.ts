@@ -186,9 +186,12 @@ export async function calculateCompanyQuote(
     additionalStopAddress?: string | null;
     additionalStopPrimary?: boolean;
     additionalStopReturn?: boolean;
+    allowInactiveAirport?: boolean;
   }
 ): Promise<CompanyQuote> {
-  const airportPricing = await getAirportPricing(admin, input.airportKey);
+  const airportPricing = await getAirportPricing(admin, input.airportKey, {
+    includeInactive: Boolean(input.allowInactiveAirport)
+  });
 
   if (!airportPricing) {
     throw new Error("Nieprawidłowe lub nieaktywne lotnisko.");
