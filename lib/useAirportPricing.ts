@@ -21,7 +21,7 @@ export function useAirportPricing() {
       .then((response) => response.json())
       .then((data) => {
         if (cancelled || !data?.airports || typeof data.airports !== "object") return;
-        if (Object.keys(data.airports).length) setAirports(data.airports);
+        setAirports(data.airports);
       })
       .catch(() => {
         // Awaryjnie zostaje statyczny cennik z aplikacji.
