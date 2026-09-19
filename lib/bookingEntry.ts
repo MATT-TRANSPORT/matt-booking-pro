@@ -1,5 +1,3 @@
-import { PRICES } from "./pricing";
-
 export type BookingEntry = {
   airport: string;
   vehicle: "car" | "bus";
@@ -9,7 +7,7 @@ export type BookingEntry = {
 // Bez parametrów /booking pokazuje hub trzech usług. Linki z cennika i reklam
 // mogą nadal otworzyć bezpośrednio istniejący formularz lotniskowy.
 export function parseBookingEntry(params: Record<string, string | string[] | undefined>): BookingEntry {
-  const airport = typeof params.airport === "string" && Object.prototype.hasOwnProperty.call(PRICES, params.airport)
+  const airport = typeof params.airport === "string" && /^[a-z0-9-]{1,64}$/i.test(params.airport)
     ? params.airport : "balice";
   const directAirport =
     params.service === "airport" ||
