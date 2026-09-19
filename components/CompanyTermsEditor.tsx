@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { PRICES } from "@/lib/pricing";
+import { useAirportPricing } from "@/lib/useAirportPricing";
 
 export default function CompanyTermsEditor({
   company,
@@ -14,10 +14,11 @@ export default function CompanyTermsEditor({
   prices?: any[];
 }) {
   const router = useRouter();
+  const { airports } = useAirportPricing();
   const today = new Date().toISOString().slice(0, 10);
   const initialPrices = useMemo(() => {
     const out: Record<string, { car: string; bus: string }> = {};
-    for (const key of Object.keys(PRICES)) {
+    for (const key of Object.keys(airports)) {
       const row = (prices ?? []).find((x: any) => x.airport_key === key);
       out[key] = {
         car: row?.car_price_net == null ? "" : String(row.car_price_net),
@@ -25,7 +26,7 @@ export default function CompanyTermsEditor({
       };
     }
     return out;
-  }, [prices]);
+  }, [prices, airports]);
 
   const [f, setF] = useState({
     pricingOriginAddress:
@@ -46,6 +47,22 @@ export default function CompanyTermsEditor({
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  useEffect(() => {
+    setPriceMap((current) => {
+      const next = { ...current };
+      for (const key of Object.keys(airports)) {
+        if (!next[key]) {
+          const row = (prices ?? []).find((x: any) => x.airport_key === key);
+          next[key] = {
+            car: row?.car_price_net == null ? "" : String(row.car_price_net),
+            bus: row?.bus_price_net == null ? "" : String(row.bus_price_net)
+          };
+        }
+      }
+      return next;
+    });
+  }, [airports, prices]);
+
 
   useEffect(() => {
     if (f.pricingOriginAddress.trim().length < 3) {
@@ -208,7 +225,7 @@ export default function CompanyTermsEditor({
               </tr>
             </thead>
             <tbody>
-              {Object.entries(PRICES).map(([key, row]) => (
+              {Object.entries(airports).map(([key, row]) => (
                 <tr key={key}>
                   <td><strong>{row.label}</strong></td>
                   <td>
