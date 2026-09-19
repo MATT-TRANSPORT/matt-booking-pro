@@ -1,4 +1,4 @@
-import { PRICES } from "@/lib/pricing";
+import { getAirportPricing } from "@/lib/airportPricingServer";
 import { shortestDrivingRouteKm } from "@/lib/routesServer";
 
 export type B2BVehicle = "car" | "bus";
@@ -140,8 +140,13 @@ export async function calculateB2BQuote(
     termsId?: string | null;
   }
 ): Promise<B2BQuote> {
-  const row = PRICES[input.airport];
-  if (!row) throw new Error("Nieprawidłowe lotnisko.");
+  const airportPricing = await getAirportPricing(admin, input.airport);
+  if (!airportPricing) throw new Error("Nieprawidłowe lub nieaktywne lotnisko.");
+  const row = {
+    label: airportPricing.label,
+    car: airportPricing.car_price,
+    bus: airportPricing.bus_price
+  };
 
   const vehicle: B2BVehicle =
     input.vehicleType === "bus" ? "bus" : "car";
