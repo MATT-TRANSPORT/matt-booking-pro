@@ -4,6 +4,7 @@ export default function PanelNav() {
     <a href="/panel/dyspozytor">Plan kursów</a>
     <a href="/panel/kalendarz">Kalendarz</a>
     <a href="/panel/firmy">Firmy B2B</a>
+    <a href="/panel/cennik">Cennik</a>
     <details className="panel-extra-menu">
       <summary>Dodatkowe ▾</summary>
       <div className="panel-extra-menu-list">
