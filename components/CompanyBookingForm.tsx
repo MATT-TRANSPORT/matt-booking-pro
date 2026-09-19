@@ -124,6 +124,12 @@ export default function CompanyBookingForm({
   useEffect(() => {
     if (serviceType !== "roundtrip") setAdditionalStopReturn(false);
   }, [serviceType]);
+  useEffect(() => {
+    if (airports[airport]) return;
+    const fallback = airports.balice ? "balice" : Object.keys(airports)[0];
+    if (fallback) setAirport(fallback);
+  }, [airports, airport]);
+
 
   useEffect(() => {
     if (!additionalStopEnabled || additionalStopAddress.trim().length < 3) {
