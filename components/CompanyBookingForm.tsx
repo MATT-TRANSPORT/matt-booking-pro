@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PRICES } from "@/lib/pricing";
+import { useAirportPricing } from "@/lib/useAirportPricing";
 
 function finite(value: unknown, fallback = 0) {
   const n = Number(value);
@@ -41,6 +41,7 @@ export default function CompanyBookingForm({
   commercialTerms?: any | null;
   addresses?: any[];
 }) {
+  const { airports } = useAirportPricing();
   const employeeRows = Array.isArray(employees) ? employees : [];
   const [passengerMode, setPassengerMode] = useState<"existing" | "new">(
     employeeRows.length ? "existing" : "new"
@@ -57,7 +58,7 @@ export default function CompanyBookingForm({
   const [serviceType, setServiceType] =
     useState<"to_airport" | "from_airport" | "roundtrip">("to_airport");
   const [address, setAddress] = useState("");
-  const [airport, setAirport] = useState<keyof typeof PRICES>("balice");
+  const [airport, setAirport] = useState<string>("balice");
   const [vehicle, setVehicle] = useState<"car" | "bus">("car");
   const [passengers, setPassengers] = useState(1);
   const [travelDate, setTravelDate] = useState("");
@@ -416,8 +417,8 @@ export default function CompanyBookingForm({
 
           <label className={serviceType === "from_airport" ? "route-airport first" : "route-airport second"}>
             {serviceType === "from_airport" ? "Z jakiego lotniska?" : "Lotnisko"}
-            <select value={airport} onChange={(e) => setAirport(e.target.value as keyof typeof PRICES)}>
-              {Object.entries(PRICES).map(([key, value]) => (
+            <select value={airport} onChange={(e) => setAirport(e.target.value)}>
+              {Object.entries(airports).map(([key, value]) => (
                 <option key={key} value={key}>{value.label}</option>
               ))}
             </select>
