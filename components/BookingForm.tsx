@@ -2,15 +2,16 @@
 import CustomerPushControls from "@/components/CustomerPushControls";
 
 import { useEffect, useMemo, useState } from "react";
-import { PRICES } from "@/lib/pricing";
+import { useAirportPricing } from "@/lib/useAirportPricing";
 import { clearGrowthTracking, growthFunnelSessionId, readGrowthTracking, resetGrowthFunnelSession, trackGrowthFunnelEvent } from "@/lib/growthTracking";
 import { trackBookingPurchase } from "@/lib/ga4";
 import type { BookingEntry } from "@/lib/bookingEntry";
 
 type Suggestion = { placeId?: string; text?: string };
-type AirportKey = keyof typeof PRICES | "other";
+type AirportKey = string | "other";
 
 export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry}) {
+  const { airports } = useAirportPricing();
   const [mobile, setMobile] = useState(false);
   const [step, setStep] = useState(1);
 
@@ -55,6 +56,12 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
   },[]);
 
   useEffect(()=>{ if(passengers>3) setVehicle("bus"); },[passengers]);
+
+  useEffect(()=>{
+    if(airport==="other"||airports[airport]) return;
+    const fallback = airports.balice ? "balice" : Object.keys(airports)[0];
+    if(fallback) setAirport(fallback);
+  },[airports,airport]);
 
   useEffect(()=>{
     if(address.trim().length<3){ setSuggestions([]); return; }
@@ -116,7 +123,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
   }
 
   const standardAirport = airport!=="other";
-  const item = standardAirport ? PRICES[airport as keyof typeof PRICES] : null;
+  const item = standardAirport ? airports[airport] : null;
   const quote = useMemo(()=>{
     if(!item) return {base:0,extra:0,stopFee:0,stopExtraKm:0,stopExtra:0,vat:0,total:0};
     const m=serviceType==="roundtrip"?2:1;
@@ -130,7 +137,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
     return {base,extra,stopFee,stopExtraKm,stopExtra,vat,total:subtotal+vat};
   },[item,serviceType,vehicle,distanceKm,invoice,additionalStopEnabled,additionalStopQuote]);
 
-  const airportLabel = airport==="other" ? (otherAirport||"Inne lotnisko") : PRICES[airport as keyof typeof PRICES].label;
+  const airportLabel = airport==="other" ? (otherAirport||"Inne lotnisko") : (airports[airport]?.label || "Lotnisko");
   const activeStop = additionalStopEnabled && additionalStopAddress.trim() ? additionalStopAddress.trim() : "";
   const stopLegText = serviceType === "roundtrip"
     ? additionalStopPrimary && additionalStopReturn
@@ -260,7 +267,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
 
   const renderAirportSelect = () => <label>Lotnisko
     <select value={airport} onChange={e=>{const v=e.target.value as AirportKey;setAirport(v);if(v!=="other")setOtherAirport("");}}>
-      {Object.entries(PRICES).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
+      {Object.entries(airports).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
       <option value="other">Inne lotnisko</option>
     </select>
   </label>;
