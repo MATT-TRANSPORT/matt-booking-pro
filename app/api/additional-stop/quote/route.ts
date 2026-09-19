@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { calculateAdditionalStopDetour } from "@/lib/additionalStopServer";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getAirportPricing } from "@/lib/airportPricingServer";
 import {
   ADDITIONAL_STOP_B2C_KM_RATE,
   ADDITIONAL_STOP_FEE_B2C,
@@ -36,13 +38,19 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const airport = await getAirportPricing(createAdminClient(), String(body.airport || ""));
+    if (!airport) {
+      return NextResponse.json({ error: "Nieprawidłowe lub nieaktywne lotnisko." }, { status: 400 });
+    }
+
     const detour = await calculateAdditionalStopDetour({
       serviceType,
       pickupAddress: String(body.address || ""),
       airportKey: String(body.airport || ""),
       stopAddress,
       primary,
-      returnLeg
+      returnLeg,
+      airportAddress: airport.route_address
     });
     const stopCount = additionalStopDirectionCount({
       serviceType,
