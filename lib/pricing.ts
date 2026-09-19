@@ -18,8 +18,9 @@ export function calculateQuote(input: {
   additionalStopExtraKm?: number;
   additionalStopFee?: number;
   additionalStopKmRate?: number;
+  priceRow?: { label?: string; car: number; bus: number };
 }) {
-  const row = PRICES[input.airport];
+  const row = input.priceRow ?? PRICES[input.airport];
   if (!row) throw new Error("Nieprawidłowe lotnisko.");
   const vehicle = input.vehicleType === "bus" ? "bus" : "car";
   const multiplier = input.serviceType === "roundtrip" ? 2 : 1;
