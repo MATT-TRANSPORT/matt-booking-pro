@@ -208,6 +208,7 @@ export default function CompanyBookingActions({ booking }: { booking: any }) {
           <label>
             Lotnisko
             <select value={form.airport} onChange={(e) => setForm({ ...form, airport: e.target.value })}>
+              {!airports[form.airport] && <option value={form.airport}>{booking.airport_label || form.airport} · nieaktywne</option>}
               {Object.entries(airports).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
             </select>
           </label>
