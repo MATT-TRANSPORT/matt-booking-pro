@@ -1,0 +1,27 @@
+MATT Booking PRO v4.8.1 — CUSTOMER COMMUNICATION CLEANUP
+
+B2B:
+- brak e-maila „kurs zakończony / dziękujemy za przejazd” dla rezerwacji firmowych B2B,
+- blokada działa zarówno przy zakończeniu kursu przez MATT DRIVER, jak i przy ręcznej zmianie statusu w Panelu MATT,
+- operacyjne wiadomości B2B (potwierdzenie, przypisanie kierowcy/pojazdu, kierowca w drodze / na miejscu) pozostają bez zmian,
+- prośby o ocenę B2B nadal są wyłączone — oba crony wybierają wyłącznie bookings z company_id = null,
+- Web Push klienta również ma istniejącą blokadę B2B.
+
+SMS / WHATSAPP — SZYBKA WIADOMOŚĆ:
+- nowy tekst przy przypisanym kierowcy:
+  „Dzień dobry! Do Państwa rezerwacji w MATT TRANSPORT Booking przypisano kierowcę …”
+- dodany termin przejazdu w formacie DD.MM.YYYY i HH:MM,
+- dla odbioru z lotniska tekst mówi „Odbiór z lotniska”, dla pozostałych „Wyjazd”,
+- numer rezerwacji nie jest już eksponowany w pierwszym zdaniu,
+- dane kierowcy, telefon, pojazd i rejestracja pozostają.
+
+LINK KLIENTA:
+- szybkie wiadomości SMS / WhatsApp kierują do:
+  https://booking.matt-transport.pl/rezerwacja/<token>
+- adres vercel.app nie jest pokazywany klientowi,
+- nawet błędne NEXT_PUBLIC_BOOKING_URL wskazujące na vercel.app jest zastępowane markową domeną booking.matt-transport.pl.
+
+BRAK:
+- brak migracji SQL,
+- brak nowych wymaganych ENV,
+- brak zmian w logice rezerwacji i płatności.
