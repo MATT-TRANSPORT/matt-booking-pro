@@ -623,7 +623,13 @@ export async function POST(req: NextRequest) {
       if (updated.company_id) {
         employeeTemplate = b2bEmployeeAssignedEmail(enriched);
       }
-    } else if (statusChanged && nextStatus === "completed") {
+    } else if (
+      statusChanged &&
+      nextStatus === "completed" &&
+      !updated.company_id
+    ) {
+      // B2B: bez wiadomości po zakończeniu kursu i bez prośby o ocenę.
+      // Operacyjne potwierdzenia i dane kierowcy pozostają bez zmian.
       template = completedEmail(enriched);
     }
 
