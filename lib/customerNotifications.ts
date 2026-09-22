@@ -42,10 +42,15 @@ export type CustomerNotificationResult = {
 };
 
 function customerPortalBaseUrl() {
-  return (
-    process.env.NEXT_PUBLIC_BOOKING_URL ||
-    "https://booking.matt-transport.pl"
-  ).replace(/\/$/, "");
+  const configured = String(process.env.NEXT_PUBLIC_BOOKING_URL || "").trim();
+
+  if (configured && !configured.includes("vercel.app")) {
+    return configured.replace(/\/$/, "");
+  }
+
+  // Wiadomości klienta zawsze pokazują markową domenę MATT,
+  // nawet jeśli główna aplikacja jest technicznie hostowana w Vercel.
+  return "https://booking.matt-transport.pl";
 }
 
 function configureWebPush() {
