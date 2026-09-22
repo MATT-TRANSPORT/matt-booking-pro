@@ -194,7 +194,11 @@ export async function POST(
   const shouldSendCompleted = status === "completed" && !isRoundtripPrimaryCompleted;
   const customerRelevant = ["in_progress", "arrived"].includes(status) || shouldSendCompleted;
 
-  if (booking.email && customerRelevant) {
+  const emailRelevant =
+    customerRelevant &&
+    !(booking.company_id && shouldSendCompleted);
+
+  if (booking.email && emailRelevant) {
     const legText = requestedLeg === "return" ? " kurs powrotny" : "";
     let subject = "";
     let bodyText = "";
