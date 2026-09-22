@@ -41,10 +41,10 @@ export type CustomerNotificationResult = {
   failed_count?: number;
 };
 
-function appBaseUrl() {
+function customerPortalBaseUrl() {
   return (
-    process.env.NEXT_PUBLIC_APP_URL ||
-    "https://panel.matt-transport.pl"
+    process.env.NEXT_PUBLIC_BOOKING_URL ||
+    "https://booking.matt-transport.pl"
   ).replace(/\/$/, "");
 }
 
@@ -87,12 +87,45 @@ function routeText(booking: any, leg?: "primary" | "return") {
 }
 
 function portalUrl(booking: any) {
-  if (!booking.customer_access_token) return appBaseUrl();
-  return `${appBaseUrl()}/rezerwacja/${booking.customer_access_token}`;
+  if (!booking.customer_access_token) return customerPortalBaseUrl();
+  return `${customerPortalBaseUrl()}/rezerwacja/${booking.customer_access_token}`;
 }
 
 function shortTime(value: unknown) {
   return String(value || "").slice(0, 5);
+}
+
+function polishDate(value: unknown) {
+  const date = String(value || "").slice(0, 10);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  return match ? `${match[3]}.${match[2]}.${match[1]}` : date;
+}
+
+function quickAssignedText(booking: any) {
+  const driver = booking._driver;
+  const vehicle = booking._vehicle;
+  const date = polishDate(booking.travel_date);
+  const time = shortTime(booking.travel_time);
+  const termLabel =
+    booking.service_type === "from_airport"
+      ? "Odbiór z lotniska"
+      : "Wyjazd";
+
+  const driverText =
+    `Do Państwa rezerwacji w MATT TRANSPORT Booking przypisano kierowcę ${driver?.full_name || "MATT TRANSPORT"}` +
+    (driver?.phone ? `, tel. ${driver.phone}` : "") +
+    ".";
+
+  const vehicleText = vehicle
+    ? ` Pojazd: ${vehicle.name}${vehicle.registration ? `, ${vehicle.registration}` : ""}.`
+    : "";
+
+  const termText =
+    date && time
+      ? ` ${termLabel} w dniu ${date} o godzinie ${time}.`
+      : "";
+
+  return `Dzień dobry! ${driverText}${vehicleText}${termText} Szczegóły: ${portalUrl(booking)}`;
 }
 
 async function enrichBooking(admin: any, booking: any) {
@@ -184,6 +217,10 @@ export function quickWhatsAppText(booking: any) {
       : booking.driver_id && booking.vehicle_id
       ? "assigned"
       : "confirmed";
+
+  if (kind === "assigned") {
+    return quickAssignedText(booking);
+  }
 
   return `Dzień dobry! ${customerUpdateText(booking, { kind })} Szczegóły: ${portalUrl(booking)}`;
 }
