@@ -27,7 +27,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ v
   if (selectedView === "cancelled") bookingsQuery = bookingsQuery.eq("status", "cancelled");
 
   const [{ data: bookings, error: bookingsError }, { data: drivers }, { data: vehicles }] = await Promise.all([
-    bookingsQuery.limit(selectedView === "active" ? 500 : 700),
+    bookingsQuery.limit(selectedView === "active" ? 1000 : 700),
     s.from("drivers").select("*").eq("active", true).order("full_name"),
     s.from("vehicles").select("*").eq("active", true).order("name")
   ]);
