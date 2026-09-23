@@ -8,33 +8,35 @@ export default function GrowthSourceCard({ booking }: { booking: any }) {
   );
 
   return (
-    <div className="card growth-source-card" style={{ marginTop: 16 }}>
-      <div className="company-section-head">
-        <div>
+    <details className="card panel-collapsible-card growth-source-card" style={{ marginTop: 16 }}>
+      <summary className="panel-collapsible-summary">
+        <span>
           <span className="badge">GROWTH</span>
-          <h2 style={{ marginBottom: 4 }}>Źródło rezerwacji</h2>
+          <strong>Źródło rezerwacji</strong>
+        </span>
+        <b>{growthSourceLabel(source)}</b>
+      </summary>
+
+      <div className="panel-collapsible-content">
+        <div className="detail-list">
+          <div><span>Kampania</span><strong>{booking.utm_campaign || "—"}</strong></div>
+          <div><span>Partner / kod</span><strong>{booking.referral_code || "—"}</strong></div>
+          <div><span>Strona wejścia</span><strong className="growth-wrap">{booking.landing_page || "—"}</strong></div>
         </div>
-        <strong>{growthSourceLabel(source)}</strong>
-      </div>
 
-      <div className="detail-list">
-        <div><span>Kampania</span><strong>{booking.utm_campaign || "—"}</strong></div>
-        <div><span>Partner / kod</span><strong>{booking.referral_code || "—"}</strong></div>
-        <div><span>Strona wejścia</span><strong className="growth-wrap">{booking.landing_page || "—"}</strong></div>
+        {hasTechnical && (
+          <details className="growth-tech-details">
+            <summary>Dane techniczne kampanii</summary>
+            <div className="detail-list" style={{ marginTop: 10 }}>
+              <div><span>UTM source / medium</span><strong>{booking.utm_source || "—"} / {booking.utm_medium || "—"}</strong></div>
+              <div><span>UTM content</span><strong>{booking.utm_content || "—"}</strong></div>
+              <div><span>UTM term</span><strong>{booking.utm_term || "—"}</strong></div>
+              <div><span>Google Click ID</span><strong className="growth-wrap">{booking.gclid || "—"}</strong></div>
+              <div><span>Meta Click ID</span><strong className="growth-wrap">{booking.fbclid || "—"}</strong></div>
+            </div>
+          </details>
+        )}
       </div>
-
-      {hasTechnical && (
-        <details className="growth-tech-details">
-          <summary>Dane techniczne kampanii</summary>
-          <div className="detail-list" style={{ marginTop: 10 }}>
-            <div><span>UTM source / medium</span><strong>{booking.utm_source || "—"} / {booking.utm_medium || "—"}</strong></div>
-            <div><span>UTM content</span><strong>{booking.utm_content || "—"}</strong></div>
-            <div><span>UTM term</span><strong>{booking.utm_term || "—"}</strong></div>
-            <div><span>Google Click ID</span><strong className="growth-wrap">{booking.gclid || "—"}</strong></div>
-            <div><span>Meta Click ID</span><strong className="growth-wrap">{booking.fbclid || "—"}</strong></div>
-          </div>
-        </details>
-      )}
-    </div>
+    </details>
   );
 }

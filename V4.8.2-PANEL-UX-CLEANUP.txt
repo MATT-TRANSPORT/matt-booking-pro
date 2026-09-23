@@ -1,0 +1,31 @@
+MATT Booking PRO v4.8.2 — PANEL UX CLEANUP
+
+PLAN KURSÓW:
+- nowy zakres „WSZYSTKIE AKTUALNE”,
+- jest domyślnym widokiem Planu kursów,
+- pokazuje wszystkie rezerwacje, które nie są zakończone ani anulowane, niezależnie od tego czy są za 2, 7 czy więcej dni,
+- nadal dostępne są filtry: następne 3 h / dzisiaj / jutro / 7 dni / termin minął,
+- limit aktywnych rekordów podniesiony z 500 do 1000.
+
+SZCZEGÓŁY REZERWACJI:
+- usunięta sekcja „Po zakończeniu kursu / prośba o opinię”,
+- dla klienta indywidualnego rozliczenie pokazuje tylko:
+  • Do zapłaty,
+  • Status płatności,
+- szczegółowe netto/VAT/cena bazowa/dopłata pozostają w B2B,
+- Historia zmian jest domyślnie zwinięta,
+- Growth jest domyślnie zwinięty i przeniesiony na sam dół strony,
+- Komunikacja z klientem zachowuje status kanału, akcje i log Push, ale bez oczywistych opisów technicznych,
+- Flight Monitor, Google Calendar i operacyjne akcje pozostają bez zmian.
+
+MOBILE:
+- ten sam uproszczony układ działa responsywnie,
+- Growth jest ostatnią, zwiniętą sekcją,
+- Historia zmian jest zwinięta,
+- rozliczenie B2C pozostaje kompaktowe.
+
+TECHNICZNIE:
+- sekcje zwijane używają natywnego HTML details/summary,
+- brak migracji SQL,
+- brak nowych ENV,
+- brak zmian w logice rezerwacji, płatności, lotów i powiadomień.
