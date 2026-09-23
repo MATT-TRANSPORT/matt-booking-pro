@@ -54,8 +54,6 @@ export default function CustomerCommunicationCard({
         </span>
       </div>
 
-      <p className="muted">E-mail pozostaje podstawowym kanałem. Web Push jest bezpłatny i działa po zgodzie klienta na jego urządzeniu.</p>
-
       <div className="communication-lite-actions">
         <button className="btn secondary" disabled={busy || activeSubscriptions === 0} onClick={sendNow}>
           {busy ? "WYSYŁANIE..." : "🔔 WYŚLIJ PUSH TERAZ"}
@@ -90,7 +88,6 @@ export default function CustomerCommunicationCard({
         </div>
       )}
 
-      <small className="communication-lite-note">WhatsApp i SMS otwierają gotową wiadomość na Twoim urządzeniu — wysyłasz ją ręcznie. System nie korzysta z płatnego API SMS/WhatsApp.</small>
       {message && <div className="admin-save-message">{message}</div>}
 
       <div className="customer-message-log">
