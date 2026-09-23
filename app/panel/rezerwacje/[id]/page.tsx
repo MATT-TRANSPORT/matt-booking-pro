@@ -23,6 +23,15 @@ function vehicleLabel(value: unknown) {
   return "Samochód osobowy";
 }
 
+function paymentStatusShort(booking: any) {
+  const status = String(booking.payment_status || "pending").toLowerCase();
+  if (status === "paid") return "✓ OPŁACONO";
+  if (status === "failed") return "NIEUDANA";
+  if (status === "refunded") return "ZWROT";
+  if (status === "review") return "DO WERYFIKACJI";
+  return "DO ZAPŁATY";
+}
+
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { s } = await panelClient();
@@ -106,18 +115,27 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             <div><span>Faktura VAT</span><strong>{booking.invoice_required ? "Tak" : "Nie"}</strong></div>
           </div>
 
-          {!booking.company_id && <><h2>Po zakończeniu kursu</h2><div className="detail-list"><div><span>Prośba o opinię Google</span><strong>{booking.review_request_sent_at ? `✓ Wysłano ${new Date(booking.review_request_sent_at).toLocaleString("pl-PL")}` : booking.completed_at ? "Zaplanowana automatycznie" : "Oczekuje na zakończenie kursu"}</strong></div></div></>}
-
           <h2>Rozliczenie</h2>
-          {general && !quoted ? <div className="detail-list"><div className="detail-total"><span>Cena</span><strong>Wymaga indywidualnej wyceny</strong></div><div><span>Status wyceny</span><strong>OCZEKUJE</strong></div></div> :
+          {general && !quoted ? (
             <div className="detail-list">
-              <div><span>{booking.company_id ? "Cena bazowa netto" : "Cena bazowa"}</span><strong>{Number(booking.base_price).toFixed(2)} zł</strong></div>
-              {!general && <div><span>{booking.company_id ? "Dopłata za km netto" : "Dopłata za km"}</span><strong>{Number(booking.extra_price).toFixed(2)} zł</strong></div>}
-              {!general && <div><span>VAT{booking.company_id ? ` ${Number(booking.vat_rate ?? 8).toFixed(0)}%` : ""}</span><strong>{Number(booking.vat_price).toFixed(2)} zł</strong></div>}
-              <div><span>Sposób płatności</span><strong>{booking.company_id ? (booking.payment_method === "employee_payment" ? "Płatność online firmy" : "Przelew firmowy") : booking.payment_method === "online" || booking.online_payment_requested ? "Płatność online" : booking.payment_method === "bank_transfer" ? "Przelew tradycyjny" : "Gotówka u kierowcy"}</strong></div>
-              <div><span>Status płatności</span><strong>{booking.payment_status === "paid" ? "✓ Opłacono" : booking.payment_status === "failed" ? "Nieudana" : booking.payment_status === "refunded" ? "Zwrot" : booking.payment_status === "review" ? "Do weryfikacji" : "Oczekuje"}</strong></div>
-              <div className="detail-total"><span>{booking.company_id ? "Razem brutto" : "Razem"}</span><strong>{displayAmount.toFixed(2)} zł</strong></div>
-            </div>}
+              <div className="detail-total"><span>Cena</span><strong>Wymaga indywidualnej wyceny</strong></div>
+              <div><span>Status wyceny</span><strong>OCZEKUJE</strong></div>
+            </div>
+          ) : booking.company_id ? (
+            <div className="detail-list">
+              <div><span>Cena bazowa netto</span><strong>{Number(booking.base_price).toFixed(2)} zł</strong></div>
+              {!general && <div><span>Dopłata za km netto</span><strong>{Number(booking.extra_price).toFixed(2)} zł</strong></div>}
+              {!general && <div><span>VAT {Number(booking.vat_rate ?? 8).toFixed(0)}%</span><strong>{Number(booking.vat_price).toFixed(2)} zł</strong></div>}
+              <div><span>Sposób płatności</span><strong>{booking.payment_method === "employee_payment" ? "Płatność online firmy" : "Przelew firmowy"}</strong></div>
+              <div><span>Status płatności</span><strong>{paymentStatusShort(booking)}</strong></div>
+              <div className="detail-total"><span>Razem brutto</span><strong>{displayAmount.toFixed(2)} zł</strong></div>
+            </div>
+          ) : (
+            <div className="detail-list payment-summary-compact">
+              <div className="detail-total"><span>Do zapłaty</span><strong>{displayAmount.toFixed(2)} zł</strong></div>
+              <div><span>Status płatności</span><strong className={`payment-summary-status ${String(booking.payment_status || "pending").toLowerCase()}`}>{paymentStatusShort(booking)}</strong></div>
+            </div>
+          )}
 
           {booking.notes && <><h2>Uwagi</h2><p style={{whiteSpace:"pre-wrap"}}>{booking.notes}</p></>}
         </div>
@@ -141,7 +159,6 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         />
 
         <GoogleCalendarSyncCard booking={booking} />
-        <GrowthSourceCard booking={booking} />
         <CustomerCommunicationCard
           booking={booking}
           pushLogs={customerPushLogs ?? []}
@@ -150,10 +167,19 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           smsUrl={quickSmsUrl({ ...booking, _driver: (drivers ?? []).find((d: any) => d.id === booking.driver_id) ?? null, _vehicle: (vehicles ?? []).find((v: any) => v.id === booking.vehicle_id) ?? null })}
         />
 
-        <div className="card" style={{ marginTop: 16 }}><h2>Historia zmian</h2>{!history?.length ? <p className="muted">Brak zapisanej historii zmian.</p> : <div className="history-list history-timeline">{history.map((item: any) => <div key={item.id}><strong>{item.event}</strong><span>{new Date(item.created_at).toLocaleString("pl-PL")}</span></div>)}</div>}</div>
+        <details className="card panel-collapsible-card history-collapsible" style={{ marginTop: 16 }}>
+          <summary className="panel-collapsible-summary">
+            <span><strong>Historia zmian</strong></span>
+            <b>{history?.length ?? 0}</b>
+          </summary>
+          <div className="panel-collapsible-content">
+            {!history?.length ? <p className="muted">Brak zapisanej historii zmian.</p> : <div className="history-list history-timeline">{history.map((item: any) => <div key={item.id}><strong>{item.event}</strong><span>{new Date(item.created_at).toLocaleString("pl-PL")}</span></div>)}</div>}
+          </div>
+        </details>
         {!general && <div className="card" style={{ marginTop: 16 }}><h2>Historia lotu</h2>{!flightHistory?.length ? <p className="muted">Brak zapisanych zmian statusu lotu.</p> : <div className="history-list history-timeline flight-history">{flightHistory.map((item: any) => <div key={item.id}><strong>{item.event}</strong><span>{new Date(item.created_at).toLocaleString("pl-PL")}</span></div>)}</div>}</div>}
       </div>
     </div>
     {(!general || quoted) && <PaymentLinkBox booking={booking} />}
+    <GrowthSourceCard booking={booking} />
   </main>;
 }
