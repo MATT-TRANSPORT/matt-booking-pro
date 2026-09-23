@@ -23,7 +23,7 @@ import {
 import FlightStatusBadge from "@/components/FlightStatusBadge";
 import FlightAlertBadge from "@/components/FlightAlertBadge";
 
-type Scope = "next3h" | "today" | "tomorrow" | "7d" | "overdue";
+type Scope = "all" | "next3h" | "today" | "tomorrow" | "7d" | "overdue";
 type Filter = "all" | "unassigned" | "b2b" | "private";
 type AttentionTone = "critical" | "warning";
 
@@ -43,7 +43,7 @@ export default function DispatcherClient({
   vehicles: any[];
 }) {
   const [rows, setRows] = useState(bookings);
-  const [scope, setScope] = useState<Scope>("today");
+  const [scope, setScope] = useState<Scope>("all");
   const [filter, setFilter] = useState<Filter>("all");
   const [message, setMessage] = useState("");
   const [savingId, setSavingId] = useState("");
@@ -273,6 +273,9 @@ export default function DispatcherClient({
       </section>
 
       <div className="dispatcher-scope">
+        <button className={scope === "all" ? "active" : ""} onClick={() => setScope("all")}>
+          WSZYSTKIE AKTUALNE ({activeRows.length})
+        </button>
         <button className={scope === "next3h" ? "active" : ""} onClick={() => setScope("next3h")}>
           ⏱ NASTĘPNE 3 H ({next3hCount})
         </button>
