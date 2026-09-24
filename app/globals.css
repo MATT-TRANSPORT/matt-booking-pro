@@ -2351,3 +2351,83 @@
     grid-template-columns:1fr;
   }
 }
+
+
+/* v4.9.0 — quote acceptance workflow */
+.individual-quote-decision{
+  margin-top:18px;
+  padding:18px;
+  border:1px solid rgba(213,174,93,.42);
+  border-radius:16px;
+  background:rgba(213,174,93,.06);
+}
+.individual-quote-decision h2{
+  margin:10px 0 8px;
+}
+.individual-quote-decision.accepted{
+  border-color:rgba(79,189,125,.48);
+  background:rgba(79,189,125,.07);
+}
+.individual-quote-decision.rejected{
+  border-color:rgba(223,105,105,.48);
+  background:rgba(223,105,105,.07);
+}
+.individual-quote-decision.priced h2{
+  font-size:28px;
+  color:var(--gold2);
+}
+.individual-quote-note{
+  margin:12px 0;
+  padding:12px 14px;
+  border-left:3px solid var(--gold);
+  background:rgba(255,255,255,.025);
+  border-radius:8px;
+  line-height:1.5;
+}
+.individual-quote-obligation{
+  margin:14px 0 10px;
+  padding:12px 14px;
+  border:1px solid rgba(213,174,93,.35);
+  border-radius:10px;
+  background:rgba(213,174,93,.08);
+  font-size:13px;
+  line-height:1.5;
+}
+.individual-quote-accept{
+  width:100%;
+  margin-top:10px;
+  min-height:50px;
+  font-weight:900;
+}
+.individual-quote-reject{
+  width:100%;
+  margin-top:10px;
+  border-color:rgba(223,105,105,.48)!important;
+  color:#ffb9bf!important;
+}
+.individual-quote-reject-confirm{
+  margin-top:12px;
+  padding:14px;
+  border:1px solid rgba(223,105,105,.48);
+  border-radius:12px;
+  background:rgba(223,105,105,.08);
+}
+.individual-quote-reject-confirm>div{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:10px;
+}
+@media(max-width:520px){
+  .individual-quote-decision{
+    padding:15px;
+  }
+  .individual-quote-decision.priced h2{
+    font-size:24px;
+  }
+  .individual-quote-accept{
+    font-size:12px;
+    padding-left:10px;
+    padding-right:10px;
+  }
+}

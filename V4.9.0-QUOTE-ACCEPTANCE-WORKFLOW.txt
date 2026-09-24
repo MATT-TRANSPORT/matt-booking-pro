@@ -1,0 +1,52 @@
+MATT Booking PRO v4.9.0 — QUOTE ACCEPTANCE WORKFLOW
+
+CEL:
+Indywidualna wycena A→B nie jest już automatycznie traktowana jak potwierdzone zamówienie.
+Klient musi świadomie zaakceptować cenę albo z niej zrezygnować.
+
+WORKFLOW:
+1. Klient wysyła zapytanie o transport A→B.
+2. MATT przygotowuje cenę i wybiera sposób płatności.
+3. Administrator wybiera ważność wyceny: 12 / 24 / 48 / 72 h.
+4. Klient dostaje e-mail z ceną, terminem ważności i linkiem do markowej domeny booking.matt-transport.pl.
+5. Portal klienta pokazuje:
+   - ZAMAWIAM Z OBOWIĄZKIEM ZAPŁATY · X ZŁ
+   - REZYGNUJĘ Z WYCENY
+6. Akceptacja:
+   - quote_status = accepted,
+   - zapisywany quote_accepted_at,
+   - status rezerwacji = confirmed albo assigned, jeśli obsada była już kompletna,
+   - klient i MATT dostają e-mail,
+   - MATT dostaje Push,
+   - przy płatności online pojawia się Stripe Checkout.
+7. Rezygnacja:
+   - quote_status = rejected,
+   - zapisywany quote_rejected_at,
+   - status rezerwacji = cancelled,
+   - klient i MATT dostają e-mail,
+   - MATT dostaje Push,
+   - ewentualny wpis Calendar jest usuwany przez synchronizację.
+8. Po upływie quote_expires_at klient nie może zaakceptować starej ceny i musi poprosić o aktualną wycenę.
+
+BEZPIECZEŃSTWO / OPERACJE:
+- MATT nie może przypisać obsady ani zmienić statusu operacyjnego przed akceptacją wyceny.
+- Duplikowanie rezerwacji resetuje dane akceptacji wyceny.
+- Stare wyceny bez quote_expires_at nie stają się automatycznie wiążące — wymagają ponownego wysłania z Panelu.
+- PaymentLinkBox dla transportu A→B jest dostępny dopiero po akceptacji wyceny.
+- Linki klienta używają booking.matt-transport.pl, nie vercel.app.
+
+BAZA:
+- quote_sent_at
+- quote_expires_at
+- quote_accepted_at
+- quote_rejected_at
+- quote_note
+
+PRAWO / UX:
+- przycisk akceptacji zawiera jednoznaczną informację o obowiązku zapłaty.
+- przed kliknięciem klient widzi cenę, sposób płatności i termin ważności.
+
+BRAK:
+- brak nowych ENV,
+- brak zmian w standardowym cenniku lotnisk,
+- brak zmian w B2B.

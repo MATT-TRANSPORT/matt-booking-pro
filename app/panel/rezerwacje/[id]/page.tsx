@@ -32,6 +32,13 @@ function paymentStatusShort(booking: any) {
   return "DO ZAPŁATY";
 }
 
+function quoteStatusShort(status: unknown) {
+  if (status === "accepted") return "✓ ZAAKCEPTOWANA";
+  if (status === "rejected") return "✕ REZYGNACJA";
+  if (status === "priced") return "OCZEKUJE NA KLIENTA";
+  return "WYMAGA WYCENY";
+}
+
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { s } = await panelClient();
@@ -67,7 +74,8 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const returnFlight = (flights ?? []).find((f: any) => f.leg === "return") ?? null;
   const route = bookingRouteText(booking);
   const overdue = isOverdueBooking(booking);
-  const quoted = !general || booking.quote_status === "priced";
+  const quotePriced = !general || ["priced", "accepted", "rejected"].includes(String(booking.quote_status || ""));
+  const quoteAccepted = !general || booking.quote_status === "accepted";
   const displayAmount = Number(booking.company_id ? (booking.price_gross ?? booking.total_price) : booking.total_price || 0);
 
   return <main className="container">
@@ -86,11 +94,11 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             <div><span className="muted">Status</span><div><span className={`status ${booking.status}`}>{statusPl(booking.status)}</span></div></div>
             <div className="reservation-price">
               <span className="muted">{general ? "Wycena" : booking.company_id ? "Brutto" : "Kwota"}</span>
-              <strong>{general && !quoted ? "DO WYCENY" : `${displayAmount.toFixed(2)} zł`}</strong>
+              <strong>{general && !quotePriced ? "DO WYCENY" : `${displayAmount.toFixed(2)} zł`}</strong>
             </div>
           </div>
 
-          {general && <div style={{marginTop:12}}><span className="quote-required-badge">🚐 TRANSPORT A → B · {booking.quote_status === "priced" ? "WYCENIONY" : "WYMAGA WYCENY"}</span></div>}
+          {general && <div style={{marginTop:12}}><span className="quote-required-badge">🚐 TRANSPORT A → B · {quoteStatusShort(booking.quote_status)}</span></div>}
           {overdue && <div className="overdue-badge overdue-detail">⚠ TERMIN MINĄŁ — rezerwacja nie ma statusu Zakończona/Anulowana</div>}
 
           <h2>Przejazd</h2>
@@ -116,7 +124,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           </div>
 
           <h2>Rozliczenie</h2>
-          {general && !quoted ? (
+          {general && !quotePriced ? (
             <div className="detail-list">
               <div className="detail-total"><span>Cena</span><strong>Wymaga indywidualnej wyceny</strong></div>
               <div><span>Status wyceny</span><strong>OCZEKUJE</strong></div>
@@ -132,7 +140,9 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             </div>
           ) : (
             <div className="detail-list payment-summary-compact">
-              <div className="detail-total"><span>Do zapłaty</span><strong>{displayAmount.toFixed(2)} zł</strong></div>
+              <div className="detail-total"><span>{general ? "Cena wyceny" : "Do zapłaty"}</span><strong>{displayAmount.toFixed(2)} zł</strong></div>
+              {general && <div><span>Decyzja klienta</span><strong>{quoteStatusShort(booking.quote_status)}</strong></div>}
+              {general && booking.quote_expires_at && booking.quote_status === "priced" && <div><span>Wycena ważna do</span><strong>{new Date(booking.quote_expires_at).toLocaleString("pl-PL")}</strong></div>}
               <div><span>Status płatności</span><strong className={`payment-summary-status ${String(booking.payment_status || "pending").toLowerCase()}`}>{paymentStatusShort(booking)}</strong></div>
             </div>
           )}
@@ -179,7 +189,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         {!general && <div className="card" style={{ marginTop: 16 }}><h2>Historia lotu</h2>{!flightHistory?.length ? <p className="muted">Brak zapisanych zmian statusu lotu.</p> : <div className="history-list history-timeline flight-history">{flightHistory.map((item: any) => <div key={item.id}><strong>{item.event}</strong><span>{new Date(item.created_at).toLocaleString("pl-PL")}</span></div>)}</div>}</div>}
       </div>
     </div>
-    {(!general || quoted) && <PaymentLinkBox booking={booking} />}
+    {(!general || quoteAccepted) && <PaymentLinkBox booking={booking} />}
     <GrowthSourceCard booking={booking} />
   </main>;
 }
