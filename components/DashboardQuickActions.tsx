@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function DashboardQuickActions({ booking }: { booking: any }) {
+export default function DashboardQuickActions({ booking, leg, activeLeg = true }: { booking: any; leg?: "primary" | "return"; activeLeg?: boolean }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -20,7 +20,8 @@ export default function DashboardQuickActions({ booking }: { booking: any }) {
         id: booking.id,
         status,
         driverId: booking.driver_id || null,
-        vehicleId: booking.vehicle_id || null
+        vehicleId: booking.vehicle_id || null,
+        ...(leg ? { leg } : {})
       })
     });
 
@@ -64,7 +65,8 @@ export default function DashboardQuickActions({ booking }: { booking: any }) {
         </button>
       )}
 
-      {["in_progress", "arrived", "picked_up"].includes(booking.status) && (
+      {["in_progress", "arrived", "picked_up"].includes(booking.status) &&
+        (booking.service_type !== "roundtrip" || activeLeg) && (
         <button disabled={busy} onClick={() => setStatus("completed")}>
           ZAKOŃCZ
         </button>
