@@ -27,7 +27,17 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
     all: all.length
   };
   const href=(v:string)=>`/panel/rezerwacje?view=${v}&q=${encodeURIComponent(q)}`;
-  const price=(b:any)=>b.quote_required?"Wycena indywidualna":b.company_id?`${Number(b.price_net ?? b.total_price).toFixed(2)} zł netto · ${Number(b.price_gross ?? b.total_price).toFixed(2)} zł brutto`:`${Number(b.total_price).toFixed(2)} zł`;
+  const price=(b:any)=>{
+    if(b.quote_required){
+      if(b.quote_status==="pending") return "Wycena: do przygotowania";
+      if(b.quote_status==="priced") return `${Number(b.total_price||0).toFixed(2)} zł · czeka na klienta`;
+      if(b.quote_status==="accepted") return `${Number(b.total_price||0).toFixed(2)} zł · zaakceptowana`;
+      if(b.quote_status==="rejected") return `${Number(b.total_price||0).toFixed(2)} zł · rezygnacja`;
+      return "Wycena indywidualna";
+    }
+    return b.company_id?`${Number(b.price_net ?? b.total_price).toFixed(2)} zł netto · ${Number(b.price_gross ?? b.total_price).toFixed(2)} zł brutto`:`${Number(b.total_price).toFixed(2)} zł`;
+  };
+  const quoteBadge=(b:any)=>b.quote_status==="accepted"?"WYCENA ✓":b.quote_status==="rejected"?"WYCENA ✕":b.quote_status==="priced"?"WYCENA · DECYZJA":"WYCENA";
 
   return <main className="container">
     <h1>Rezerwacje / wyszukiwarka</h1><PanelNav/>
@@ -42,7 +52,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
 
     <div className="desktop-table card"><table className="table booking-archive-table"><thead><tr><th>Numer</th><th>Termin / trasa</th><th>Klient</th><th>Kierowca</th><th>Cena</th><th>Status</th></tr></thead><tbody>
       {rows.map((b:any)=>{const driver=Array.isArray(b.drivers)?b.drivers[0]:b.drivers;const overdue=isOverdueBooking(b);return <tr key={b.id} className={`${statusStageClass(b.status)} ${overdue?"booking-overdue":""}`}>
-        <td><a className="booking-number-link" href={`/panel/rezerwacje/${b.id}`}>{b.booking_number}</a>{b.quote_required&&<div className="quote-required-badge">WYCENA</div>}{overdue&&<div className="overdue-badge">⚠ TERMIN MINĄŁ</div>}</td>
+        <td><a className="booking-number-link" href={`/panel/rezerwacje/${b.id}`}>{b.booking_number}</a>{b.quote_required&&<div className="quote-required-badge">{quoteBadge(b)}</div>}{overdue&&<div className="overdue-badge">⚠ TERMIN MINĄŁ</div>}</td>
         <td>{b.travel_date}<br/>{String(b.travel_time||"").slice(0,5)}<br/><small>{bookingRouteText(b,"primary")}</small></td>
         <td>{b.customer_name}<br/>{b.phone||"—"}</td>
         <td>{driver?<span className="driver-color-badge" style={{borderColor:driver.color||"#D6AD55"}}><i style={{background:driver.color||"#D6AD55"}}/>{driver.full_name}</span>:"—"}</td>
@@ -52,7 +62,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
 
     <div className="mobile-card-list booking-mobile-list">{rows.map((b:any)=>{const overdue=isOverdueBooking(b);const driver=Array.isArray(b.drivers)?b.drivers[0]:b.drivers;return <a className={`mobile-data-card booking-stage-card ${statusStageClass(b.status)} ${overdue?"booking-overdue":""}`} href={`/panel/rezerwacje/${b.id}`} key={b.id}>
       <div className="mobile-booking-head"><strong>{b.booking_number}</strong><span className={`status ${b.status}`}>{statusPl(b.status)}</span></div>
-      {b.quote_required&&<span className="quote-required-badge">WYCENA INDYWIDUALNA</span>}{overdue&&<span className="overdue-badge">⚠ TERMIN MINĄŁ — wymaga zamknięcia</span>}
+      {b.quote_required&&<span className="quote-required-badge">{quoteBadge(b)}</span>}{overdue&&<span className="overdue-badge">⚠ TERMIN MINĄŁ — wymaga zamknięcia</span>}
       <span>{b.customer_name}</span><span>{b.travel_date} {String(b.travel_time||"").slice(0,5)}</span><small>{bookingRouteText(b,"primary")}</small>
       {driver&&<span className="driver-color-badge" style={{borderColor:driver.color||"#D6AD55"}}><i style={{background:driver.color||"#D6AD55"}}/>{driver.full_name}</span>}
       <span>{price(b)}</span>
