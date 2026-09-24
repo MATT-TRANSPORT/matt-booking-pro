@@ -1,0 +1,13 @@
+MATT Booking PRO v4.9.1 — ROUNDTRIP DASHBOARD COMPLETION FIX
+
+NAPRAWA:
+- szybki przycisk ZAKOŃCZ na głównym Dashboardzie przekazuje teraz konkretną nogę kursu: WYJAZD albo POWRÓT,
+- przy roundtrip przycisk ZAKOŃCZ jest widoczny tylko na aktualnie realizowanej nodze,
+- zakończenie WYJAZDU nie zamyka już całej rezerwacji,
+- po zakończeniu WYJAZDU globalny status wraca do assigned, a POWRÓT pozostaje aktywny na Dashboardzie,
+- dopiero zakończenie POWROTU ustawia całą rezerwację jako completed,
+- Plan kursów i MATT DRIVER już wcześniej przekazywały leg poprawnie i pozostają bez zmian.
+
+BRAK:
+- brak migracji SQL,
+- brak nowych ENV.
