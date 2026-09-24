@@ -233,6 +233,12 @@ export async function POST(req: NextRequest) {
     if ("review_request_sent_at" in copy) copy.review_request_sent_at = null;
     if ("review_request_email_sent_at" in copy) copy.review_request_email_sent_at = null;
     if ("review_request_push_sent_at" in copy) copy.review_request_push_sent_at = null;
+    if ("quote_status" in copy && copy.quote_required) copy.quote_status = "pending";
+    if ("quote_sent_at" in copy) copy.quote_sent_at = null;
+    if ("quote_expires_at" in copy) copy.quote_expires_at = null;
+    if ("quote_accepted_at" in copy) copy.quote_accepted_at = null;
+    if ("quote_rejected_at" in copy) copy.quote_rejected_at = null;
+    if ("quote_note" in copy) copy.quote_note = null;
 
     const { data: duplicated, error: duplicateError } = await admin
       .from("bookings")
@@ -350,6 +356,34 @@ export async function POST(req: NextRequest) {
 
   const effectiveReturnVehicleId =
     hasReturnVehicleId ? returnVehicleId || null : current.return_vehicle_id || null;
+
+  const quoteAwaitingCustomer =
+    Boolean(current.quote_required) &&
+    ["pending", "priced"].includes(String(current.quote_status || ""));
+
+  const quoteOperationalChange =
+    Boolean(
+      hasDriverId ||
+      hasVehicleId ||
+      hasReturnDriverId ||
+      hasReturnVehicleId
+    ) ||
+    Boolean(
+      status &&
+      !["pending", "cancelled"].includes(String(status))
+    );
+
+  if (quoteAwaitingCustomer && quoteOperationalChange) {
+    return NextResponse.json(
+      {
+        error:
+          current.quote_status === "priced"
+            ? "Najpierw klient musi zaakceptować wycenę. Do tego czasu nie przypisuj obsady ani nie potwierdzaj kursu."
+            : "Najpierw przygotuj i wyślij wycenę klientowi."
+      },
+      { status: 409 }
+    );
+  }
 
   if (status && !ALLOWED_STATUSES.includes(status)) {
     return NextResponse.json(
