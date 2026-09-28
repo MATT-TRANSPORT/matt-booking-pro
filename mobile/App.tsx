@@ -22,7 +22,7 @@ import {
 } from "react-native-webview";
 
 type PaymentRequest = {
-  accessToken: string;
+  handoffToken: string;
   bookingId: string;
   bookingNumber: string;
   customerName: string;
