@@ -369,10 +369,10 @@ export default function App() {
       const message = JSON.parse(event.nativeEvent.data);
 
       if (message?.type !== "MATT_TERMINAL_PAYMENT") return;
-      if (!message.accessToken || !message.bookingId) return;
+      if (!message.handoffToken || !message.bookingId) return;
 
       setPaymentRequest({
-        accessToken: String(message.accessToken),
+        handoffToken: String(message.handoffToken),
         bookingId: String(message.bookingId),
         bookingNumber: String(message.bookingNumber || ""),
         customerName: String(message.customerName || ""),
