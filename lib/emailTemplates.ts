@@ -299,7 +299,7 @@ export function cancelledEmail(b: BookingMail) {
       </div>
       ${paidNotice}
       ${customerPortalButton(b)}
-            <p style="margin-top:18px;color:#aab1bc;line-height:1.7">
+      <p style="margin-top:18px;color:#aab1bc;line-height:1.7">
         W razie pytań skontaktuj się z nami pod numerem +48 691 242 691.
       </p>`
     )
@@ -335,7 +335,8 @@ export function paymentRefundedEmail(b: BookingMail) {
       ${details(b)}
       <div style="margin-top:18px;padding:16px;border-radius:12px;background:#3d3425;color:#ffe0a3">
         ↩ Status płatności: ZWROT
-      </div>`
+      </div>
+      ${customerPortalButton(b)}`
     )
   };
 }
@@ -379,7 +380,8 @@ export function reviewRequestEmail(b: BookingMail, reviewUrl: string) {
         <span style="color:#aab1bc">Rezerwacja:</span> <strong>${esc(b.booking_number)}</strong><br/>
         <span style="color:#aab1bc">Trasa:</span> <strong>${esc(routeText(b))}</strong>
       </div>
-      ${customerPortalButton(b)}      <p style="margin-top:18px;color:#aab1bc;font-size:12px;line-height:1.6">
+      ${customerPortalButton(b)}
+      <p style="margin-top:18px;color:#aab1bc;font-size:12px;line-height:1.6">
         Jeśli podczas przejazdu coś wymagało naszej uwagi, możesz też odpowiedzieć bezpośrednio na tę wiadomość.
       </p>`
     )
