@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { StatusBar } from "expo-status-bar";
+import { StatusBar } from "react-native";
 import {
   StripeTerminalProvider,
   useStripeTerminal
@@ -399,7 +399,7 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.root}>
-      <StatusBar style="light" />
+      <StatusBar barStyle="light-content" backgroundColor="#0b0e13" />
       <WebView
         ref={webViewRef}
         source={{ uri: APP_URL }}
