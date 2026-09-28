@@ -80,7 +80,7 @@ function TerminalPaymentModal({
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${request.accessToken}`
+          Authorization: `Bearer ${request.handoffToken}`
         }
       }
     );
@@ -194,7 +194,7 @@ function TerminalPaymentBody({
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${request.accessToken}`
+            Authorization: `Bearer ${request.handoffToken}`
           },
           body: JSON.stringify({
             bookingId: request.bookingId,
