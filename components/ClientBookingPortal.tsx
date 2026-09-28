@@ -69,6 +69,7 @@ export default function ClientBookingPortal({
   const [quoteBusy, setQuoteBusy] = useState("");
   const [showRejectConfirm, setShowRejectConfirm] =
     useState(false);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     fetch(`/api/client-booking/${token}`)
@@ -159,6 +160,7 @@ export default function ClientBookingPortal({
     );
 
     setSaving(false);
+    setEditing(false);
     window.scrollTo({
       top: 0,
       behavior: "smooth"
@@ -362,30 +364,133 @@ export default function ClientBookingPortal({
   return (
     <main className="container client-portal-shell">
       <div className="card client-portal-hero">
-        <span className="badge">
-          MATT TRANSPORT
-        </span>
-        <h1>
-          Rezerwacja {b.booking_number}
-        </h1>
-        <div
-          className={`client-booking-status ${b.status}`}
-        >
-          {general
-            ? quoteHeroStatus(b)
-            : STATUS[b.status] ||
-              b.status}
-        </div>
+        <span className="badge">MATT TRANSPORT</span>
+        <h1>Rezerwacja {b.booking_number}</h1>
         <p className="muted">
           {general
             ? "Transport A → B · wycena indywidualna"
-            : `Tutaj możesz sprawdzić szczegóły swojej rezerwacji${editable ? " i wprowadzić dozwolone zmiany." : "."}`}
+            : `Szczegóły rezerwacji${editable ? " oraz możliwość edycji danych." : "."}`}
         </p>
       </div>
+
+      <section className="card client-priority-actions">
+        <div className="client-priority-head">
+          <div>
+            <span className="badge">NAJWAŻNIEJSZE</span>
+            <h2>Co chcesz zrobić?</h2>
+          </div>
+          <span className="client-priority-number">{b.booking_number}</span>
+        </div>
+
+        {general && b.quote_status === "priced" && !expired && (
+          <div className="client-quote-actions-top">
+            <p>
+              Wycena: <strong>{Number(b.total_price || 0).toFixed(2)} zł</strong>
+              {" · "}ważna do {expiry}
+            </p>
+            <p className="muted">
+              Akceptacja oznacza zamówienie transportu z obowiązkiem zapłaty.
+            </p>
+            <button type="button" className="btn individual-quote-accept" disabled={Boolean(quoteBusy)} onClick={() => decideQuote("accept")}>
+              {quoteBusy === "accept" ? "ZAPISYWANIE..." : `✓ AKCEPTUJĘ I ZAMAWIAM · ${Number(b.total_price || 0).toFixed(2)} ZŁ`}
+            </button>
+            {!showRejectConfirm ? (
+              <button type="button" className="btn secondary individual-quote-reject" disabled={Boolean(quoteBusy)} onClick={() => setShowRejectConfirm(true)}>
+                ANULUJ / REZYGNUJĘ Z WYCENY
+              </button>
+            ) : (
+              <div className="individual-quote-reject-confirm">
+                <strong>Czy na pewno zrezygnować z wyceny?</strong>
+                <p className="muted">Zlecenie zostanie anulowane i nie będzie realizowane.</p>
+                <div>
+                  <button type="button" className="btn secondary" onClick={() => setShowRejectConfirm(false)} disabled={Boolean(quoteBusy)}>WRÓĆ</button>
+                  <button type="button" className="btn" onClick={() => decideQuote("reject")} disabled={Boolean(quoteBusy)}>
+                    {quoteBusy === "reject" ? "ZAPISYWANIE..." : "TAK, ANULUJ"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {general && b.quote_status === "accepted" && (
+          <div className="client-action-row">
+            <div>
+              <strong>✓ Zamówienie jest zaakceptowane</strong>
+              <span className="muted">Rezerwacja została potwierdzona.</span>
+            </div>
+            {cancellable && !showCancelConfirm && (
+              <button type="button" className="btn secondary client-top-cancel" disabled={saving || cancelling} onClick={() => setShowCancelConfirm(true)}>
+                ANULUJ REZERWACJĘ
+              </button>
+            )}
+          </div>
+        )}
+
+        {!general && (
+          <div className="client-action-row">
+            <div>
+              <strong>{editing ? "Edycja rezerwacji jest aktywna" : "Zarządzaj rezerwacją"}</strong>
+              <span className="muted">
+                {editing ? "Po zakończeniu zmian zapisz je na dole formularza." : "Najważniejsze działania są dostępne tutaj."}
+              </span>
+            </div>
+            <div className="client-action-buttons">
+              {editable && (
+                <button type="button" className="btn" onClick={() => setEditing((value) => !value)} disabled={saving || cancelling}>
+                  {editing ? "✕ ZAKOŃCZ EDYCJĘ" : "✎ EDYTUJ REZERWACJĘ"}
+                </button>
+              )}
+              {cancellable && !showCancelConfirm && (
+                <button type="button" className="btn secondary client-top-cancel" disabled={saving || cancelling} onClick={() => setShowCancelConfirm(true)}>
+                  ANULUJ REZERWACJĘ
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {showCancelConfirm && (
+          <div className="client-top-cancel-confirm">
+            <strong>Czy na pewno chcesz anulować rezerwację?</strong>
+            <p className="muted">
+              Kurs zostanie oznaczony jako anulowany. Jeśli rezerwacja była opłacona, MATT TRANSPORT zweryfikuje ewentualny zwrot.
+            </p>
+            <div>
+              <button type="button" className="btn secondary" onClick={() => setShowCancelConfirm(false)} disabled={cancelling}>NIE, ZOSTAW</button>
+              <button type="button" className="btn client-danger-btn" onClick={cancelBooking} disabled={cancelling}>
+                {cancelling ? "ANULOWANIE..." : "TAK, ANULUJ"}
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className="card client-status-card">
+        <div>
+          <span className="badge">STATUS REZERWACJI</span>
+          <h2>{general ? quoteHeroStatus(b) : STATUS[b.status] || b.status}</h2>
+        </div>
+        <div className={`client-booking-status ${b.status}`}>
+          {general ? quoteHeroStatus(b) : STATUS[b.status] || b.status}
+        </div>
+      </section>
+
+      {(!general || b.quote_status === "accepted") && (
+        <section className="card client-important-tools">
+          <OnlinePaymentCard booking={b} />
+          {!["completed", "cancelled"].includes(b.status) && (
+            <div className="client-notification-settings client-notification-top">
+              <CustomerPushControls token={token} />
+            </div>
+          )}
+        </section>
+      )}
 
       <div className="client-portal-grid">
         <section className="card">
           <h2>Szczegóły przejazdu</h2>
+          {editable && <p className="muted client-edit-hint">{editing ? "Edytujesz dane rezerwacji." : "Dane są zablokowane do edycji. Kliknij „EDYTUJ REZERWACJĘ” powyżej, aby je zmienić."}</p>}
 
           {general ? (
             <div className="grid">
@@ -461,7 +566,7 @@ export default function ClientBookingPortal({
                 <label>
                   Adres
                   <input
-                    disabled={!editable}
+                    disabled={!editable || !editing}
                     value={
                       form.pickupAddress
                     }
@@ -478,7 +583,7 @@ export default function ClientBookingPortal({
                 <label>
                   Data
                   <input
-                    disabled={!editable}
+                    disabled={!editable || !editing}
                     type="date"
                     value={
                       form.travelDate
@@ -499,7 +604,7 @@ export default function ClientBookingPortal({
                     ? "Godzina przylotu"
                     : "Godzina wyjazdu na lotnisko"}
                   <input
-                    disabled={!editable}
+                    disabled={!editable || !editing}
                     type="time"
                     value={
                       form.travelTime
@@ -517,7 +622,7 @@ export default function ClientBookingPortal({
                 <label>
                   Numer lotu
                   <input
-                    disabled={!editable}
+                    disabled={!editable || !editing}
                     value={
                       form.flightNumber
                     }
@@ -534,7 +639,7 @@ export default function ClientBookingPortal({
                 <label>
                   Pasażerowie
                   <select
-                    disabled={!editable}
+                    disabled={!editable || !editing}
                     value={
                       form.passengers
                     }
@@ -568,7 +673,7 @@ export default function ClientBookingPortal({
                 <label>
                   Pojazd
                   <select
-                    disabled={!editable}
+                    disabled={!editable || !editing}
                     value={
                       form.vehicleType
                     }
@@ -600,7 +705,7 @@ export default function ClientBookingPortal({
                     <label>
                       Data powrotu
                       <input
-                        disabled={!editable}
+                        disabled={!editable || !editing}
                         type="date"
                         value={
                           form.returnDate
@@ -618,7 +723,7 @@ export default function ClientBookingPortal({
                       Godzina przylotu
                       powrotnego
                       <input
-                        disabled={!editable}
+                        disabled={!editable || !editing}
                         type="time"
                         value={
                           form.returnTime
@@ -635,7 +740,7 @@ export default function ClientBookingPortal({
                     <label>
                       Lot powrotny
                       <input
-                        disabled={!editable}
+                        disabled={!editable || !editing}
                         value={
                           form.returnFlightNumber
                         }
@@ -657,7 +762,7 @@ export default function ClientBookingPortal({
               >
                 Uwagi
                 <textarea
-                  disabled={!editable}
+                  disabled={!editable || !editing}
                   rows={4}
                   value={form.notes}
                   onChange={(e) =>
@@ -701,7 +806,7 @@ export default function ClientBookingPortal({
                   <label>
                     Faktura VAT
                     <select
-                      disabled={!editable}
+                      disabled={!editable || !editing}
                       value={
                         form.invoiceRequired
                           ? "1"
@@ -730,7 +835,7 @@ export default function ClientBookingPortal({
                     <label>
                       NIP
                       <input
-                        disabled={!editable}
+                        disabled={!editable || !editing}
                         inputMode="numeric"
                         maxLength={10}
                         value={
@@ -862,131 +967,6 @@ export default function ClientBookingPortal({
                 )}
 
               {b.quote_status ===
-                "priced" &&
-                b.quote_expires_at &&
-                !expired && (
-                  <>
-                    <span className="badge">
-                      WYCENA GOTOWA
-                    </span>
-                    <h2>
-                      {Number(
-                        b.total_price || 0
-                      ).toFixed(2)}{" "}
-                      zł
-                    </h2>
-                    <p>
-                      Sposób płatności:{" "}
-                      <strong>
-                        {paymentLabel(b)}
-                      </strong>
-                    </p>
-                    {b.quote_note && (
-                      <p className="individual-quote-note">
-                        {b.quote_note}
-                      </p>
-                    )}
-                    <p className="muted">
-                      Wycena ważna do:{" "}
-                      <strong>
-                        {expiry}
-                      </strong>
-                    </p>
-                    <p className="individual-quote-obligation">
-                      Akceptacja oznacza
-                      odpłatne zamówienie
-                      transportu na wskazaną
-                      kwotę.
-                    </p>
-
-                    <button
-                      type="button"
-                      className="btn individual-quote-accept"
-                      disabled={Boolean(
-                        quoteBusy
-                      )}
-                      onClick={() =>
-                        decideQuote(
-                          "accept"
-                        )
-                      }
-                    >
-                      {quoteBusy ===
-                      "accept"
-                        ? "ZAPISYWANIE..."
-                        : `ZAMAWIAM Z OBOWIĄZKIEM ZAPŁATY · ${Number(
-                            b.total_price ||
-                              0
-                          ).toFixed(
-                            2
-                          )} ZŁ`}
-                    </button>
-
-                    {!showRejectConfirm ? (
-                      <button
-                        type="button"
-                        className="btn secondary individual-quote-reject"
-                        disabled={Boolean(
-                          quoteBusy
-                        )}
-                        onClick={() =>
-                          setShowRejectConfirm(
-                            true
-                          )
-                        }
-                      >
-                        REZYGNUJĘ Z WYCENY
-                      </button>
-                    ) : (
-                      <div className="individual-quote-reject-confirm">
-                        <strong>
-                          Potwierdzić
-                          rezygnację?
-                        </strong>
-                        <p className="muted">
-                          Zlecenie zostanie
-                          anulowane i nie
-                          będzie realizowane.
-                        </p>
-                        <div>
-                          <button
-                            type="button"
-                            className="btn secondary"
-                            onClick={() =>
-                              setShowRejectConfirm(
-                                false
-                              )
-                            }
-                            disabled={Boolean(
-                              quoteBusy
-                            )}
-                          >
-                            WRÓĆ
-                          </button>
-                          <button
-                            type="button"
-                            className="btn"
-                            onClick={() =>
-                              decideQuote(
-                                "reject"
-                              )
-                            }
-                            disabled={Boolean(
-                              quoteBusy
-                            )}
-                          >
-                            {quoteBusy ===
-                            "reject"
-                              ? "ZAPISYWANIE..."
-                              : "TAK, REZYGNUJĘ"}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-
-              {b.quote_status ===
                 "accepted" && (
                   <>
                     <span className="badge">
@@ -1037,18 +1017,6 @@ export default function ClientBookingPortal({
             </div>
           )}
 
-          {![
-            "completed",
-            "cancelled"
-          ].includes(b.status) &&
-            (!general ||
-              b.quote_status ===
-                "accepted") && (
-              <CustomerPushControls
-                token={token}
-              />
-            )}
-
           {general &&
             b.quote_status ===
               "accepted" && (
@@ -1088,121 +1056,17 @@ export default function ClientBookingPortal({
             </div>
           )}
 
-          {editable && (
+          {editing && (
             <button
-              className="btn"
-              style={{
-                width: "100%",
-                marginTop: 16
-              }}
-              disabled={
-                saving || cancelling
-              }
+              className="btn client-save-button"
+              style={{ width: "100%", marginTop: 16 }}
+              disabled={saving || cancelling}
               onClick={save}
             >
-              {saving
-                ? "ZAPISYWANIE..."
-                : "ZAPISZ ZMIANY"}
+              {saving ? "ZAPISYWANIE..." : "ZAPISZ ZMIANY"}
             </button>
           )}
 
-          {cancellable &&
-            !showCancelConfirm && (
-              <button
-                type="button"
-                className="btn secondary"
-                style={{
-                  width: "100%",
-                  marginTop: 14,
-                  borderColor: "#8b343b",
-                  color: "#ffb9bf"
-                }}
-                disabled={
-                  saving || cancelling
-                }
-                onClick={() =>
-                  setShowCancelConfirm(
-                    true
-                  )
-                }
-              >
-                ANULUJ REZERWACJĘ
-              </button>
-            )}
-
-          {cancellable &&
-            showCancelConfirm && (
-              <div
-                style={{
-                  marginTop: 14,
-                  padding: 16,
-                  border:
-                    "1px solid #8b343b",
-                  borderRadius: 12,
-                  background: "#2b171a"
-                }}
-              >
-                <strong
-                  style={{
-                    color: "#ffb9bf"
-                  }}
-                >
-                  Czy na pewno chcesz
-                  całkowicie anulować tę
-                  rezerwację?
-                </strong>
-                <p
-                  className="muted"
-                  style={{
-                    marginTop: 8
-                  }}
-                >
-                  Kurs zostanie oznaczony
-                  jako anulowany i usunięty
-                  z planu realizacji.
-                </p>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                      "1fr 1fr",
-                    gap: 10,
-                    marginTop: 12
-                  }}
-                >
-                  <button
-                    type="button"
-                    className="btn secondary"
-                    disabled={cancelling}
-                    onClick={() =>
-                      setShowCancelConfirm(
-                        false
-                      )
-                    }
-                  >
-                    NIE, ZOSTAW
-                  </button>
-                  <button
-                    type="button"
-                    className="btn"
-                    style={{
-                      background:
-                        "#8b343b",
-                      borderColor:
-                        "#a8434c"
-                    }}
-                    disabled={cancelling}
-                    onClick={
-                      cancelBooking
-                    }
-                  >
-                    {cancelling
-                      ? "ANULOWANIE..."
-                      : "TAK, ANULUJ"}
-                  </button>
-                </div>
-              </div>
-            )}
         </section>
 
         <aside className="card client-booking-summary">
@@ -1346,14 +1210,6 @@ export default function ClientBookingPortal({
                   : "Gotówka u kierowcy"}
               </strong>
             </div>
-          )}
-
-          {(!general ||
-            b.quote_status ===
-              "accepted") && (
-            <OnlinePaymentCard
-              booking={b}
-            />
           )}
 
           {vehicle && (

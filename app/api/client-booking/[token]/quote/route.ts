@@ -34,6 +34,13 @@ function paymentLabel(method: unknown) {
   return "gotówka u kierowcy";
 }
 
+function customerPortalUrl(booking: any) {
+  const base = "https://booking.matt-transport.pl";
+  return booking.customer_access_token
+    ? base + "/rezerwacja/" + booking.customer_access_token
+    : base;
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ token: string }> }
@@ -168,6 +175,12 @@ export async function POST(
                   ${updated.payment_method === "online"
                     ? "<p>Płatność online jest dostępna w portalu rezerwacji.</p>"
                     : ""}
+                  <div style="margin:24px 0;text-align:center">
+                    <a href="${customerPortalUrl(updated)}" style="display:inline-block;background:#d5ae5d;color:#111;padding:14px 20px;border-radius:11px;text-decoration:none;font-weight:900">
+                      ZOBACZ / ZMIEŃ REZERWACJĘ
+                    </a>
+                  </div>
+                  <p style="color:#aab1bc;font-size:12px">Ten link jest indywidualny dla Twojej rezerwacji.</p>
                   <p>Kontakt: +48 691 242 691</p>
                 </div>
               </div>

@@ -1,0 +1,37 @@
+name: MATT Driver Android Build
+
+on:
+  push:
+    branches:
+      - feat/v5.0-driver-terminal
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    name: Build MATT Driver Android
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mobile/package.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: EAS Build
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build Android development APK
+        run: eas build --platform android --profile development --non-interactive --wait

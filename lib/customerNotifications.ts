@@ -11,6 +11,7 @@ export type CustomerNotificationKind =
   | "arrived"
   | "completed"
   | "cancelled"
+  | "payment_received"
   | "flight_delay"
   | "flight_cancelled"
   | "flight_diverted";
@@ -193,6 +194,8 @@ export function customerUpdateText(
       return `Rezerwacja ${number} została zakończona. Dziękujemy za podróż z MATT TRANSPORT.`;
     case "cancelled":
       return `Rezerwacja ${number} została anulowana. W razie pytań zadzwoń: +48 691 242 691.`;
+    case "payment_received":
+      return `Płatność za rezerwację ${number} została zaksięgowana. Kwota: ${Number(booking._terminalPaymentAmountCents || 0) > 0 ? (Number(booking._terminalPaymentAmountCents) / 100).toFixed(2) + " zł" : Number(booking.total_price || 0).toFixed(2) + " zł"}.`;
     case "flight_delay": {
       const delay = Number(
         alert?.payload?.delay ??
