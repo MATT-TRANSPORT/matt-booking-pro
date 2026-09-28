@@ -2483,3 +2483,115 @@
     width: 100%;
   }
 }
+
+/* v5.0.1 — client portal priority-first UX */
+.client-priority-actions{
+  margin-bottom:14px;
+  border-color:rgba(213,174,93,.5);
+  background:linear-gradient(145deg,rgba(213,174,93,.08),rgba(255,255,255,.015));
+}
+.client-priority-head,
+.client-action-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+}
+.client-priority-head h2{
+  margin:8px 0 0;
+}
+.client-priority-number{
+  color:var(--gold2);
+  font-weight:900;
+  font-size:13px;
+}
+.client-quote-actions-top{
+  margin-top:16px;
+  padding-top:14px;
+  border-top:1px solid var(--line);
+}
+.client-quote-actions-top p{margin:6px 0;line-height:1.5}
+.client-action-buttons{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.client-top-cancel{
+  border-color:rgba(223,105,105,.5)!important;
+  color:#ffb9bf!important;
+}
+.client-top-cancel-confirm{
+  margin-top:14px;
+  padding:14px;
+  border:1px solid rgba(223,105,105,.5);
+  border-radius:12px;
+  background:rgba(223,105,105,.07);
+}
+.client-top-cancel-confirm>div{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:12px;
+}
+.client-danger-btn{
+  background:#7c2727!important;
+  color:#fff!important;
+  border:1px solid #a8434c!important;
+}
+.client-status-card{
+  margin-bottom:14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+}
+.client-status-card h2{margin:8px 0 0}
+.client-important-tools{
+  margin-bottom:14px;
+}
+.client-important-tools .online-payment-card{
+  margin-top:0;
+}
+.client-notification-top{
+  margin-top:14px;
+}
+.client-notification-top .customer-push-controls{
+  margin-top:0;
+}
+.client-edit-hint{
+  margin:-4px 0 14px;
+  font-size:12px;
+  line-height:1.45;
+}
+.client-save-button{
+  min-height:48px;
+}
+@media(max-width:640px){
+  .client-priority-head,
+  .client-action-row,
+  .client-status-card{
+    align-items:stretch;
+    flex-direction:column;
+  }
+  .client-action-buttons{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+  .client-action-buttons .btn,
+  .client-top-cancel{
+    width:100%;
+  }
+  .client-priority-number{
+    align-self:flex-start;
+  }
+  .client-top-cancel-confirm>div{
+    grid-template-columns:1fr;
+  }
+  .online-payment-head{
+    align-items:stretch;
+  }
+  .online-payment-head>strong{
+    font-size:24px;
+  }
+}
