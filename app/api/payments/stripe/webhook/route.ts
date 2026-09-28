@@ -14,6 +14,7 @@ import {
   getStripeWebhookSecret
 } from "@/lib/stripeServer";
 import { syncBookingCalendar } from "@/lib/googleCalendar";
+import { sendBookingNotification } from "@/lib/customerNotifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -272,6 +273,20 @@ async function markTerminalPaymentSucceeded(
       event: description,
       created_by: null
     });
+
+    await sendBookingNotification(
+      admin,
+      {
+        ...booking,
+        _terminalPaymentAmountCents: payment.total_amount_cents
+      },
+      {
+        kind: "payment_received",
+        eventKey: `payment_received:${payment.id}`,
+        title: "💳 Płatność zaksięgowana",
+        url: undefined
+      }
+    ).catch(() => null);
 
     await syncCalendarAfterPayment(admin, booking.id);
   }
