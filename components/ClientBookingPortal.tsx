@@ -476,6 +476,17 @@ export default function ClientBookingPortal({
         </div>
       </section>
 
+      {(!general || b.quote_status === "accepted") && (
+        <section className="card client-important-tools">
+          <OnlinePaymentCard booking={b} />
+          {!["completed", "cancelled"].includes(b.status) && (
+            <div className="client-notification-settings client-notification-top">
+              <CustomerPushControls token={token} />
+            </div>
+          )}
+        </section>
+      )}
+
       <div className="client-portal-grid">
         <section className="card">
           <h2>Szczegóły przejazdu</h2>
@@ -1006,18 +1017,6 @@ export default function ClientBookingPortal({
             </div>
           )}
 
-          {![
-            "completed",
-            "cancelled"
-          ].includes(b.status) &&
-            (!general ||
-              b.quote_status ===
-                "accepted") && (
-              <CustomerPushControls
-                token={token}
-              />
-            )}
-
           {general &&
             b.quote_status ===
               "accepted" && (
@@ -1211,14 +1210,6 @@ export default function ClientBookingPortal({
                   : "Gotówka u kierowcy"}
               </strong>
             </div>
-          )}
-
-          {(!general ||
-            b.quote_status ===
-              "accepted") && (
-            <OnlinePaymentCard
-              booking={b}
-            />
           )}
 
           {vehicle && (
