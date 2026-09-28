@@ -64,3 +64,29 @@ export async function sendNewWeddingAdminPush(admin: any, booking: any) {
     tag: `admin-new-wedding-${booking.id}`
   });
 }
+
+
+export async function sendPaymentReceivedAdminPush(
+  admin: any,
+  booking: any,
+  amountCents: number,
+  surchargeCents = 0,
+  surchargeReason: string | null = null
+) {
+  if (!booking?.id) return null;
+
+  const number = compact(booking.booking_number || booking.id, 24);
+  const customer = compact(booking.customer_name, 36);
+  const amount = (Number(amountCents || 0) / 100).toFixed(2).replace(".", ",");
+  const surcharge = Number(surchargeCents || 0);
+  const surchargeText = surcharge > 0
+    ? ` · dopłata ${(surcharge / 100).toFixed(2).replace(".", ",")} zł${surchargeReason ? ` — ${compact(surchargeReason, 48)}` : ""}`
+    : "";
+
+  return sendAdminPush(admin, {
+    title: "💳 PŁATNOŚĆ OTRZYMANA",
+    body: `${number} · ${customer} · ${amount} zł${surchargeText}`,
+    url: `/panel/rezerwacje/${booking.id}`,
+    tag: `admin-payment-${booking.id}-${Date.now()}`
+  });
+}
