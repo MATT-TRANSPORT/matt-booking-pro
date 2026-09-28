@@ -20,7 +20,7 @@ function createTerminalHandoff(userId: string) {
     v: 1,
     scope: "terminal",
     sub: userId,
-    exp: Math.floor(Date.now() / 1000) + 60
+    exp: Math.floor(Date.now() / 1000) + 600
   };
   const encoded = Buffer.from(JSON.stringify(payload)).toString("base64url");
   const signature = crypto
