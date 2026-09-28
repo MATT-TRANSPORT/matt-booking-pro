@@ -28,6 +28,6 @@ export async function POST(_req: NextRequest) {
 
   return NextResponse.json({
     handoffToken: createDriverTerminalHandoff(user.id),
-    expiresIn: 60
+    expiresIn: 600
   });
 }
