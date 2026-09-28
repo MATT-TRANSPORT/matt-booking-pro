@@ -148,11 +148,13 @@ export default function DriverTrips({
   const [filter, setFilter] = useState<Filter>("today");
   const [savingId, setSavingId] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
+  const [nativeApp, setNativeApp] = useState(false);
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 60000);
     setFocusBookingId(new URLSearchParams(window.location.search).get("booking") || "");
+    setNativeApp(Boolean((window as any).ReactNativeWebView));
     return () => window.clearInterval(timer);
   }, []);
 
@@ -253,6 +255,48 @@ export default function DriverTrips({
     }
   }
 
+  async function requestNativeCardPayment(booking: any, leg: DriverLeg) {
+    const bridge = (window as any).ReactNativeWebView;
+
+    if (!bridge) {
+      alert("Płatność Tap to Pay jest dostępna w aplikacji MATT Driver.");
+      return;
+    }
+
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      alert("Sesja kierowcy wygasła. Zaloguj się ponownie.");
+      return;
+    }
+
+    const gross = Number(
+      booking.company_id
+        ? (booking.price_gross ?? booking.total_price ?? 0)
+        : (booking.total_price ?? 0)
+    );
+
+    const baseAmountCents =
+      booking.payment_status === "paid"
+        ? 0
+        : Number.isFinite(gross) && gross > 0
+          ? Math.round(gross * 100)
+          : 0;
+
+    bridge.postMessage(
+      JSON.stringify({
+        type: "MATT_TERMINAL_PAYMENT",
+        accessToken: session.access_token,
+        bookingId: booking.id,
+        bookingNumber: booking.booking_number,
+        customerName: booking.customer_name,
+        leg,
+        baseAmountCents
+      })
+    );
+  }
+
   async function logoutDriver() {
     if (loggingOut) return;
     setLoggingOut(true);
@@ -306,6 +350,8 @@ export default function DriverTrips({
             booking={nextBooking}
             saving={savingId === nextBooking.id}
             onStatus={changeStatus}
+            onPayment={requestNativeCardPayment}
+            nativeApp={nativeApp}
             now={now}
             featured
             focused={focusBookingId === nextBooking.id}
@@ -341,6 +387,8 @@ export default function DriverTrips({
                 booking={booking}
                 saving={savingId === booking.id}
                 onStatus={changeStatus}
+                onPayment={requestNativeCardPayment}
+                nativeApp={nativeApp}
                 now={now}
                 focused={focusBookingId === booking.id}
               />
@@ -363,6 +411,8 @@ function DriverTripCard({
   booking: b,
   saving,
   onStatus,
+  onPayment,
+  nativeApp,
   now,
   featured = false,
   focused = false
@@ -370,6 +420,8 @@ function DriverTripCard({
   booking: any;
   saving: boolean;
   onStatus: (id: string, status: string, leg: DriverLeg) => void;
+  onPayment: (booking: any, leg: DriverLeg) => void;
+  nativeApp: boolean;
   now: Date;
   featured?: boolean;
   focused?: boolean;
@@ -484,6 +536,32 @@ function DriverTripCard({
       {b.notes && (
         <div className="driver-notes"><strong>Uwagi do kursu</strong><span>{b.notes}</span></div>
       )}
+
+      <div className="driver-payment-panel">
+        <div className="driver-payment-copy">
+          <span>PŁATNOŚĆ</span>
+          <strong>
+            {b.payment_status === "paid"
+              ? "🟢 OPŁACONA"
+              : "Kwota do pobrania"}
+          </strong>
+          <small>
+            {b.payment_status === "paid"
+              ? "Jeśli klient ma dopłatę, możesz pobrać ją kartą."
+              : "Dopłatę i jej powód wpiszesz przed płatnością."}
+          </small>
+        </div>
+
+        {nativeApp && !legLocked && b.status !== "cancelled" && (
+          <button
+            type="button"
+            className="driver-payment-button"
+            onClick={() => onPayment(b, leg)}
+          >
+            💳 POBIERZ KARTĄ
+          </button>
+        )}
+      </div>
 
       <div className="driver-navigation-panel">
         <a className="btn driver-main-navigation" href={mapsUrl} target="_blank" rel="noreferrer">

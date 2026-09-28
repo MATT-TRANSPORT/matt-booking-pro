@@ -2431,3 +2431,55 @@
     padding-right:10px;
   }
 }
+
+
+/* v5.0.0 · MATT Driver native Tap to Pay */
+.driver-payment-panel {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border: 1px solid #343b49;
+  border-radius: 14px;
+  background: #0f131b;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.driver-payment-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.driver-payment-copy span {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  color: #9ba3af;
+}
+.driver-payment-copy strong {
+  font-size: 14px;
+}
+.driver-payment-copy small {
+  color: #8f97a4;
+  font-size: 12px;
+}
+.driver-payment-button {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 11px;
+  cursor: pointer;
+  font-weight: 900;
+  white-space: nowrap;
+  background: #d4af37;
+  color: #0b0e13;
+}
+@media (max-width: 640px) {
+  .driver-payment-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .driver-payment-button {
+    width: 100%;
+  }
+}
