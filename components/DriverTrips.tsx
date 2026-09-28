@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import FlightStatusBadge from "@/components/FlightStatusBadge";
 import { displayFlightTime, suggestedPickupTime } from "@/lib/flightDisplay";
 import FlightAlertBadge from "@/components/FlightAlertBadge";
