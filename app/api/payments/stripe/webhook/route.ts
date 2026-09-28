@@ -15,6 +15,7 @@ import {
 } from "@/lib/stripeServer";
 import { syncBookingCalendar } from "@/lib/googleCalendar";
 import { sendBookingNotification } from "@/lib/customerNotifications";
+import { sendPaymentReceivedAdminPush } from "@/lib/adminNotifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -172,6 +173,8 @@ async function markPaid(
         html: template.html
       }).catch(() => null);
     }
+
+    await sendPaymentReceivedAdminPush(admin, booking, paidAmount);
   }
 
   await syncCalendarAfterPayment(admin, booking.id);
@@ -273,6 +276,8 @@ async function markTerminalPaymentSucceeded(
       event: description,
       created_by: null
     });
+
+    await sendPaymentReceivedAdminPush(admin, booking, payment.total_amount_cents, payment.surcharge_amount_cents, payment.surcharge_reason);
 
     await sendBookingNotification(
       admin,
