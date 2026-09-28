@@ -270,7 +270,8 @@ export function completedEmail(b: BookingMail) {
         Kurs ${esc(b.booking_number)} został zakończony. Dziękujemy za zaufanie
         i zapraszamy przy kolejnej podróży.
       </p>
-      ${details(b)}`
+      ${details(b)}
+      ${customerPortalButton(b)}`
     )
   };
 }
@@ -297,7 +298,8 @@ export function cancelledEmail(b: BookingMail) {
         Rezerwacja nie będzie realizowana.
       </div>
       ${paidNotice}
-      <p style="margin-top:18px;color:#aab1bc;line-height:1.7">
+      ${customerPortalButton(b)}
+            <p style="margin-top:18px;color:#aab1bc;line-height:1.7">
         W razie pytań skontaktuj się z nami pod numerem +48 691 242 691.
       </p>`
     )
@@ -377,7 +379,7 @@ export function reviewRequestEmail(b: BookingMail, reviewUrl: string) {
         <span style="color:#aab1bc">Rezerwacja:</span> <strong>${esc(b.booking_number)}</strong><br/>
         <span style="color:#aab1bc">Trasa:</span> <strong>${esc(routeText(b))}</strong>
       </div>
-      <p style="margin-top:18px;color:#aab1bc;font-size:12px;line-height:1.6">
+      ${customerPortalButton(b)}      <p style="margin-top:18px;color:#aab1bc;font-size:12px;line-height:1.6">
         Jeśli podczas przejazdu coś wymagało naszej uwagi, możesz też odpowiedzieć bezpośrednio na tę wiadomość.
       </p>`
     )
