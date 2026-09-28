@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
       {
         amount: totalAmountCents,
         currency: "pln",
-        payment_method_types: ["card"],
+        payment_method_types: ["card_present"],
         description: `MATT TRANSPORT · ${booking.booking_number}`,
         metadata: {
           source: "matt_driver_terminal",
