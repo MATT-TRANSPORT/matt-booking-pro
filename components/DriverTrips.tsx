@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import FlightStatusBadge from "@/components/FlightStatusBadge";
 import { displayFlightTime, suggestedPickupTime } from "@/lib/flightDisplay";
 import FlightAlertBadge from "@/components/FlightAlertBadge";
+import { createClient } from "@/lib/supabase/client";
 import {
   DRIVER_FLOW,
   DriverLeg,
@@ -262,11 +263,14 @@ export default function DriverTrips({
       return;
     }
 
-    const supabase = createClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const handoffResponse = await fetch("/api/driver/terminal/handoff", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }
+    });
+    const handoffData = await handoffResponse.json();
 
-    if (!session?.access_token) {
-      alert("Sesja kierowcy wygasła. Zaloguj się ponownie.");
+    if (!handoffResponse.ok || !handoffData.handoffToken) {
+      alert(handoffData.error ?? "Nie udało się przygotować płatności.");
       return;
     }
 
@@ -286,7 +290,7 @@ export default function DriverTrips({
     bridge.postMessage(
       JSON.stringify({
         type: "MATT_TERMINAL_PAYMENT",
-        accessToken: session.access_token,
+        handoffToken: handoffData.handoffToken,
         bookingId: booking.id,
         bookingNumber: booking.booking_number,
         customerName: booking.customer_name,
