@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -38,7 +38,8 @@ const API_URL =
   "https://booking.matt-transport.pl";
 const ALLOWED_ORIGIN = "https://booking.matt-transport.pl";
 const TERMINAL_LOCATION_ID =
-  process.env.EXPO_PUBLIC_STRIPE_TERMINAL_LOCATION_ID || undefined;
+  process.env.EXPO_PUBLIC_STRIPE_TERMINAL_LOCATION_ID ||
+  "tml_GrarABsrx26Go1";
 
 function parseMoney(value: string) {
   const normalized = value.replace(/\\s/g, "").replace(",", ".");
@@ -146,11 +147,21 @@ function TerminalPaymentBody({
   onSuccess: () => void;
 }) {
   const {
+    initialize,
     easyConnect,
     retrievePaymentIntent,
     processPaymentIntent,
     disconnectReader
   } = useStripeTerminal();
+
+  useEffect(() => {
+    initialize({
+      localeConfig: {
+        type: "hardcoded",
+        locale: "pl-PL"
+      }
+    }).catch(() => null);
+  }, [initialize]);
 
   async function pay() {
     if (processing) return;
@@ -202,16 +213,13 @@ function TerminalPaymentBody({
 
       setStatusText("Łączę Tap to Pay…");
 
-      const connectParams: any = {
-        discoveryMethod: "tapToPay",
+      const connectParams = {
+        discoveryMethod: "tapToPay" as const,
         merchantDisplayName: "MATT TRANSPORT",
         autoReconnectOnUnexpectedDisconnect: true,
-        simulated: __DEV__
+        simulated: __DEV__,
+        locationId: TERMINAL_LOCATION_ID
       };
-
-      if (TERMINAL_LOCATION_ID) {
-        connectParams.locationId = TERMINAL_LOCATION_ID;
-      }
 
       const connected = await easyConnect(connectParams);
 
