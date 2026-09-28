@@ -14,7 +14,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const stripe = getStripe();
-    const location = process.env.STRIPE_TERMINAL_LOCATION_ID;
+    const location =
+      process.env.STRIPE_TERMINAL_LOCATION_ID || "tml_GrarABsrx26Go1";
 
     const token = await stripe.terminal.connectionTokens.create(
       location ? { location } : {}
