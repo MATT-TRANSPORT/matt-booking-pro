@@ -2483,3 +2483,22 @@
     width: 100%;
   }
 }
+
+/* MATT Booking PRO v5.0 — Client portal UX fixes */
+.client-edit-data-button{display:inline-flex;align-items:center;justify-content:center;margin-top:12px;text-decoration:none}
+.client-live-status-current{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 12px;border:1px solid rgba(213,174,93,.4);border-radius:10px;background:rgba(213,174,93,.07)}
+.client-live-status-current>strong{color:var(--gold2);font-size:14px}
+.online-payment-card{width:100%;min-width:0;max-width:100%;box-sizing:border-box;overflow:hidden}
+.online-payment-card *{box-sizing:border-box;max-width:100%}
+.online-payment-card p{overflow-wrap:anywhere}
+.online-payment-head{min-width:0}
+.online-payment-head>div{min-width:0}
+.online-payment-head h3{overflow-wrap:anywhere}
+@media(max-width:800px){
+  .client-edit-data-button{width:100%}
+  .online-payment-card{padding:14px}
+  .online-payment-head{flex-wrap:wrap}
+  .online-payment-head>div{flex:1 1 180px}
+  .online-payment-head>strong{flex:0 0 auto}
+  .online-pay-button{white-space:normal;line-height:1.25;overflow-wrap:anywhere}
+}
