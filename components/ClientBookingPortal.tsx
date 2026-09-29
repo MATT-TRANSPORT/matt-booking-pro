@@ -366,7 +366,7 @@ export default function ClientBookingPortal({
           MATT TRANSPORT
         </span>
         <h1>
-          Rezerwacja {b.booking_number}
+          Rezerwacja
         </h1>
         <div
           className={`client-booking-status ${b.status}`}
@@ -386,6 +386,9 @@ export default function ClientBookingPortal({
             ✎ EDYTUJ DANE
           </a>
         )}
+        <div className="client-booking-number">
+          NR REZERWACJI <strong>{b.booking_number}</strong>
+        </div>
       </div>
 
       <div className="client-portal-grid">
