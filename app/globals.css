@@ -633,6 +633,49 @@
 .client-booking-summary>div{display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--line)}
 .client-booking-summary span{color:var(--muted)}
 .client-booking-summary strong{text-align:right}
+.client-booking-summary>.online-payment-card{
+  display:block;
+  width:100%;
+  min-width:0;
+  max-width:100%;
+}
+.client-booking-summary>.online-payment-card>div{
+  display:block;
+  padding:0;
+  border:0;
+}
+.client-booking-summary>.online-payment-card>.online-payment-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+}
+.client-booking-summary>.online-payment-card>.online-payment-head>div{
+  display:block;
+  padding:0;
+  border:0;
+  min-width:0;
+}
+.client-booking-summary>.online-payment-card>.online-payment-head>strong{
+  padding:0;
+  border:0;
+  flex:0 0 auto;
+}
+.client-booking-number{
+  margin-top:14px;
+  padding-top:10px;
+  border-top:1px solid rgba(255,255,255,.08);
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.3;
+  letter-spacing:.08em;
+}
+.client-booking-number strong{
+  color:var(--gold2);
+  font-size:12px;
+  letter-spacing:.03em;
+}
 .client-booking-summary .btn{display:flex;justify-content:center;margin-top:12px}
 .client-edit-warning{margin-top:14px;padding:12px;border:1px solid rgba(213,174,93,.4);border-radius:12px;background:rgba(213,174,93,.07);color:var(--gold2);font-size:12px;line-height:1.5}
 .client-success-message{margin-top:14px;padding:12px;border:1px solid rgba(79,189,125,.45);border-radius:12px;background:rgba(79,189,125,.08);color:#bde7cc}
@@ -2496,6 +2539,11 @@
 .online-payment-head h3{overflow-wrap:anywhere}
 @media(max-width:800px){
   .client-edit-data-button{width:100%}
+  .client-booking-number{text-align:left}
+  .client-booking-summary>.online-payment-card{display:block}
+  .client-booking-summary>.online-payment-card>div{display:block}
+  .client-booking-summary>.online-payment-card>.online-payment-head{display:flex;flex-direction:column;align-items:stretch}
+  .client-booking-summary>.online-payment-card>.online-payment-head>strong{align-self:flex-start}
   .online-payment-card{padding:14px}
   .online-payment-head{flex-wrap:wrap}
   .online-payment-head>div{flex:1 1 180px}
