@@ -2,6 +2,17 @@
 
 import { useEffect, useState } from "react";
 
+const STATUS: Record<string, string> = {
+  pending: "Oczekuje na potwierdzenie",
+  confirmed: "Potwierdzona",
+  assigned: "Kierowca i pojazd",
+  in_progress: "Kierowca w drodze",
+  arrived: "Kierowca na miejscu",
+  picked_up: "Pasażer odebrany",
+  completed: "Zakończona",
+  cancelled: "Anulowana"
+};
+
 function one(value: any) {
   return Array.isArray(value) ? value[0] : value;
 }
@@ -46,8 +57,7 @@ export default function ClientOperationalStatus({ token }: { token: string }) {
     <div className="company-section-head">
       <div>
         <span className="badge">STATUS PRZEJAZDU · LIVE</span>
-        <h2 style={{ marginTop: 8 }}>Przebieg realizacji</h2>
-        <p className="muted" style={{ marginBottom: 0 }}>Status odświeża się automatycznie co minutę.</p>
+        <p className="muted" style={{ margin: "6px 0 0" }}>Status odświeża się automatycznie co minutę.</p>
       </div>
       {booking?.status === "cancelled" && <span className="status cancelled">ANULOWANA</span>}
       {booking?.status === "pending" && <span className="status pending">OCZEKUJE</span>}
