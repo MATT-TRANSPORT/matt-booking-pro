@@ -64,7 +64,21 @@ export default function BookingArchiveActions({
     }
   }
 
-  if (compact) {\n    if (!canArchive) return null;\n    return <button type="button" className="btn secondary booking-archive-compact-btn" disabled={busy} onClick={() => changeArchive(true)}>{busy ? "..." : "📦 ARCHIWIZUJ"}</button>;\n  }\n\n  if (archived) {
+  if (compact) {
+    if (!canArchive) return null;
+    return (
+      <button
+        type="button"
+        className="btn secondary booking-archive-compact-btn"
+        disabled={busy}
+        onClick={() => changeArchive(true)}
+      >
+        {busy ? "..." : "📦 ARCHIWIZUJ"}
+      </button>
+    );
+  }
+
+  if (archived) {
     return (
       <section className="card" style={{ marginTop: 16, borderColor: "#64748b" }}>
         <strong>📦 ZARCHIWIZOWANA REZERWACJA</strong>
