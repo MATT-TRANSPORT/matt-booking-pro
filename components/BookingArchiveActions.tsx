@@ -15,12 +15,14 @@ export default function BookingArchiveActions({
   booking,
   overdue = false,
   quoteExpired = false,
-  quoteRejected = false
+  quoteRejected = false,
+  compact = false
 }: {
   booking: any;
   overdue?: boolean;
   quoteExpired?: boolean;
   quoteRejected?: boolean;
+  compact?: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -62,7 +64,7 @@ export default function BookingArchiveActions({
     }
   }
 
-  if (archived) {
+  if (compact) {\n    if (!canArchive) return null;\n    return <button type="button" className="btn secondary booking-archive-compact-btn" disabled={busy} onClick={() => changeArchive(true)}>{busy ? "..." : "📦 ARCHIWIZUJ"}</button>;\n  }\n\n  if (archived) {
     return (
       <section className="card" style={{ marginTop: 16, borderColor: "#64748b" }}>
         <strong>📦 ZARCHIWIZOWANA REZERWACJA</strong>
