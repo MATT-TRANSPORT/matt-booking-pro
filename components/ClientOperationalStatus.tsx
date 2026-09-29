@@ -1,23 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
-const stages = [
-  ["confirmed", "Potwierdzona"],
-  ["assigned", "Kierowca i pojazd"],
-  ["in_progress", "Kierowca w drodze"],
-  ["arrived", "Kierowca na miejscu"],
-  ["picked_up", "Pasażer odebrany"],
-  ["completed", "Zakończona"]
-] as const;
+const STATUS: Record<string, string> = {
+  pending: "Oczekuje na potwierdzenie",
+  confirmed: "Potwierdzona",
+  assigned: "Kierowca i pojazd",
+  in_progress: "Kierowca w drodze",
+  arrived: "Kierowca na miejscu",
+  picked_up: "Pasażer odebrany",
+  completed: "Zakończona",
+  cancelled: "Anulowana"
+};
 
 function one(value: any) {
   return Array.isArray(value) ? value[0] : value;
-}
-
-function stageIndex(status: string) {
-  if (status === "pending") return -1;
-  return stages.findIndex(([key]) => key === status);
 }
 
 function shortDate(value: unknown) {
@@ -53,7 +50,6 @@ export default function ClientOperationalStatus({ token }: { token: string }) {
   const vehicle = one(booking?.vehicles);
   const returnDriver = one(booking?.return_driver);
   const returnVehicle = one(booking?.return_vehicle);
-  const current = useMemo(() => stageIndex(String(booking?.status || "pending")), [booking?.status]);
 
   if (!booking && !error) return null;
 
@@ -61,8 +57,7 @@ export default function ClientOperationalStatus({ token }: { token: string }) {
     <div className="company-section-head">
       <div>
         <span className="badge">STATUS PRZEJAZDU · LIVE</span>
-        <h2 style={{ marginTop: 8 }}>Przebieg realizacji</h2>
-        <p className="muted" style={{ marginBottom: 0 }}>Status odświeża się automatycznie co minutę.</p>
+        <p className="muted" style={{ margin: "6px 0 0" }}>Status odświeża się automatycznie co minutę.</p>
       </div>
       {booking?.status === "cancelled" && <span className="status cancelled">ANULOWANA</span>}
       {booking?.status === "pending" && <span className="status pending">OCZEKUJE</span>}
@@ -70,11 +65,10 @@ export default function ClientOperationalStatus({ token }: { token: string }) {
 
     {error && <div className="admin-save-message">{error}</div>}
 
-    {booking && booking.status !== "cancelled" && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 8, marginTop: 16 }}>
-      {stages.map(([key, label], index) => <div key={key} style={{ padding: 12, borderRadius: 10, border: index <= current ? "1px solid #d5ae5d" : "1px solid #343b49", background: index <= current ? "#2d291c" : "#10141b" }}>
-        <strong>{index <= current ? "✓ " : "○ "}{label}</strong>
-      </div>)}
-    </div>}
+    <div className="client-live-status-current">
+      <span className="badge">AKTUALNY STATUS</span>
+      <strong>{STATUS[String(booking?.status || "pending")] || String(booking?.status || "pending")}</strong>
+    </div>
 
     {booking && <div className="grid" style={{ marginTop: 16 }}>
       <div style={{ padding: 14, border: "1px solid #343b49", borderRadius: 12 }}>

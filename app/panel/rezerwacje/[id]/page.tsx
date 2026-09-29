@@ -183,7 +183,16 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             <b>{history?.length ?? 0}</b>
           </summary>
           <div className="panel-collapsible-content">
-            {!history?.length ? <p className="muted">Brak zapisanej historii zmian.</p> : <div className="history-list history-timeline">{history.map((item: any) => <div key={item.id}><strong>{item.event}</strong><span>{new Date(item.created_at).toLocaleString("pl-PL")}</span></div>)}</div>}
+            {!history?.length ? <p className="muted">Brak zapisanej historii zmian.</p> : <div className="history-list history-timeline">{history.map((item: any) => {
+              const clientChanged = String(item.event || "").startsWith("KLIENT ZMIENIŁ REZERWACJĘ");
+              return <div key={item.id} className={clientChanged ? "history-item-client-change" : undefined}>
+                <strong>{clientChanged ? "⚠ KLIENT ZMIENIŁ REZERWACJĘ" : item.event}</strong>
+                {clientChanged
+                  ? <pre className="history-client-change-details">{String(item.event).split("\n").slice(1).join("\n")}</pre>
+                  : null}
+                <span>{new Date(item.created_at).toLocaleString("pl-PL")}</span>
+              </div>;
+            })}</div>}
           </div>
         </details>
         {!general && <div className="card" style={{ marginTop: 16 }}><h2>Historia lotu</h2>{!flightHistory?.length ? <p className="muted">Brak zapisanych zmian statusu lotu.</p> : <div className="history-list history-timeline flight-history">{flightHistory.map((item: any) => <div key={item.id}><strong>{item.event}</strong><span>{new Date(item.created_at).toLocaleString("pl-PL")}</span></div>)}</div>}</div>}

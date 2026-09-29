@@ -15,6 +15,34 @@ function cleanNip(value: unknown) {
   return String(value ?? "").replace(/\D/g, "").slice(0, 10);
 }
 
+function escapeHtml(value: unknown) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function displayDate(value: unknown) {
+  if (!value) return "—";
+  const text = String(value);
+  const date = new Date(text);
+  return Number.isFinite(date.getTime())
+    ? date.toLocaleDateString("pl-PL")
+    : text;
+}
+
+function displayTime(value: unknown) {
+  if (!value) return "—";
+  return String(value).slice(0, 5);
+}
+
+function displayValue(value: unknown) {
+  const text = String(value ?? "").trim();
+  return text || "—";
+}
+
 async function getBooking(token: string) {
   const admin = createAdminClient();
   const { data } = await admin
@@ -143,6 +171,38 @@ export async function PATCH(
 
   const newStatus = requiresReconfirmation ? "pending" : booking.status;
 
+  const oldVehicleLabel = booking.vehicle_type === "bus" ? "Bus" : "Samochód";
+  const newVehicleLabel = vehicleType === "bus" ? "Bus" : "Samochód";
+  const oldInvoice = booking.invoice_required ? "Tak" : "Nie";
+  const newInvoice = invoiceRequired ? "Tak" : "Nie";
+
+  const changes: Array<{ label: string; oldValue: string; newValue: string }> = [];
+
+  const addChange = (label: string, oldValue: unknown, newValue: unknown) => {
+    const oldText = displayValue(oldValue);
+    const newText = displayValue(newValue);
+    if (oldText !== newText) changes.push({ label, oldValue: oldText, newValue: newText });
+  };
+
+  addChange("Adres odbioru", booking.pickup_address, pickupAddress);
+  addChange(
+    "Termin",
+    `${displayDate(booking.travel_date)} ${displayTime(booking.travel_time)}`,
+    `${displayDate(body.travelDate ?? booking.travel_date)} ${displayTime(body.travelTime ?? booking.travel_time)}`
+  );
+  addChange(
+    "Termin powrotu",
+    `${displayDate(booking.return_date)} ${displayTime(booking.return_time)}`,
+    `${displayDate(body.returnDate || "")} ${displayTime(body.returnTime || "")}`
+  );
+  addChange("Numer lotu", booking.flight_number, String(body.flightNumber ?? "").trim());
+  addChange("Numer lotu powrotnego", booking.return_flight_number, String(body.returnFlightNumber ?? "").trim());
+  addChange("Liczba pasażerów", booking.passengers, passengers);
+  addChange("Pojazd", oldVehicleLabel, newVehicleLabel);
+  addChange("Faktura VAT", oldInvoice, newInvoice);
+  if (!isB2B) addChange("NIP", booking.company_nip, nip);
+  addChange("Uwagi", booking.notes, String(body.notes ?? "").trim() || "—");
+
   const update = {
     pickup_address: pickupAddress,
     travel_date: body.travelDate ?? booking.travel_date,
@@ -201,16 +261,23 @@ export async function PATCH(
   }
 
   const oldDisplayed = Number(isB2B ? (booking.price_gross ?? booking.total_price) : booking.total_price || 0);
+  if (priceChanged) {
+    addChange(
+      "Cena",
+      `${oldDisplayed.toFixed(2)} zł${isB2B ? " brutto" : ""}`,
+      `${total.toFixed(2)} zł${isB2B ? " brutto" : ""}`
+    );
+  }
+
+  const changeSummary =
+    changes.length > 0
+      ? changes.map((change) => `${change.label}: ${change.oldValue} → ${change.newValue}`).join("\n")
+      : "Klient otworzył edycję, ale nie zmienił danych.";
+
   await admin.from("booking_history").insert({
     booking_id: booking.id,
     event:
-      requiresReconfirmation && wasPaid && priceChanged
-        ? `Klient zmienił OPŁACONĄ rezerwację — płatność do weryfikacji: było ${oldDisplayed.toFixed(2)} zł, nowa kwota ${total.toFixed(2)} zł${isB2B ? " brutto" : ""}.`
-        : requiresReconfirmation && wasPaid
-        ? "Klient zmienił OPŁACONĄ rezerwację — wymaga ponownego potwierdzenia. Płatność pozostaje zaksięgowana."
-        : requiresReconfirmation
-        ? `Klient zmienił rezerwację — wymaga ponownego potwierdzenia${isB2B ? "; wycena B2B została ponownie przeliczona wg zapisanych warunków" : " i nowej płatności"}.`
-        : "Klient zaktualizował dane rezerwacji.",
+      `KLIENT ZMIENIŁ REZERWACJĘ${requiresReconfirmation ? " · WYMAGA PONOWNEGO POTWIERDZENIA" : ""}\n${changeSummary}`,
     created_by: null
   });
 
@@ -264,15 +331,29 @@ export async function PATCH(
   try {
     await sendMattEmail({
       to: process.env.ADMIN_EMAIL || "kontakt@matt-transport.pl",
-      subject: `Klient zmienił rezerwację ${booking.booking_number}`,
+      subject: `⚠ KLIENT ZMIENIŁ REZERWACJĘ · ${booking.booking_number}`,
       html: `
         <div style="font-family:Arial,sans-serif;background:#0b0e13;color:#fff;padding:28px">
-          <div style="max-width:650px;margin:auto;background:#151923;border:1px solid #343b49;border-radius:16px;padding:28px">
-            <h2 style="color:#f1d28b">MATT TRANSPORT</h2>
-            <h1>Klient zmienił rezerwację</h1>
-            <p>Numer: <strong>${booking.booking_number}</strong></p>
-            <p>${requiresReconfirmation ? "Zmiana wymaga ponownego potwierdzenia przez MATT TRANSPORT." : "Zaktualizowano dane rezerwacji."}</p>
+          <div style="max-width:760px;margin:auto;background:#151923;border:1px solid #343b49;border-radius:16px;padding:28px">
+            <h2 style="color:#f1d28b;margin-top:0">MATT TRANSPORT</h2>
+            <h1 style="margin-bottom:8px">⚠ KLIENT ZMIENIŁ REZERWACJĘ</h1>
+            <p>Numer: <strong>${escapeHtml(booking.booking_number)}</strong></p>
+            <p style="padding:14px;border-radius:10px;background:${requiresReconfirmation ? "#493915" : "#202733"};color:${requiresReconfirmation ? "#ffe5a3" : "#fff"}">
+              <strong>${requiresReconfirmation ? "WYMAGA PONOWNEGO POTWIERDZENIA" : "ZMIANA ZAPISANA"}</strong>
+            </p>
+            <h3 style="color:#f1d28b">CO DOKŁADNIE SIĘ ZMIENIŁO:</h3>
+            <table style="width:100%;border-collapse:collapse;background:#10141b;border:1px solid #343b49;border-radius:10px;overflow:hidden">
+              <thead>
+                <tr>
+                  <th style="padding:10px 12px;text-align:left;color:#b8becb">Pole</th>
+                  <th style="padding:10px 12px;text-align:left;color:#ffb7b7">BYŁO</th>
+                  <th style="padding:10px 12px;text-align:left;color:#bcebd0">JEST</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
             ${isB2B ? `<p>Aktualna wycena: <strong>${Number(updated.price_net ?? 0).toFixed(2)} zł netto + VAT 8% = ${Number(updated.price_gross ?? updated.total_price).toFixed(2)} zł brutto.</strong></p>` : ""}
+            ${wasPaid && priceChanged ? `<p style="padding:14px;border-radius:10px;background:#493915;color:#ffe5a3"><strong>UWAGA: rezerwacja była opłacona, a cena się zmieniła.</strong> Płatność ma status DO WERYFIKACJI — sprawdź dopłatę lub zwrot.</p>` : ""}
             <p><a href="${adminUrl}" style="display:inline-block;background:#d5ae5d;color:#111;padding:13px 18px;border-radius:10px;text-decoration:none;font-weight:bold">OTWÓRZ REZERWACJĘ W PANELU</a></p>
           </div>
         </div>`
