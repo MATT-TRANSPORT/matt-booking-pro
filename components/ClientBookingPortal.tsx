@@ -381,10 +381,15 @@ export default function ClientBookingPortal({
             ? "Transport A → B · wycena indywidualna"
             : `Tutaj możesz sprawdzić szczegóły swojej rezerwacji${editable ? " i wprowadzić dozwolone zmiany." : "."}`}
         </p>
+        {editable && (
+          <a className="btn secondary client-edit-data-button" href="#client-edit-data">
+            ✎ EDYTUJ DANE
+          </a>
+        )}
       </div>
 
       <div className="client-portal-grid">
-        <section className="card">
+        <section className="card" id="client-edit-data">
           <h2>Szczegóły przejazdu</h2>
 
           {general ? (
