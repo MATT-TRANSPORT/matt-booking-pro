@@ -2,6 +2,7 @@ import PaymentLinkBox from "@/components/PaymentLinkBox";
 import { notFound } from "next/navigation";
 import PanelNav from "@/components/PanelNav";
 import BookingAdminActions from "@/components/BookingAdminActions";
+import BookingArchiveActions from "@/components/BookingArchiveActions";
 import GeneralQuoteAdminCard from "@/components/GeneralQuoteAdminCard";
 import { panelClient } from "@/lib/panel";
 import { statusPl } from "@/lib/status";
@@ -76,6 +77,8 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const overdue = isOverdueBooking(booking);
   const quotePriced = !general || ["priced", "accepted", "rejected"].includes(String(booking.quote_status || ""));
   const quoteAccepted = !general || booking.quote_status === "accepted";
+  const quoteRejected = general && booking.quote_status === "rejected";
+  const quoteExpired = general && booking.quote_status === "priced" && Boolean(booking.quote_expires_at) && new Date(booking.quote_expires_at).getTime() < Date.now();
   const displayAmount = Number(booking.company_id ? (booking.price_gross ?? booking.total_price) : booking.total_price || 0);
 
   return <main className="container">
@@ -156,6 +159,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
       <div>
         {general && !["completed","cancelled"].includes(String(booking.status || "")) && <GeneralQuoteAdminCard booking={booking} />}
+        <BookingArchiveActions booking={booking} overdue={overdue} quoteExpired={quoteExpired} quoteRejected={quoteRejected} />
         <BookingAdminActions
           bookingId={booking.id}
           initialStatus={booking.status}
