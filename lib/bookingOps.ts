@@ -112,7 +112,7 @@ export function sortBookingsChronologically<T = any>(bookings: T[], nowKey = war
 }
 
 export function isArchivedBooking(booking: any) {
-  return CLOSED_STATUSES.includes(String(booking.status || ""));
+  return Boolean(booking?.archived_at) || CLOSED_STATUSES.includes(String(booking?.status || ""));
 }
 
 export function isOverdueBooking(booking: any) {
