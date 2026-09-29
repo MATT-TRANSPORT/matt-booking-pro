@@ -3,6 +3,7 @@ import { panelClient } from "@/lib/panel";
 import { statusPl } from "@/lib/status";
 import { isArchivedBooking, isOverdueBooking, sortBookingsChronologically, statusStageClass } from "@/lib/bookingOps";
 import { bookingRouteText } from "@/lib/bookingRoute";
+import BookingArchiveActions from "@/components/BookingArchiveActions";
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ q?: string; view?: string }> }) {
   const { q = "", view = "active" } = await searchParams;
@@ -45,18 +46,19 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
       <a className={view==="active"?"active":""} href={href("active")}>AKTYWNE ({counts.active})</a>
       <a className={view==="completed"?"active":""} href={href("completed")}>ZAKOŃCZONE ({counts.completed})</a>
       <a className={view==="cancelled"?"active":""} href={href("cancelled")}>ANULOWANE ({counts.cancelled})</a>
+      <a className={view==="archive"?"active":""} href={href("archive")}>ARCHIWUM ({all.filter((b:any)=>isArchivedBooking(b)).length})</a>
       <a className={view==="all"?"active":""} href={href("all")}>WSZYSTKIE ({counts.all})</a>
     </div>
     {error&&<div className="card" style={{borderColor:"#dc2626",marginBottom:16}}><strong>Nie udało się pobrać rezerwacji.</strong></div>}
     <form className="archive-search"><input type="hidden" name="view" value={view}/><input name="q" defaultValue={q} placeholder="Numer, nazwisko, telefon lub e-mail"/><button className="btn">SZUKAJ</button></form>
 
-    <div className="desktop-table card"><table className="table booking-archive-table"><thead><tr><th>Numer</th><th>Termin / trasa</th><th>Klient</th><th>Kierowca</th><th>Cena</th><th>Status</th></tr></thead><tbody>
+    <div className="desktop-table card"><table className="table booking-archive-table"><thead><tr><th>Numer</th><th>Termin / trasa</th><th>Klient</th><th>Kierowca</th><th>Cena</th><th>Status</th><th>Akcja</th></tr></thead><tbody>
       {rows.map((b:any)=>{const driver=Array.isArray(b.drivers)?b.drivers[0]:b.drivers;const overdue=isOverdueBooking(b);return <tr key={b.id} className={`${statusStageClass(b.status)} ${overdue?"booking-overdue":""}`}>
         <td><a className="booking-number-link" href={`/panel/rezerwacje/${b.id}`}>{b.booking_number}</a>{b.quote_required&&<div className="quote-required-badge">{quoteBadge(b)}</div>}{overdue&&<div className="overdue-badge">⚠ TERMIN MINĄŁ</div>}</td>
         <td>{b.travel_date}<br/>{String(b.travel_time||"").slice(0,5)}<br/><small>{bookingRouteText(b,"primary")}</small></td>
         <td>{b.customer_name}<br/>{b.phone||"—"}</td>
         <td>{driver?<span className="driver-color-badge" style={{borderColor:driver.color||"#D6AD55"}}><i style={{background:driver.color||"#D6AD55"}}/>{driver.full_name}</span>:"—"}</td>
-        <td>{price(b)}</td><td><span className={`status ${b.status}`}>{statusPl(b.status)}</span></td>
+        <td>{price(b)}</td><td><span className={`status ${b.status}`}>{statusPl(b.status)}</span></td><td onClick={(e:any)=>e.stopPropagation()}><BookingArchiveActions booking={b} overdue={overdue} quoteExpired={b.quote_required && b.quote_status === "priced" && Boolean(b.quote_expires_at) && new Date(b.quote_expires_at).getTime() < Date.now()} quoteRejected={b.quote_required && b.quote_status === "rejected"} compact /></td>
       </tr>})}
     </tbody></table></div>
 
