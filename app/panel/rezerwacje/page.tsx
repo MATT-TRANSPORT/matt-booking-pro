@@ -45,6 +45,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
       <a className={view==="active"?"active":""} href={href("active")}>AKTYWNE ({counts.active})</a>
       <a className={view==="completed"?"active":""} href={href("completed")}>ZAKOŃCZONE ({counts.completed})</a>
       <a className={view==="cancelled"?"active":""} href={href("cancelled")}>ANULOWANE ({counts.cancelled})</a>
+      <a className={view==="archive"?"active":""} href={href("archive")}>ARCHIWUM ({all.filter((b:any)=>isArchivedBooking(b)).length})</a>
       <a className={view==="all"?"active":""} href={href("all")}>WSZYSTKIE ({counts.all})</a>
     </div>
     {error&&<div className="card" style={{borderColor:"#dc2626",marginBottom:16}}><strong>Nie udało się pobrać rezerwacji.</strong></div>}
