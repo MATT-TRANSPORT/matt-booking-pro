@@ -2502,3 +2502,7 @@
   .online-payment-head>strong{flex:0 0 auto}
   .online-pay-button{white-space:normal;line-height:1.25;overflow-wrap:anywhere}
 }
+
+.history-item-client-change{padding:14px!important;border:1px solid rgba(213,174,93,.55);border-radius:12px;background:rgba(213,174,93,.07)}
+.history-item-client-change>strong{display:block;color:#f1d28b;font-weight:900}
+.history-client-change-details{margin:9px 0 0;padding:10px 12px;border-radius:9px;background:#10141b;color:#fff;font:600 13px/1.65 Arial,sans-serif;white-space:pre-wrap;overflow-wrap:anywhere}
