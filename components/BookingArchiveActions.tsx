@@ -19,18 +19,6 @@ export default function BookingArchiveActions({
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const archived = Boolean(booking?.archived_at);
-  const overdue = !archived && booking?.status !== "completed" && booking?.status !== "cancelled"
-    && booking?.travel_date
-    && new Date(
-      `${booking.travel_date}T${String(booking.travel_time || "00:00").slice(0, 5)}:00+02:00`
-    ).getTime() < Date.now();
-  const quoteRejected = String(booking?.quote_status || "") === "rejected";
-  const quoteExpired =
-    String(booking?.quote_status || "") === "priced" &&
-    booking?.quote_expires_at &&
-    new Date(booking.quote_expires_at).getTime() < Date.now();
-
-  const canArchive = !archived && (overdue || quoteRejected || quoteExpired);
   const reason = quoteRejected
     ? "quote_rejected"
     : quoteExpired
