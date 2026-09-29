@@ -12,13 +12,20 @@ function reasonLabel(reason: string | null | undefined) {
 }
 
 export default function BookingArchiveActions({
-  booking
+  booking,
+  overdue = false,
+  quoteExpired = false,
+  quoteRejected = false
 }: {
   booking: any;
+  overdue?: boolean;
+  quoteExpired?: boolean;
+  quoteRejected?: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const archived = Boolean(booking?.archived_at);
+  const canArchive = !archived && (overdue || quoteRejected || quoteExpired);
   const reason = quoteRejected
     ? "quote_rejected"
     : quoteExpired
@@ -28,8 +35,7 @@ export default function BookingArchiveActions({
         : "manual";
 
   async function changeArchive(nextArchived: boolean) {
-    if (busy) return;
-    if (nextArchived && !canArchive) return;
+    if (busy || (nextArchived && !canArchive)) return;
 
     const confirmed = window.confirm(
       nextArchived
@@ -43,11 +49,7 @@ export default function BookingArchiveActions({
       const response = await fetch("/api/admin/bookings/archive", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          bookingId: booking.id,
-          archived: nextArchived,
-          reason
-        })
+        body: JSON.stringify({ bookingId: booking.id, archived: nextArchived, reason })
       });
       const data = await response.json();
       if (!response.ok) {
@@ -66,9 +68,7 @@ export default function BookingArchiveActions({
         <strong>📦 ZARCHIWIZOWANA REZERWACJA</strong>
         <p className="muted" style={{ margin: "8px 0" }}>
           Powód: {reasonLabel(booking.archived_reason)}
-          {booking.archived_at
-            ? ` · ${new Date(booking.archived_at).toLocaleString("pl-PL")}`
-            : ""}
+          {booking.archived_at ? ` · ${new Date(booking.archived_at).toLocaleString("pl-PL")}` : ""}
         </p>
         <button className="btn secondary" disabled={busy} onClick={() => changeArchive(false)}>
           {busy ? "PRZETWARZANIE..." : "PRZYWRÓĆ DO AKTYWNYCH"}
