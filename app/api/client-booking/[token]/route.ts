@@ -274,6 +274,18 @@ export async function PATCH(
       ? changes.map((change) => `${change.label}: ${change.oldValue} → ${change.newValue}`).join("\n")
       : "Klient otworzył edycję, ale nie zmienił danych.";
 
+  const rows = changes.length > 0
+    ? changes.map((change) => `
+        <tr>
+          <td style="padding:10px 12px;border-top:1px solid #343b49"><strong>${escapeHtml(change.label)}</strong></td>
+          <td style="padding:10px 12px;border-top:1px solid #343b49;color:#ffb7b7"><strong>${escapeHtml(change.oldValue)}</strong></td>
+          <td style="padding:10px 12px;border-top:1px solid #343b49;color:#bcebd0"><strong>${escapeHtml(change.newValue)}</strong></td>
+        </tr>`).join("")
+    : `
+        <tr>
+          <td colspan="3" style="padding:12px;border-top:1px solid #343b49;color:#b8becb">Brak zmienionych pól.</td>
+        </tr>`;
+
   await admin.from("booking_history").insert({
     booking_id: booking.id,
     event:
