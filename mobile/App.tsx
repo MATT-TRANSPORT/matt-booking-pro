@@ -365,22 +365,38 @@ export default function App() {
   const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(null);
 
   const handleMessage = (event: WebViewMessageEvent) => {
+    const rawMessage = event.nativeEvent.data;
+    console.log("[MATT Driver] WebView message:", rawMessage);
+
     try {
-      const message = JSON.parse(event.nativeEvent.data);
+      const message = JSON.parse(rawMessage);
 
       if (message?.type !== "MATT_TERMINAL_PAYMENT") return;
-      if (!message.handoffToken || !message.bookingId) return;
 
-      setPaymentRequest({
+      if (!message.handoffToken || !message.bookingId) {
+        console.warn("[MATT Driver] Invalid terminal payment message:", message);
+        return;
+      }
+
+      const request: PaymentRequest = {
         handoffToken: String(message.handoffToken),
         bookingId: String(message.bookingId),
         bookingNumber: String(message.bookingNumber || ""),
         customerName: String(message.customerName || ""),
         leg: message.leg === "return" ? "return" : "primary",
         baseAmountCents: Math.max(0, Number(message.baseAmountCents || 0))
+      };
+
+      console.log("[MATT Driver] Opening Tap to Pay modal:", {
+        bookingId: request.bookingId,
+        bookingNumber: request.bookingNumber,
+        leg: request.leg,
+        baseAmountCents: request.baseAmountCents
       });
-    } catch {
-      // Ignore malformed WebView messages.
+
+      setPaymentRequest(request);
+    } catch (error) {
+      console.error("[MATT Driver] Invalid WebView message:", error);
     }
   };
 
@@ -418,6 +434,12 @@ export default function App() {
         thirdPartyCookiesEnabled
         originWhitelist={["https://*"]}
         onMessage={handleMessage}
+        onError={(event) =>
+          console.error("[MATT Driver] WebView error:", event.nativeEvent)
+        }
+        onHttpError={(event) =>
+          console.error("[MATT Driver] WebView HTTP error:", event.nativeEvent)
+        }
         onShouldStartLoadWithRequest={handleNavigation}
         onOpenWindow={(event) =>
           Linking.openURL(event.nativeEvent.targetUrl).catch(() => null)
