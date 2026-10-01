@@ -428,6 +428,43 @@ export default function App() {
   const webViewRef = useRef<WebView>(null);
   const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(null);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function requestStartupLocationPermission() {
+      try {
+        const current = await Location.getForegroundPermissionsAsync();
+        console.log("[MATT Driver] Startup location permission:", current.status);
+
+        if (current.status !== Location.PermissionStatus.GRANTED) {
+          const requested = await Location.requestForegroundPermissionsAsync();
+          console.log(
+            "[MATT Driver] Startup location permission request:",
+            requested.status
+          );
+
+          if (
+            !cancelled &&
+            requested.status !== Location.PermissionStatus.GRANTED
+          ) {
+            Alert.alert(
+              "Wymagana lokalizacja",
+              "MATT Driver potrzebuje dostępu do lokalizacji do obsługi Stripe Tap to Pay. Możesz nadać zgodę w Ustawieniach telefonu."
+            );
+          }
+        }
+      } catch (error) {
+        console.error("[MATT Driver] Startup location permission error:", error);
+      }
+    }
+
+    requestStartupLocationPermission();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const handleMessage = (event: WebViewMessageEvent) => {
     const rawMessage = event.nativeEvent.data;
     console.log("[MATT Driver] WebView message:", rawMessage);
