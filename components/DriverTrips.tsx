@@ -256,48 +256,67 @@ export default function DriverTrips({
   }
 
   async function requestNativeCardPayment(booking: any, leg: DriverLeg) {
-    const bridge = (window as any).ReactNativeWebView;
+    try {
+      const bridge = (window as any).ReactNativeWebView;
 
-    if (!bridge) {
-      alert("Płatność Tap to Pay jest dostępna w aplikacji MATT Driver.");
-      return;
+      if (!bridge || typeof bridge.postMessage !== "function") {
+        alert("Płatność Tap to Pay jest dostępna w aplikacji MATT Driver.");
+        return;
+      }
+
+      const handoffResponse = await fetch("/api/driver/terminal/handoff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+      });
+
+      const rawResponse = await handoffResponse.text();
+      let handoffData: any = {};
+
+      try {
+        handoffData = rawResponse ? JSON.parse(rawResponse) : {};
+      } catch {
+        handoffData = {};
+      }
+
+      if (!handoffResponse.ok || !handoffData.handoffToken) {
+        const details =
+          handoffData.error ||
+          rawResponse.slice(0, 240) ||
+          "Nie udało się przygotować płatności.";
+        alert(`Nie udało się rozpocząć płatności (HTTP ${handoffResponse.status}).\n\n${details}`);
+        return;
+      }
+
+      const gross = Number(
+        booking.company_id
+          ? (booking.price_gross ?? booking.total_price ?? 0)
+          : (booking.total_price ?? 0)
+      );
+
+      const baseAmountCents =
+        booking.payment_status === "paid"
+          ? 0
+          : Number.isFinite(gross) && gross > 0
+            ? Math.round(gross * 100)
+            : 0;
+
+      bridge.postMessage(
+        JSON.stringify({
+          type: "MATT_TERMINAL_PAYMENT",
+          handoffToken: handoffData.handoffToken,
+          bookingId: booking.id,
+          bookingNumber: booking.booking_number,
+          customerName: booking.customer_name,
+          leg,
+          baseAmountCents
+        })
+      );
+    } catch (error) {
+      console.error("[MATT Driver] Tap to Pay handoff failed:", error);
+      alert(
+        `Nie udało się rozpocząć płatności.\n\n${error instanceof Error ? error.message : String(error)}`
+      );
     }
-
-    const handoffResponse = await fetch("/api/driver/terminal/handoff", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" }
-    });
-    const handoffData = await handoffResponse.json();
-
-    if (!handoffResponse.ok || !handoffData.handoffToken) {
-      alert(handoffData.error ?? "Nie udało się przygotować płatności.");
-      return;
-    }
-
-    const gross = Number(
-      booking.company_id
-        ? (booking.price_gross ?? booking.total_price ?? 0)
-        : (booking.total_price ?? 0)
-    );
-
-    const baseAmountCents =
-      booking.payment_status === "paid"
-        ? 0
-        : Number.isFinite(gross) && gross > 0
-          ? Math.round(gross * 100)
-          : 0;
-
-    bridge.postMessage(
-      JSON.stringify({
-        type: "MATT_TERMINAL_PAYMENT",
-        handoffToken: handoffData.handoffToken,
-        bookingId: booking.id,
-        bookingNumber: booking.booking_number,
-        customerName: booking.customer_name,
-        leg,
-        baseAmountCents
-      })
-    );
   }
 
   async function logoutDriver() {
