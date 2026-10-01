@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import * as Location from "expo-location";
 import {
   ActivityIndicator,
   Alert,
@@ -198,6 +199,27 @@ function TerminalPaymentBody({
     }
 
     setProcessing(true);
+    setStatusText("Sprawdzam uprawnienie lokalizacji…");
+
+    try {
+      const permission = await Location.getForegroundPermissionsAsync();
+      console.log("[MATT Stripe] location permission:", permission.status);
+
+      if (permission.status !== Location.PermissionStatus.GRANTED) {
+        const requested = await Location.requestForegroundPermissionsAsync();
+        console.log("[MATT Stripe] location permission request:", requested.status);
+        if (requested.status !== Location.PermissionStatus.GRANTED) {
+          throw new Error("Aby korzystać z Tap to Pay, MATT Driver potrzebuje dostępu do lokalizacji.");
+        }
+      }
+    } catch (locationError) {
+      console.error("[MATT Stripe] LOCATION ERROR:", locationError);
+      setProcessing(false);
+      setStatusText("");
+      Alert.alert("Wymagana lokalizacja", locationError instanceof Error ? locationError.message : "Zezwól aplikacji na dostęp do lokalizacji.");
+      return;
+    }
+
     setStatusText("Przygotowuję płatność…");
     console.log("[MATT Stripe] payment-intent START");
 
