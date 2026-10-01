@@ -70,6 +70,8 @@ function TerminalPaymentModal({
   const [reason, setReason] = useState("");
   const [processing, setProcessing] = useState(false);
   const [statusText, setStatusText] = useState("");
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [successAmountCents, setSuccessAmountCents] = useState(0);
 
   const baseCents = request.baseAmountCents;
   const surchargeCents = useMemo(() => parseMoney(surcharge), [surcharge]);
@@ -317,9 +319,9 @@ function TerminalPaymentBody({
       }
 
       setStatusText("✓ Płatność zakończona");
+      setSuccessAmountCents(totalCents);
+      setPaymentSuccess(true);
       await disconnectReader().catch(() => null);
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      onSuccess();
     } catch (error) {
       console.error("[MATT Stripe] PAY ERROR:", error);
       await disconnectReader().catch(() => null);
@@ -336,6 +338,30 @@ function TerminalPaymentBody({
   return (
     <SafeAreaView style={styles.modalRoot}>
       <View style={styles.modalCard}>
+        {paymentSuccess ? (
+          <>
+            <View style={styles.successIcon}>
+              <Text style={styles.successIconText}>✓</Text>
+            </View>
+            <Text style={styles.successTitle}>PŁATNOŚĆ ZAKSIĘGOWANA</Text>
+            <Text style={styles.successAmount}>{formatMoney(successAmountCents)}</Text>
+            <Text style={styles.successDescription}>
+              Płatność kartą została pomyślnie pobrana przez Stripe Tap to Pay.
+            </Text>
+            <View style={styles.successDetails}>
+              <Text style={styles.successDetailLabel}>REZERWACJA</Text>
+              <Text style={styles.successDetailValue}>{request.bookingNumber}</Text>
+              <Text style={styles.successDetailLabel}>KLIENT</Text>
+              <Text style={styles.successDetailValue}>{request.customerName}</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.successButton}
+              onPress={onSuccess}
+            >
+              <Text style={styles.successButtonText}>ZAMKNIJ</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.kicker}>MATT DRIVER · PŁATNOŚĆ</Text>
@@ -418,6 +444,8 @@ function TerminalPaymentBody({
           <Text style={styles.helpText}>
             Płatność zostanie automatycznie przypisana do tej rezerwacji i kierowcy.
           </Text>
+        )}
+          </View>
         )}
       </View>
     </SafeAreaView>
@@ -607,6 +635,78 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
     borderTopWidth: 1,
     borderColor: "#343b49"
+  },
+  successIcon: {
+    alignSelf: "center",
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: "#173d2a",
+    borderWidth: 2,
+    borderColor: "#39c77a",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  successIconText: {
+    color: "#39c77a",
+    fontSize: 46,
+    fontWeight: "900"
+  },
+  successTitle: {
+    marginTop: 18,
+    color: "#39c77a",
+    fontSize: 18,
+    fontWeight: "900",
+    textAlign: "center",
+    letterSpacing: 1
+  },
+  successAmount: {
+    marginTop: 8,
+    color: "#d4af37",
+    fontSize: 34,
+    fontWeight: "900",
+    textAlign: "center"
+  },
+  successDescription: {
+    marginTop: 10,
+    color: "#fff",
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center"
+  },
+  successDetails: {
+    marginTop: 20,
+    padding: 15,
+    borderRadius: 14,
+    backgroundColor: "#0f131b",
+    borderWidth: 1,
+    borderColor: "#2a303c"
+  },
+  successDetailLabel: {
+    color: "#9ba3af",
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    marginTop: 4
+  },
+  successDetailValue: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "800",
+    marginTop: 3
+  },
+  successButton: {
+    marginTop: 20,
+    minHeight: 56,
+    borderRadius: 14,
+    backgroundColor: "#d4af37",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  successButtonText: {
+    color: "#0b0e13",
+    fontSize: 16,
+    fontWeight: "900"
   },
   headerRow: {
     flexDirection: "row",
