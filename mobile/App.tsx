@@ -373,13 +373,15 @@ export default function App() {
 
       if (message?.type !== "MATT_TERMINAL_PAYMENT") return;
 
-      if (!message.handoffToken || !message.bookingId) {
+      const authToken = message.handoffToken || message.accessToken;
+
+      if (!authToken || !message.bookingId) {
         console.warn("[MATT Driver] Invalid terminal payment message:", message);
         return;
       }
 
       const request: PaymentRequest = {
-        handoffToken: String(message.handoffToken),
+        handoffToken: String(authToken),
         bookingId: String(message.bookingId),
         bookingNumber: String(message.bookingNumber || ""),
         customerName: String(message.customerName || ""),
