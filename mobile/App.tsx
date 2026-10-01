@@ -155,16 +155,29 @@ function TerminalPaymentBody({
   } = useStripeTerminal();
 
   useEffect(() => {
+    console.log("[MATT Stripe] initialize START");
     initialize({
       localeConfig: {
         type: "hardcoded",
         locale: "pl-PL"
       }
-    }).catch(() => null);
+    })
+      .then(() => console.log("[MATT Stripe] initialize OK"))
+      .catch((error) => console.error("[MATT Stripe] initialize ERROR:", error));
   }, [initialize]);
 
   async function pay() {
-    if (processing) return;
+    console.log("[MATT Stripe] PAY CLICK", {
+      bookingId: request.bookingId,
+      baseAmountCents: request.baseAmountCents,
+      surchargeCents,
+      totalCents
+    });
+
+    if (processing) {
+      console.log("[MATT Stripe] PAY BLOCKED: already processing");
+      return;
+    }
 
     if (!Number.isFinite(surchargeCents)) {
       Alert.alert("Nieprawidłowa kwota", "Wpisz poprawną kwotę dopłaty.");
@@ -186,6 +199,7 @@ function TerminalPaymentBody({
 
     setProcessing(true);
     setStatusText("Przygotowuję płatność…");
+    console.log("[MATT Stripe] payment-intent START");
 
     try {
       const intentResponse = await fetch(
@@ -205,7 +219,13 @@ function TerminalPaymentBody({
         }
       );
 
+      console.log("[MATT Stripe] payment-intent HTTP", intentResponse.status);
       const intentData = await intentResponse.json();
+      console.log("[MATT Stripe] payment-intent DATA", {
+        ok: intentResponse.ok,
+        hasClientSecret: Boolean(intentData?.clientSecret),
+        error: intentData?.error || null
+      });
 
       if (!intentResponse.ok) {
         throw new Error(intentData.error || "Nie udało się przygotować płatności.");
@@ -221,7 +241,13 @@ function TerminalPaymentBody({
         locationId: TERMINAL_LOCATION_ID
       };
 
+      console.log("[MATT Stripe] easyConnect START", connectParams);
       const connected = await easyConnect(connectParams);
+      console.log("[MATT Stripe] easyConnect RESULT", {
+        hasError: Boolean(connected.error),
+        error: connected.error?.message || null,
+        hasReader: Boolean(connected.reader)
+      });
 
       if (connected.error) {
         throw new Error(connected.error.message || "Nie udało się połączyć Tap to Pay.");
@@ -229,7 +255,13 @@ function TerminalPaymentBody({
 
       setStatusText("Przyłóż kartę lub telefon klienta do urządzenia…");
 
+      console.log("[MATT Stripe] retrievePaymentIntent START");
       const retrieved = await retrievePaymentIntent(intentData.clientSecret);
+      console.log("[MATT Stripe] retrievePaymentIntent RESULT", {
+        hasError: Boolean(retrieved.error),
+        error: retrieved.error?.message || null,
+        hasPaymentIntent: Boolean(retrieved.paymentIntent)
+      });
 
       if (retrieved.error || !retrieved.paymentIntent) {
         throw new Error(
@@ -237,8 +269,14 @@ function TerminalPaymentBody({
         );
       }
 
+      console.log("[MATT Stripe] processPaymentIntent START");
       const processed = await processPaymentIntent({
         paymentIntent: retrieved.paymentIntent
+      });
+      console.log("[MATT Stripe] processPaymentIntent RESULT", {
+        hasError: Boolean(processed.error),
+        error: processed.error?.message || null,
+        status: processed.paymentIntent?.status || null
       });
 
       if (processed.error) {
@@ -258,6 +296,7 @@ function TerminalPaymentBody({
       await new Promise((resolve) => setTimeout(resolve, 800));
       onSuccess();
     } catch (error) {
+      console.error("[MATT Stripe] PAY ERROR:", error);
       await disconnectReader().catch(() => null);
       setStatusText("");
       Alert.alert(
