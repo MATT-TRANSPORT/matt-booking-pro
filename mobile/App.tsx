@@ -362,6 +362,7 @@ function TerminalPaymentBody({
             </TouchableOpacity>
           </>
         ) : (
+          <>
         <View style={styles.headerRow}>
           <View>
             <Text style={styles.kicker}>MATT DRIVER · PŁATNOŚĆ</Text>
@@ -445,7 +446,7 @@ function TerminalPaymentBody({
             Płatność zostanie automatycznie przypisana do tej rezerwacji i kierowcy.
           </Text>
         )}
-          </View>
+          </>
         )}
       </View>
     </SafeAreaView>
