@@ -28,6 +28,13 @@ const config: ExpoConfig = {
       {
         tapToPayCheck: true
       }
+    ],
+    [
+      "expo-location",
+      {
+        locationWhenInUsePermission:
+          "MATT Driver używa lokalizacji do bezpiecznego działania Stripe Tap to Pay."
+      }
     ]
   ],
   extra: {
