@@ -42,6 +42,9 @@ const TERMINAL_LOCATION_ID =
   process.env.EXPO_PUBLIC_STRIPE_TERMINAL_LOCATION_ID ||
   "tml_GrarABsrx26Go1";
 
+const SIMULATE_TAP_TO_PAY =
+  process.env.EXPO_PUBLIC_STRIPE_TERMINAL_SIMULATED === "true";
+
 function parseMoney(value: string) {
   const normalized = value.replace(/\\s/g, "").replace(",", ".");
   if (!normalized) return 0;
@@ -259,7 +262,7 @@ function TerminalPaymentBody({
         discoveryMethod: "tapToPay" as const,
         merchantDisplayName: "MATT TRANSPORT",
         autoReconnectOnUnexpectedDisconnect: true,
-        simulated: __DEV__,
+        simulated: SIMULATE_TAP_TO_PAY,
         locationId: TERMINAL_LOCATION_ID
       };
 
