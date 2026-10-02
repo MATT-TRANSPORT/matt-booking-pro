@@ -5,7 +5,7 @@ import { sendMattEmail } from "@/lib/email";
 import { expireCheckoutSession } from "@/lib/stripeServer";
 import { syncBookingCalendar } from "@/lib/googleCalendar";
 import { bookingPricingFields, calculateCompanyQuote } from "@/lib/companyPricing";
-import { sendDriverPush } from "@/lib/pushServer";
+import { sendDriverPush, sendAdminPush } from "@/lib/pushServer";
 
 const EDITABLE_STATUSES = ["pending", "confirmed", "assigned"];
 
@@ -118,6 +118,13 @@ export async function POST(
     });
 
     await syncBookingCalendar(admin, cancelled);
+
+    await sendAdminPush(admin, {
+      title: "⛔ REZERWACJA B2B ANULOWANA",
+      body: `${cancelled.booking_number} · ${current.customer_name} · firma anulowała rezerwację${wasPaid ? " · płatność do weryfikacji" : ""}`,
+      url: `/panel/rezerwacje/${cancelled.id}`,
+      tag: `admin-company-cancel-${cancelled.id}-${cancelled.updated_at}`
+    }).catch((pushError) => console.error("Admin push po anulowaniu B2B:", pushError));
 
     if (current.driver_id) {
       await sendDriverPush(admin, current.driver_id, {
@@ -387,6 +394,15 @@ export async function POST(
   });
 
   await syncBookingCalendar(admin, data);
+
+  if (changes.length) {
+    await sendAdminPush(admin, {
+      title: "✏️ ZMIANA REZERWACJI B2B",
+      body: `${data.booking_number} · ${data.customer_name} · ${changes.slice(0, 2).join(" · ")}`,
+      url: `/panel/rezerwacje/${data.id}`,
+      tag: `admin-company-edit-${data.id}-${data.updated_at}`
+    }).catch((pushError) => console.error("Admin push po edycji B2B:", pushError));
+  }
 
   if (current.driver_id && changes.length) {
     const routeText =
