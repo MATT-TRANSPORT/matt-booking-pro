@@ -49,11 +49,27 @@ export default function DriverAppControls() {
     window.addEventListener("beforeinstallprompt", onBeforeInstall);
     window.addEventListener("appinstalled", onInstalled);
 
+    const onNativePushToken = async (event: Event) => {
+      const token = (event as CustomEvent<{ token?: string; platform?: string }>).detail;
+      if (!token?.token || !["android", "ios"].includes(String(token.platform))) return;
+      try {
+        await fetch("/api/driver/push/native", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(token)
+        });
+      } catch {
+        // Native push registration can retry when the app refreshes.
+      }
+    };
+
+    window.addEventListener("mattNativePushToken", onNativePushToken);
     initPush();
 
     return () => {
       window.removeEventListener("beforeinstallprompt", onBeforeInstall);
       window.removeEventListener("appinstalled", onInstalled);
+      window.removeEventListener("mattNativePushToken", onNativePushToken);
     };
   }, []);
 
