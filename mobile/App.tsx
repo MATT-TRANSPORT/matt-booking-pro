@@ -457,6 +457,7 @@ function TerminalPaymentBody({
 
 export default function App() {
   const webViewRef = useRef<WebView>(null);
+  const [nativePushToken, setNativePushToken] = useState<string | null>(null);
 
   useEffect(() => {
     Notifications.setNotificationHandler({
@@ -504,6 +505,7 @@ export default function App() {
 
         const token = await Notifications.getExpoPushTokenAsync({ projectId });
         const tokenValue = token.data;
+        setNativePushToken(tokenValue);
 
         webViewRef.current?.injectJavaScript(`
           window.dispatchEvent(new CustomEvent("mattNativePushToken", {
@@ -640,6 +642,16 @@ export default function App() {
         thirdPartyCookiesEnabled
         originWhitelist={["https://*"]}
         onMessage={handleMessage}
+        onLoadEnd={() => {
+          if (!nativePushToken) return;
+          webViewRef.current?.injectJavaScript(
+            "window.dispatchEvent(new CustomEvent('mattNativePushToken', { detail: { token: " +
+              JSON.stringify(nativePushToken) +
+              ", platform: " +
+              JSON.stringify(Platform.OS) +
+              " } })); true;"
+          );
+        }}
         onError={(event) =>
           console.error("[MATT Driver] WebView error:", event.nativeEvent)
         }
