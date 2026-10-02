@@ -45,6 +45,14 @@ const config: ExpoConfig = {
         locationWhenInUsePermission:
           "MATT Driver używa lokalizacji do bezpiecznego działania Stripe Tap to Pay."
       }
+    ],
+    [
+      "expo-build-properties",
+      {
+        android: {
+          minSdkVersion: 26
+        }
+      }
     ]
   ],
   extra: {
