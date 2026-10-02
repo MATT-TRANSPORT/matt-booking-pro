@@ -78,18 +78,21 @@ export async function sendDriverPush(
     .eq("driver_id", driverId)
     .eq("active", true);
 
-  if (!subscriptions?.length) {
-    return {
-      sent: 0,
-      failed: 0,
-      skipped: true
-    };
-  }
+  const { data: nativeTokens } = await admin
+    .from("driver_native_push_tokens")
+    .select("*")
+    .eq("driver_id", driverId)
+    .eq("active", true);
 
-  configureWebPush();
+  if (!subscriptions?.length && !nativeTokens?.length) {
+    return { sent: 0, failed: 0, skipped: true };
+  }
 
   let sent = 0;
   let failed = 0;
+
+  if (subscriptions?.length) {
+    configureWebPush();
 
   const payload = JSON.stringify({
     title,
@@ -134,6 +137,51 @@ export async function sendDriverPush(
           })
           .eq("id", sub.id);
       }
+    }
+  }
+
+  }
+
+  if (nativeTokens?.length) {
+    const pushUrl = process.env.EXPO_PUSH_URL;
+    if (pushUrl) {
+      try {
+        const response = await fetch(pushUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            nativeTokens.map((native: any) => ({
+              to: native.token,
+              title,
+              body,
+              sound: "default",
+              priority: "high",
+              channelId: "driver-events",
+              data: { url, bookingId, eventKey }
+            }))
+          )
+        });
+        const result = await response.json().catch(() => null);
+        const tickets = Array.isArray(result?.data) ? result.data : [];
+        for (let i = 0; i < nativeTokens.length; i += 1) {
+          const ticket = tickets[i];
+          if (ticket?.status === "ok") sent += 1;
+          else {
+            failed += 1;
+            if (ticket?.details?.error === "DeviceNotRegistered") {
+              await admin.from("driver_native_push_tokens").update({
+                active: false,
+                updated_at: new Date().toISOString()
+              }).eq("id", nativeTokens[i].id);
+            }
+          }
+        }
+        if (!response.ok && !tickets.length) failed += nativeTokens.length;
+      } catch {
+        failed += nativeTokens.length;
+      }
+    } else {
+      failed += nativeTokens.length;
     }
   }
 
