@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as Location from "expo-location";
+import * as Notifications from "expo-notifications";
+import Constants from "expo-constants";
 import {
   ActivityIndicator,
   Alert,
@@ -12,7 +14,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { StatusBar } from "react-native";
+import { Platform, StatusBar } from "react-native";
 import {
   StripeTerminalProvider,
   useStripeTerminal
@@ -455,6 +457,78 @@ function TerminalPaymentBody({
 
 export default function App() {
   const webViewRef = useRef<WebView>(null);
+
+  useEffect(() => {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true
+      })
+    });
+
+    async function registerNativePush() {
+      try {
+        if (Platform.OS === "android") {
+          await Notifications.setNotificationChannelAsync("driver-events", {
+            name: "MATT Driver — zdarzenia",
+            importance: Notifications.AndroidImportance.HIGH,
+            vibrationPattern: [0, 250, 150, 250],
+            sound: "default"
+          });
+        }
+
+        const permissions = await Notifications.getPermissionsAsync();
+        let status = permissions.status;
+
+        if (status !== "granted") {
+          const requested = await Notifications.requestPermissionsAsync();
+          status = requested.status;
+        }
+
+        if (status !== "granted") {
+          console.log("[MATT Driver] Push permission not granted:", status);
+          return;
+        }
+
+        const projectId =
+          Constants.expoConfig?.extra?.expoProjectId ||
+          process.env.EXPO_PUBLIC_EXPO_PROJECT_ID ||
+          null;
+
+        if (!projectId) {
+          console.warn("[MATT Driver] Missing EXPO_PUBLIC_EXPO_PROJECT_ID; native push registration skipped.");
+          return;
+        }
+
+        const token = await Notifications.getExpoPushTokenAsync({ projectId });
+        const tokenValue = token.data;
+
+        webViewRef.current?.injectJavaScript(`
+          window.dispatchEvent(new CustomEvent("mattNativePushToken", {
+            detail: {
+              token: ${JSON.stringify(tokenValue)},
+              platform: ${JSON.stringify(Platform.OS)}
+            }
+          }));
+          true;
+        `);
+
+        console.log("[MATT Driver] Native push token registered in WebView.");
+      } catch (error) {
+        console.error("[MATT Driver] Native push registration error:", error);
+      }
+    }
+
+    registerNativePush();
+
+    const subscription = Notifications.addPushTokenListener(() => {
+      registerNativePush();
+    });
+
+    return () => subscription.remove();
+  }, []);
   const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(null);
 
   useEffect(() => {
