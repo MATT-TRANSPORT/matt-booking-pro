@@ -13,11 +13,11 @@
   "dependencies": {
     "@stripe/stripe-terminal-react-native": "0.0.1-beta.33",
     "expo": "~56.0.12",
-    "expo-build-properties": "~56.0.19",
+    "expo-build-properties": "~56.0.20",
     "expo-dev-client": "~6.0.0",
-    "expo-constants": "~18.0.13",
-    "expo-location": "~19.0.7",
-    "expo-notifications": "~0.32.15",
+    "expo-constants": "~56.0.27",
+    "expo-location": "~56.0.12",
+    "expo-notifications": "~56.0.25",
     "react": "19.2.3",
     "react-native": "0.85.3",
     "react-native-webview": "13.16.1"
