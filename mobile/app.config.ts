@@ -4,7 +4,7 @@ const config: ExpoConfig = {
   name: "MATT Driver",
   slug: "matt-driver",
   version: "5.0.1",
-  icon: "../public/pwa/icon-192.png",
+  icon: "https://booking.matt-transport.pl/pwa/icon-192.png",
   orientation: "portrait",
   userInterfaceStyle: "dark",
   scheme: "mattdriver",
@@ -33,7 +33,6 @@ const config: ExpoConfig = {
     [
       "expo-notifications",
       {
-        icon: "../public/pwa/icon-192.png",
         color: "#d4af37",
         defaultChannel: "driver-events"
       }
