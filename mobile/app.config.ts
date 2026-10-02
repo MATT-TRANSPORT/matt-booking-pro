@@ -1,6 +1,7 @@
 import type { ExpoConfig } from "expo/config";
 
 const config: ExpoConfig = {
+  owner: "matt-transportpls-team",
   name: "MATT Driver",
   slug: "matt-driver",
   version: "5.0.1",
