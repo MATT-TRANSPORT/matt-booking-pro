@@ -52,7 +52,10 @@ const config: ExpoConfig = {
     stripeTerminalLocationId:
       process.env.EXPO_PUBLIC_STRIPE_TERMINAL_LOCATION_ID || null,
     expoProjectId:
-      process.env.EXPO_PUBLIC_EXPO_PROJECT_ID || null
+      process.env.EXPO_PUBLIC_EXPO_PROJECT_ID || null,
+    eas: {
+      projectId: "8477a087-c84f-424c-bf09-0695aae0903e"
+    }
   }
 };
 
