@@ -3,7 +3,8 @@ import type { ExpoConfig } from "expo/config";
 const config: ExpoConfig = {
   name: "MATT Driver",
   slug: "matt-driver",
-  version: "5.0.0",
+  version: "5.0.1",
+  icon: "../public/pwa/icon-192.png",
   orientation: "portrait",
   userInterfaceStyle: "dark",
   scheme: "mattdriver",
@@ -30,6 +31,14 @@ const config: ExpoConfig = {
       }
     ],
     [
+      "expo-notifications",
+      {
+        icon: "../public/pwa/icon-192.png",
+        color: "#d4af37",
+        defaultChannel: "driver-events"
+      }
+    ],
+    [
       "expo-location",
       {
         locationWhenInUsePermission:
@@ -41,7 +50,9 @@ const config: ExpoConfig = {
     appUrl: process.env.EXPO_PUBLIC_APP_URL || "https://booking.matt-transport.pl/kierowca",
     apiUrl: process.env.EXPO_PUBLIC_API_URL || "https://booking.matt-transport.pl",
     stripeTerminalLocationId:
-      process.env.EXPO_PUBLIC_STRIPE_TERMINAL_LOCATION_ID || null
+      process.env.EXPO_PUBLIC_STRIPE_TERMINAL_LOCATION_ID || null,
+    expoProjectId:
+      process.env.EXPO_PUBLIC_EXPO_PROJECT_ID || null
   }
 };
 
