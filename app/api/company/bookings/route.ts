@@ -271,6 +271,15 @@ export async function POST(req: NextRequest) {
     console.error("Admin push po nowej rezerwacji B2B:", pushError);
   }
 
+  await admin.from("booking_history").insert({
+    booking_id: data.id,
+    event:
+      adminPushResult?.sent > 0
+        ? `Push administratora: OK · wysłano=${adminPushResult.sent}`
+        : `Push administratora: BŁĄD · wysłano=${Number(adminPushResult?.sent || 0)} · nieudane=${Number(adminPushResult?.failed || 0)}${adminPushResult?.skipped ? " · pominięto" : ""}${adminPushResult?.errors?.[0]?.statusCode ? ` · HTTP ${adminPushResult.errors[0].statusCode}` : ""}`,
+    created_by: null
+  });
+
   return NextResponse.json({
     ...data,
     quote,

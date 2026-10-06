@@ -104,10 +104,18 @@ export async function sendMattEmail(
     };
   }
 
+  const from =
+    recipients.some(
+      (recipient) =>
+        recipient.toLowerCase() === "kontakt@matt-transport.pl"
+    )
+      ? "MATT Booking <booking@matt-transport.pl>"
+      : MATT_EMAIL_FROM;
+
   const result = await postResend(
     apiKey,
     {
-      from: MATT_EMAIL_FROM,
+      from,
       to: recipients,
       subject: payload.subject,
       reply_to: "kontakt@matt-transport.pl",
