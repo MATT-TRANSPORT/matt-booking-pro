@@ -147,7 +147,7 @@ function paymentButton(b: BookingMail) {
   }
 
   const url = b.company_id
-    ? (b.id ? `${appBaseUrl()}/firma/rezerwacje/${b.id}` : null)
+    ? (b.id ? `${panelBaseUrl()}/firma/rezerwacje/${b.id}` : null)
     : (b.payment_link ||
       (b.customer_access_token
         ? `${customerBaseUrl()}/rezerwacja/${b.customer_access_token}?pay=1`
