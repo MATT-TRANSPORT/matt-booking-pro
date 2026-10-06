@@ -90,7 +90,6 @@ export async function sendDriverPush(
 
   let sent = 0;
   let failed = 0;
-  const errors: Array<{ statusCode: number; message: string }> = [];
 
   const payload = JSON.stringify({
     title,
@@ -200,6 +199,7 @@ export async function sendAdminPush(
 
   let sent = 0;
   let failed = 0;
+  const errors: Array<{ statusCode: number; message: string }> = [];
 
   const payload = JSON.stringify({
     title,
