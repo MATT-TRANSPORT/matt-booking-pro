@@ -41,19 +41,39 @@ type BookingMail = {
   online_payment_requested?: boolean | null;
 };
 
-function appBaseUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL || "https://panel.matt-transport.pl";
+function customerBaseUrl() {
+  const configured = String(
+    process.env.NEXT_PUBLIC_BOOKING_URL || ""
+  ).trim().replace(/\/$/, "");
+
+  if (configured && !configured.includes("vercel.app")) {
+    return configured;
+  }
+
+  return "https://booking.matt-transport.pl";
+}
+
+function panelBaseUrl() {
+  const configured = String(
+    process.env.NEXT_PUBLIC_PANEL_URL || ""
+  ).trim().replace(/\/$/, "");
+
+  if (configured && !configured.includes("vercel.app")) {
+    return configured;
+  }
+
+  return "https://panel.matt-transport.pl";
 }
 
 function clientUrl(b: BookingMail) {
   return b.customer_access_token
-    ? `${appBaseUrl()}/rezerwacja/${b.customer_access_token}`
+    ? `${customerBaseUrl()}/rezerwacja/${b.customer_access_token}`
     : null;
 }
 
 function adminUrl(b: BookingMail) {
   return b.id
-    ? `${appBaseUrl()}/panel/rezerwacje/${b.id}`
+    ? `${panelBaseUrl()}/panel/rezerwacje/${b.id}`
     : null;
 }
 
@@ -130,7 +150,7 @@ function paymentButton(b: BookingMail) {
     ? (b.id ? `${appBaseUrl()}/firma/rezerwacje/${b.id}` : null)
     : (b.payment_link ||
       (b.customer_access_token
-        ? `${appBaseUrl()}/rezerwacja/${b.customer_access_token}?pay=1`
+        ? `${customerBaseUrl()}/rezerwacja/${b.customer_access_token}?pay=1`
         : null));
 
   if (!url) return "";
