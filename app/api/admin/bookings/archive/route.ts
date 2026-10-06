@@ -35,14 +35,16 @@ export async function POST(req: NextRequest) {
       String(booking.quote_status || "") === "priced" &&
       Boolean(booking.quote_expires_at) &&
       new Date(booking.quote_expires_at).getTime() < Date.now();
+    const quoteAwaitingClient =
+      String(booking.quote_status || "") === "priced";
 
     if (CLOSED_STATUSES.includes(String(booking.status || ""))) {
       return NextResponse.json({ error: "Rezerwacja zakończona lub anulowana jest już zamknięta i nie może zostać usunięta." }, { status: 409 });
     }
 
-    if (!booking.archived_at && !overdue && !quoteRejected && !quoteExpired) {
+    if (!booking.archived_at && !overdue && !quoteRejected && !quoteExpired && !quoteAwaitingClient) {
       return NextResponse.json({
-        error: "Ręcznie można usunąć tylko rezerwację po terminie albo wycenę odrzuconą/wygasłą."
+        error: "Ręcznie można usunąć tylko rezerwację po terminie albo wycenę oczekującą na decyzję klienta, odrzuconą lub wygasłą."
       }, { status: 409 });
     }
 

@@ -28,6 +28,8 @@ export default function BookingArchiveActions({
   const [busy, setBusy] = useState(false);
   const archived = Boolean(booking?.archived_at);
   const canArchive = !archived && (overdue || quoteRejected || quoteExpired);
+  const canDelete = !["completed", "cancelled"].includes(String(booking?.status || "")) &&
+    (archived || overdue || quoteRejected || quoteExpired || booking?.quote_status === "priced");
   const reason = quoteRejected
     ? "quote_rejected"
     : quoteExpired
@@ -37,7 +39,7 @@ export default function BookingArchiveActions({
         : "manual";
 
   async function deleteBooking() {
-    if (busy || (!canArchive && !archived)) return;
+    if (busy || !canDelete) return;
 
     const confirmed = window.confirm(
       "USUNĄĆ REZERWACJĘ NA STAŁE? Tej operacji nie można cofnąć. Zostanie usunięta także jej historia."
@@ -127,7 +129,7 @@ export default function BookingArchiveActions({
     );
   }
 
-  if (!canArchive) return null;
+  if (!canArchive && !canDelete) return null;
 
   return (
     <section className="card" style={{ marginTop: 16, borderColor: "#8f7137" }}>
@@ -135,9 +137,11 @@ export default function BookingArchiveActions({
       <p className="muted" style={{ margin: "8px 0" }}>
         Możesz schować tę rezerwację z aktywnych. Powód: <strong>{reasonLabel(reason)}</strong>.
       </p>
-      <button className="btn secondary" disabled={busy} onClick={() => changeArchive(true)}>
-        {busy ? "ARCHIWIZOWANIE..." : "ARCHIWIZUJ PRZEJAZD"}
-      </button>
+      {canArchive && (
+        <button className="btn secondary" disabled={busy} onClick={() => changeArchive(true)}>
+          {busy ? "ARCHIWIZOWANIE..." : "ARCHIWIZUJ PRZEJAZD"}
+        </button>
+      )}
       <button
         className="btn secondary"
         style={{ marginTop: 10, borderColor: "#b91c1c", color: "#fca5a5" }}
