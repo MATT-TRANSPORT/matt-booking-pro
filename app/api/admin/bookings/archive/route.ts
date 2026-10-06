@@ -20,12 +20,43 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const bookingId = String(body.bookingId || "");
   const archived = Boolean(body.archived);
+  const action = String(body.action || "archive");
   const requestedReason = String(body.reason || "manual");
 
   if (!bookingId) return NextResponse.json({ error: "Brak identyfikatora rezerwacji." }, { status: 400 });
 
   const { data: booking, error: readError } = await admin.from("bookings").select("*").eq("id", bookingId).single();
   if (readError || !booking) return NextResponse.json({ error: "Nie znaleziono rezerwacji." }, { status: 404 });
+
+  if (action === "delete") {
+    const overdue = isOverdueBooking(booking);
+    const quoteRejected = String(booking.quote_status || "") === "rejected";
+    const quoteExpired =
+      String(booking.quote_status || "") === "priced" &&
+      Boolean(booking.quote_expires_at) &&
+      new Date(booking.quote_expires_at).getTime() < Date.now();
+
+    if (CLOSED_STATUSES.includes(String(booking.status || ""))) {
+      return NextResponse.json({ error: "Rezerwacja zakończona lub anulowana jest już zamknięta i nie może zostać usunięta." }, { status: 409 });
+    }
+
+    if (!booking.archived_at && !overdue && !quoteRejected && !quoteExpired) {
+      return NextResponse.json({
+        error: "Ręcznie można usunąć tylko rezerwację po terminie albo wycenę odrzuconą/wygasłą."
+      }, { status: 409 });
+    }
+
+    const { error } = await admin
+      .from("bookings")
+      .delete()
+      .eq("id", bookingId);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true, deleted: true });
+  }
 
   if (!archived) {
     const { data: updated, error } = await admin
