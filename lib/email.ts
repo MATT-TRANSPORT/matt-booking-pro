@@ -2,7 +2,26 @@ type MailPayload = {
   to: string | string[];
   subject: string;
   html: string;
+  text?: string;
 };
+
+function htmlToText(html: string) {
+  return html
+    .replace(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\\s\\S]*?)<\/a>/gi, "$2 ($1)")
+    .replace(/<br\s*\/?>(?=\s*)/gi, "\n")
+    .replace(/<\/p>|<\/div>|<\/h[1-6]>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#039;/gi, "'")
+    .replace(/\\n\\s*\\n\\s*\\n+/g, "\n\n")
+    .replace(/[ \\t]+/g, " ")
+    .replace(/ *\\n */g, "\n")
+    .trim();
+}
 
 export const MATT_EMAIL_FROM =
   "MATT TRANSPORT <kontakt@matt-transport.pl>";
@@ -92,7 +111,8 @@ export async function sendMattEmail(
       to: recipients,
       subject: payload.subject,
       reply_to: "kontakt@matt-transport.pl",
-      html: payload.html
+      html: payload.html,
+      text: payload.text || htmlToText(payload.html)
     }
   );
 
