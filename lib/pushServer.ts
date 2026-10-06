@@ -90,6 +90,7 @@ export async function sendDriverPush(
 
   let sent = 0;
   let failed = 0;
+  const errors: Array<{ statusCode: number; message: string }> = [];
 
   const payload = JSON.stringify({
     title,
@@ -209,26 +210,50 @@ export async function sendAdminPush(
   });
 
   for (const sub of subscriptions) {
-    try {
-      await webpush.sendNotification(
-        {
-          endpoint: sub.endpoint,
-          keys: {
-            p256dh: sub.p256dh,
-            auth: sub.auth
+    let delivered = false;
+    let lastError: any = null;
+
+    for (let attempt = 0; attempt < 2 && !delivered; attempt += 1) {
+      try {
+        await webpush.sendNotification(
+          {
+            endpoint: sub.endpoint,
+            keys: {
+              p256dh: sub.p256dh,
+              auth: sub.auth
+            }
+          },
+          payload,
+          {
+            TTL: 60 * 60
           }
-        },
-        payload,
-        {
-          TTL: 60 * 60
-        }
-      );
+        );
 
-      sent += 1;
-    } catch (error: any) {
+        delivered = true;
+        sent += 1;
+      } catch (error: any) {
+        lastError = error;
+        const statusCode = Number(error?.statusCode || 0);
+        const retryable =
+          statusCode === 0 ||
+          statusCode === 408 ||
+          statusCode === 429 ||
+          statusCode >= 500;
+
+        if (!retryable || attempt === 1) break;
+
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    }
+
+    if (!delivered) {
       failed += 1;
+      const statusCode = Number(lastError?.statusCode || 0);
+      errors.push({
+        statusCode,
+        message: String(lastError?.message || "Nieznany błąd Web Push").slice(0, 180)
+      });
 
-      const statusCode = Number(error?.statusCode || 0);
       if (statusCode === 404 || statusCode === 410) {
         await admin
           .from("admin_push_subscriptions")
@@ -241,7 +266,7 @@ export async function sendAdminPush(
     }
   }
 
-  return { sent, failed, skipped: false };
+  return { sent, failed, skipped: false, errors };
 }
 
 export async function sendFlightAlertPush(
