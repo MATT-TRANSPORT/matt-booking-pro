@@ -203,8 +203,6 @@ export default function PaymentLinkBox({
           Link klienta jest dostępny, ale płatność zostanie przyjęta dopiero po potwierdzeniu rezerwacji.
         </p>
       )}
-      )}
-
       {isEmployeePayment && !isCompanyOnline && (
         <details className="manual-payment-link-details">
           <summary>Awaryjny / własny link płatności</summary>
