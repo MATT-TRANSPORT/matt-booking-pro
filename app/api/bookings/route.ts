@@ -316,7 +316,7 @@ export async function POST(req: NextRequest) {
     const adminResult = await sendMattEmail({
       to: "kontakt@matt-transport.pl",
       subject: adminMail.subject,
-      html: adminMail.html
+      text: adminMail.text
     });
 
     adminEmailSent = adminResult.sent;
