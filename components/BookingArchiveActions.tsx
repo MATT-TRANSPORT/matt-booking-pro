@@ -36,6 +36,32 @@ export default function BookingArchiveActions({
         ? "overdue"
         : "manual";
 
+  async function deleteBooking() {
+    if (busy || (!canArchive && !archived)) return;
+
+    const confirmed = window.confirm(
+      "USUNĄĆ REZERWACJĘ NA STAŁE? Tej operacji nie można cofnąć. Zostanie usunięta także jej historia."
+    );
+    if (!confirmed) return;
+
+    setBusy(true);
+    try {
+      const response = await fetch("/api/admin/bookings/archive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId: booking.id, action: "delete" })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        window.alert(data.error || "Nie udało się usunąć rezerwacji.");
+        return;
+      }
+      window.location.href = "/panel/rezerwacje?view=active";
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function changeArchive(nextArchived: boolean) {
     if (busy || (nextArchived && !canArchive)) return;
 
@@ -89,6 +115,14 @@ export default function BookingArchiveActions({
         <button className="btn secondary" disabled={busy} onClick={() => changeArchive(false)}>
           {busy ? "PRZETWARZANIE..." : "PRZYWRÓĆ DO AKTYWNYCH"}
         </button>
+        <button
+          className="btn secondary"
+          style={{ marginTop: 10, borderColor: "#b91c1c", color: "#fca5a5" }}
+          disabled={busy}
+          onClick={deleteBooking}
+        >
+          🗑 USUŃ REZERWACJĘ
+        </button>
       </section>
     );
   }
@@ -103,6 +137,14 @@ export default function BookingArchiveActions({
       </p>
       <button className="btn secondary" disabled={busy} onClick={() => changeArchive(true)}>
         {busy ? "ARCHIWIZOWANIE..." : "ARCHIWIZUJ PRZEJAZD"}
+      </button>
+      <button
+        className="btn secondary"
+        style={{ marginTop: 10, borderColor: "#b91c1c", color: "#fca5a5" }}
+        disabled={busy}
+        onClick={deleteBooking}
+      >
+        🗑 USUŃ REZERWACJĘ
       </button>
     </section>
   );
