@@ -360,8 +360,32 @@ export function paymentRefundedEmail(b: BookingMail) {
 
 export function adminNewBookingEmail(b: BookingMail, customerEmail: string, customerPhone: string) {
   const url = adminUrl(b);
+  const vehicle = b.vehicle_type === "bus" ? "Bus do 8 pasażerów" : "Samochód osobowy";
+  const text = [
+    "NOWA REZERWACJA W MATT BOOKING PRO",
+    "",
+    `Numer: ${b.booking_number}`,
+    `Trasa: ${routeText(b)}`,
+    `${b.service_type === "from_airport" ? "Przylot" : "Wylot"}: ${b.travel_date} ${b.travel_time}`,
+    b.service_type === "roundtrip" && b.return_date
+      ? `Powrót: ${b.return_date} ${b.return_time || "—"}`
+      : "",
+    `Pasażerowie: ${b.passengers}`,
+    `Pojazd: ${vehicle}`,
+    `Lot: ${b.flight_number || "—"}`,
+    `Kwota: ${Number(b.company_id ? (b.price_gross ?? b.total_price) : b.total_price).toFixed(2)} zł`,
+    `Płatność: ${paymentPreferenceText(b)}`,
+    "",
+    `Klient: ${b.customer_name}`,
+    `Telefon: ${customerPhone || "—"}`,
+    `E-mail: ${customerEmail || "—"}`,
+    "",
+    url ? `Panel: ${url}` : "Panel: https://panel.matt-transport.pl/panel"
+  ].filter(Boolean).join("\n");
+
   return {
     subject: `NOWA REZERWACJA ${b.booking_number}`,
+    text,
     html: shell(
       "Nowa rezerwacja w MATT Booking PRO",
       `${details(b, true)}
