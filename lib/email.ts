@@ -1,7 +1,7 @@
 type MailPayload = {
   to: string | string[];
   subject: string;
-  html: string;
+  html?: string;
   text?: string;
 };
 
@@ -112,16 +112,34 @@ export async function sendMattEmail(
       ? "MATT Booking <booking@matt-transport.pl>"
       : MATT_EMAIL_FROM;
 
+  if (!payload.html && !payload.text) {
+    return {
+      sent: false,
+      skipped: true,
+      error: "Brak treści wiadomości."
+    };
+  }
+
+  const messageBody: Record<string, unknown> = {
+    from,
+    to: recipients,
+    subject: payload.subject,
+    reply_to: "kontakt@matt-transport.pl"
+  };
+
+  if (payload.html) {
+    messageBody.html = payload.html;
+  }
+
+  if (payload.text) {
+    messageBody.text = payload.text;
+  } else if (payload.html) {
+    messageBody.text = htmlToText(payload.html);
+  }
+
   const result = await postResend(
     apiKey,
-    {
-      from,
-      to: recipients,
-      subject: payload.subject,
-      reply_to: "kontakt@matt-transport.pl",
-      html: payload.html,
-      text: payload.text || htmlToText(payload.html)
-    }
+    messageBody
   );
 
   if (!result.ok) {
