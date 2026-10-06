@@ -178,7 +178,7 @@ export default function PaymentLinkBox({
           </div>
         )}
 
-      {paymentAvailable && effectiveLink && (
+      {effectiveLink && (
         <div className="admin-payment-online-link">
           <a
             className="btn"
@@ -186,7 +186,7 @@ export default function PaymentLinkBox({
             target="_blank"
             rel="noreferrer"
           >
-            💳 OTWÓRZ LINK PŁATNOŚCI
+            💳 OTWÓRZ LINK PŁATNOŚCI KLIENTA
           </a>
           <button
             type="button"
@@ -196,6 +196,13 @@ export default function PaymentLinkBox({
             {copied ? "SKOPIOWANO ✓" : "KOPIUJ LINK"}
           </button>
         </div>
+      )}
+
+      {effectiveLink && !paymentAvailable && paymentStatus !== "paid" && (
+        <p className="muted">
+          Link klienta jest dostępny, ale płatność zostanie przyjęta dopiero po potwierdzeniu rezerwacji.
+        </p>
+      )}
       )}
 
       {isEmployeePayment && !isCompanyOnline && (
