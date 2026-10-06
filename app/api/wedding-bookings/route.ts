@@ -25,8 +25,11 @@ export async function POST(req:NextRequest){
   }));
   if(slots.length) await s.from("wedding_vehicle_assignments").insert(slots);
 
-  const base=process.env.NEXT_PUBLIC_APP_URL||"https://matt-booking-pro.vercel.app";
-  const adminUrl=`${base}/panel/wesela/${data.id}`;
+  const configuredPanelUrl=String(process.env.NEXT_PUBLIC_PANEL_URL||"").trim().replace(/\/$/,"");
+  const panelBase=configuredPanelUrl && !configuredPanelUrl.includes("vercel.app")
+    ? configuredPanelUrl
+    : "https://panel.matt-transport.pl";
+  const adminUrl=`${panelBase}/panel/wesela/${data.id}`;
 
   await Promise.allSettled([
     sendMattEmail({
