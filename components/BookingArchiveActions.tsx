@@ -59,7 +59,7 @@ export default function BookingArchiveActions({
         return;
       }
       window.location.replace(
-        `/panel/rezerwacje?view=active&deleted=${Date.now()}`
+        `/panel/rezerwacje?view=active&deletedAt=${Date.now()}`
       );
       return;
     } catch (error) {
