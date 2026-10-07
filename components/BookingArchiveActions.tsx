@@ -58,7 +58,16 @@ export default function BookingArchiveActions({
         window.alert(data.error || "Nie udało się usunąć rezerwacji.");
         return;
       }
-      window.location.href = "/panel/rezerwacje?view=active";
+      window.location.replace(
+        `/panel/rezerwacje?view=active&deleted=${Date.now()}`
+      );
+      return;
+    } catch (error) {
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : "Nie udało się usunąć rezerwacji."
+      );
     } finally {
       setBusy(false);
     }
