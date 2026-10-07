@@ -362,25 +362,31 @@ export function adminNewBookingEmail(b: BookingMail, customerEmail: string, cust
   const url = adminUrl(b);
   const vehicle = b.vehicle_type === "bus" ? "Bus do 8 pasażerów" : "Samochód osobowy";
   const text = [
-    "NOWA REZERWACJA W MATT BOOKING PRO",
+    `🔔 NOWA REZERWACJA — ${b.booking_number}`,
     "",
-    `Numer: ${b.booking_number}`,
-    `Trasa: ${routeText(b)}`,
-    `${b.service_type === "from_airport" ? "Przylot" : "Wylot"}: ${b.travel_date} ${b.travel_time}`,
+    "TRASA",
+    routeText(b),
+    "",
+    "TERMIN",
+    `${b.service_type === "from_airport" ? "Przylot" : "Wylot"}: ${b.travel_date} · ${String(b.travel_time || "").slice(0, 5)}`,
     b.service_type === "roundtrip" && b.return_date
-      ? `Powrót: ${b.return_date} ${b.return_time || "—"}`
+      ? `Powrót: ${b.return_date} · ${String(b.return_time || "—").slice(0, 5)}`
       : "",
+    "",
+    "KLIENT",
+    b.customer_name,
+    `tel. ${customerPhone || "—"}`,
+    `e-mail: ${customerEmail || "—"}`,
+    "",
+    "SZCZEGÓŁY",
     `Pasażerowie: ${b.passengers}`,
     `Pojazd: ${vehicle}`,
     `Lot: ${b.flight_number || "—"}`,
-    `Kwota: ${Number(b.company_id ? (b.price_gross ?? b.total_price) : b.total_price).toFixed(2)} zł`,
+    `Kwota: ${Number(b.company_id ? (b.price_gross ?? b.total_price) : b.total_price).toFixed(2).replace(".", ",")} zł`,
     `Płatność: ${paymentPreferenceText(b)}`,
     "",
-    `Klient: ${b.customer_name}`,
-    `Telefon: ${customerPhone || "—"}`,
-    `E-mail: ${customerEmail || "—"}`,
-    "",
-    url ? `Panel: ${url}` : "Panel: https://panel.matt-transport.pl/panel"
+    "OTWÓRZ REZERWACJĘ:",
+    url || "https://panel.matt-transport.pl/panel"
   ].filter(Boolean).join("\n");
 
   return {
