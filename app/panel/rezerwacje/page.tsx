@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import PanelNav from "@/components/PanelNav";
 import { panelClient } from "@/lib/panel";
 import { statusPl } from "@/lib/status";
@@ -12,7 +15,14 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
   if (q.trim()) query = query.or(`booking_number.ilike.%${q}%,customer_name.ilike.%${q}%,phone.ilike.%${q}%,email.ilike.%${q}%`);
 
   const { data, error } = await query;
-  const all = sortBookingsChronologically(data ?? []);
+  const sourceRows = Array.isArray(data) ? data : [];
+  let all: any[] = [];
+  try {
+    all = sortBookingsChronologically(sourceRows);
+  } catch (sortError) {
+    console.error("Rezerwacje: błąd sortowania po usunięciu rekordu:", sortError);
+    all = sourceRows;
+  }
   const rows = all.filter((b: any) => {
     if (view === "completed") return b.status === "completed";
     if (view === "cancelled") return b.status === "cancelled";
