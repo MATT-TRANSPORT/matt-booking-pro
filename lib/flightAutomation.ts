@@ -33,8 +33,11 @@ function bookingReferenceTime(
   flight: any,
   leg: "primary" | "return"
 ) {
+  const useFlightReference = flight?.match_ok !== false;
   const relevant =
-    leg === "return"
+    !useFlightReference
+      ? null
+      : leg === "return"
       ? flight?.arr_estimated || flight?.arr_time
       : booking.service_type === "from_airport"
       ? flight?.arr_estimated || flight?.arr_time
@@ -79,8 +82,9 @@ export function automationIntervalMinutes(
 
   const until = minutesBetween(now, reference);
 
-  if (until > 24 * 60) return null;
-  if (until > 6 * 60) return 180;
+  // Nie pytamy AirLabs zbyt wcześnie. Przy lotach cyklicznych provider może
+  // zwrócić inną rotację o tym samym numerze i wygenerować fałszywy alarm.
+  if (until > 6 * 60) return null;
   if (until > 2 * 60) return 60;
   if (until > -120) return 20;
 
@@ -285,12 +289,19 @@ export async function syncFlightAutomationAlerts(
       flightId: flight.id,
       leg,
       type: "date_mismatch",
-      severity: "warning",
-      title: `✈ ${flight.flight_number} · brak dopasowania`,
+      severity: "info",
+      title: `✈ ${flight.flight_number} · lot jeszcze niepotwierdzony`,
       message:
         flight.match_message ||
         "Dane lotu nie pasują do terminu rezerwacji."
     });
+
+    // Dane są z innej rotacji tego samego numeru lotu. Nie wolno na ich
+    // podstawie generować czerwonych alarmów, pushy ani konfliktów obsady.
+    for (const type of ["cancelled", "diverted", "delay", "landed", "eta_change", "eta_conflict"]) {
+      await resolveAlert(admin, booking.id, leg, type);
+    }
+    return;
   } else {
     await resolveAlert(admin, booking.id, leg, "date_mismatch");
   }
@@ -394,7 +405,7 @@ export async function syncFlightAutomationAlerts(
         flightId: flight.id,
         leg,
         type: "eta_change",
-        severity: changed >= 30 ? "critical" : "warning",
+        severity: changed >= 30 ? "warning" : "info",
         title: `⚠ ${flight.flight_number} · zmiana ETA`,
         message:
           `ETA zmieniło się o około ${changed} min. ` +
@@ -405,7 +416,11 @@ export async function syncFlightAutomationAlerts(
           change_minutes: changed
         }
       });
+    } else {
+      await resolveAlert(admin, booking.id, leg, "eta_change");
     }
+  } else {
+    await resolveAlert(admin, booking.id, leg, "eta_change");
   }
 
   if (

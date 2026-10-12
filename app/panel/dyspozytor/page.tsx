@@ -26,10 +26,21 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ v
   if (selectedView === "completed") bookingsQuery = bookingsQuery.eq("status", "completed");
   if (selectedView === "cancelled") bookingsQuery = bookingsQuery.eq("status", "cancelled");
 
-  const [{ data: bookings, error: bookingsError }, { data: drivers }, { data: vehicles }] = await Promise.all([
+  const [
+    { data: bookings, error: bookingsError },
+    { data: drivers },
+    { data: vehicles },
+    { data: weddings }
+  ] = await Promise.all([
     bookingsQuery.limit(selectedView === "active" ? 1000 : 700),
     s.from("drivers").select("*").eq("active", true).order("full_name"),
-    s.from("vehicles").select("*").eq("active", true).order("name")
+    s.from("vehicles").select("*").eq("active", true).order("name"),
+    s.from("wedding_bookings")
+      .select("*")
+      .not("status", "in", "(completed,cancelled)")
+      .order("start_date")
+      .order("start_time")
+      .limit(20)
   ]);
 
   const bookingRows = bookings ?? [];
@@ -40,7 +51,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ v
   if (bookingIds.length) {
     const [flights, alerts] = await Promise.all([
       s.from("booking_flights").select("*").in("booking_id", bookingIds),
-      s.from("booking_flight_alerts").select("*").in("booking_id", bookingIds).eq("active", true).order("updated_at", { ascending: false })
+      s.from("booking_flight_alerts")
+        .select("*")
+        .in("booking_id", bookingIds)
+        .eq("active", true)
+        .in("alert_type", ["cancelled", "diverted", "delay", "eta_conflict"])
+        .order("updated_at", { ascending: false })
     ]);
     flightRows = flights.data ?? [];
     alertRows = alerts.data ?? [];
@@ -75,7 +91,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ v
   return <main className="container">
     <span className="badge">MATT DISPATCHER PRO</span>
     <h1>Plan kursów</h1>
-    <p className="muted">Jedno główne miejsce do obsługi wszystkich przejazdów. Chronologia jest zgodna z Dashboardem i Kalendarzem.</p>
+    <p className="muted">Główne miejsce do obsługi wszystkich przejazdów. Najbliższe kursy, obsada, konflikty i realne alerty lotnicze są w jednym widoku.</p>
     <PanelNav />
 
     <div className="dispatcher-archive-tabs">
@@ -84,6 +100,26 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ v
       <a className={selectedView === "completed" ? "active" : ""} href="/panel/dyspozytor?view=completed">✓ ZAKOŃCZONE</a>
       <a className={selectedView === "cancelled" ? "active" : ""} href="/panel/dyspozytor?view=cancelled">✕ ANULOWANE</a>
     </div>
+
+    {selectedView === "active" && (weddings ?? []).length > 0 && (
+      <section className="dispatcher-wedding-strip card">
+        <div className="company-section-head">
+          <div>
+            <span className="badge">WESELA</span>
+            <h2>Najbliższe transporty weselne</h2>
+          </div>
+          <strong>{(weddings ?? []).length}</strong>
+        </div>
+        <div className="dispatcher-wedding-list">
+          {(weddings ?? []).slice(0, 6).map((w: any) => (
+            <a href={`/panel/wesela/${w.id}`} key={w.id}>
+              <strong>💍 {w.start_date} · {String(w.start_time || "").slice(0, 5)} · {w.customer_name}</strong>
+              <span>{w.restaurant_name} · samochody: {w.vehicles_count || 1}</span>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
 
     {bookingsError && <div className="card" style={{ borderColor: "#dc2626", marginBottom: 16 }}><strong>Nie udało się pobrać rezerwacji.</strong></div>}
 
