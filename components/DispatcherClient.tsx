@@ -124,6 +124,18 @@ export default function DispatcherClient({
         tone = "critical";
       }
 
+      if (booking.payment_status === "review") {
+        reasons.push("Płatność wymaga weryfikacji");
+      }
+
+      if (booking.quote_required && booking.quote_status === "pending") {
+        reasons.push("Wycena A→B czeka na przygotowanie");
+      }
+
+      if (booking.status === "pending" && booking.customer_last_edited_at) {
+        reasons.push("Klient zmienił dane rezerwacji");
+      }
+
       if (reasons.length) items.push({ booking, tone, reasons });
     }
 
