@@ -112,8 +112,8 @@ async function markAdminCheckoutSucceeded(
 
       const canSetPaid =
         paidAmount === expectedAmount &&
-        !["cancelled", "completed"].includes(String(booking.status || "")) &&
-        booking.payment_status !== "paid";
+        String(booking.status || "") !== "cancelled" &&
+        !["paid", "refunded"].includes(String(booking.payment_status || ""));
 
       if (canSetPaid) {
         await admin
