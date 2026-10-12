@@ -33,8 +33,11 @@ function bookingReferenceTime(
   flight: any,
   leg: "primary" | "return"
 ) {
+  const useFlightReference = flight?.match_ok !== false;
   const relevant =
-    leg === "return"
+    !useFlightReference
+      ? null
+      : leg === "return"
       ? flight?.arr_estimated || flight?.arr_time
       : booking.service_type === "from_airport"
       ? flight?.arr_estimated || flight?.arr_time
@@ -292,6 +295,13 @@ export async function syncFlightAutomationAlerts(
         flight.match_message ||
         "Dane lotu nie pasują do terminu rezerwacji."
     });
+
+    // Dane są z innej rotacji tego samego numeru lotu. Nie wolno na ich
+    // podstawie generować czerwonych alarmów, pushy ani konfliktów obsady.
+    for (const type of ["cancelled", "diverted", "delay", "landed", "eta_change", "eta_conflict"]) {
+      await resolveAlert(admin, booking.id, leg, type);
+    }
+    return;
   } else {
     await resolveAlert(admin, booking.id, leg, "date_mismatch");
   }
