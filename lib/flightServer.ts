@@ -12,6 +12,22 @@ function dateDiffDays(a?: string | null, b?: string | null) {
   return Math.round(Math.abs(ta - tb) / 86400000);
 }
 
+function localSerialMinutes(value?: string | null) {
+  const match = String(value || "").match(
+    /(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/
+  );
+  if (!match) return null;
+  return Math.floor(
+    Date.UTC(
+      Number(match[1]),
+      Number(match[2]) - 1,
+      Number(match[3]),
+      Number(match[4]),
+      Number(match[5])
+    ) / 60000
+  );
+}
+
 function isoFromUnix(value: any) {
   const n = Number(value);
   if (!Number.isFinite(n) || n <= 0) return null;
@@ -23,6 +39,7 @@ function legConfig(booking: any, leg: "primary" | "return") {
     return {
       flightNumber: normalizeFlightNumber(booking.return_flight_number),
       travelDate: booking.return_date,
+      travelTime: booking.return_time,
       relevantTimeField: "arr"
     };
   }
@@ -30,6 +47,7 @@ function legConfig(booking: any, leg: "primary" | "return") {
   return {
     flightNumber: normalizeFlightNumber(booking.flight_number),
     travelDate: booking.travel_date,
+    travelTime: booking.travel_time,
     relevantTimeField:
       booking.service_type === "from_airport" ? "arr" : "dep"
   };
@@ -123,14 +141,26 @@ export async function refreshBookingFlight(
 
   const observedDate = parseDateFromAirLabs(relevantRaw);
   const diff = dateDiffDays(observedDate, config.travelDate);
+  const observedSerial = localSerialMinutes(relevantRaw);
+  const bookingSerial = localSerialMinutes(
+    `${config.travelDate || ""} ${String(config.travelTime || "12:00").slice(0, 5)}`
+  );
+  const minuteDiff =
+    observedSerial !== null && bookingSerial !== null
+      ? Math.abs(observedSerial - bookingSerial)
+      : null;
 
+  // Numer lotu bywa używany codziennie. Sama zgodność dnia +/-1 była zbyt luźna
+  // i potrafiła przypisać sąsiednią rotację. Akceptujemy dane tylko, gdy czas
+  // lotu jest rozsądnie blisko terminu z rezerwacji.
   const matchOk =
-    diff === null ||
-    diff <= 1;
+    minuteDiff !== null
+      ? minuteDiff <= 12 * 60
+      : diff === null || diff === 0;
 
   const matchMessage = matchOk
     ? null
-    : `AirLabs zwrócił najbliższy lot ${config.flightNumber} z datą ${observedDate}, a rezerwacja ma termin ${config.travelDate}. Status nie jest traktowany jako status tej rezerwacji.`;
+    : `AirLabs zwrócił lot ${config.flightNumber} z terminem ${relevantRaw || observedDate || "nieznanym"}, a rezerwacja ma ${config.travelDate} ${String(config.travelTime || "").slice(0, 5)}. Status nie jest traktowany jako status tej rezerwacji.`;
 
   const payload = {
     booking_id: booking.id,
