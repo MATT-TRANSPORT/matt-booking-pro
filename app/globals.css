@@ -2583,3 +2583,9 @@
   .calendar-week-grid{grid-template-columns:repeat(7,minmax(165px,165px));min-width:max-content}
   .calendar-week-scroll{margin-left:-24px;margin-right:-24px;padding-left:24px;padding-right:24px}
 }
+
+.dispatcher-wedding-strip{margin:16px 0}
+.dispatcher-wedding-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px}
+.dispatcher-wedding-list>a{display:grid;gap:5px;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:rgba(213,174,93,.04);color:var(--text)}
+.dispatcher-wedding-list>a span{color:var(--muted);font-size:12px}
+@media(max-width:800px){.dispatcher-wedding-list{grid-template-columns:1fr}}
