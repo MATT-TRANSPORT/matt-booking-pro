@@ -491,8 +491,8 @@ function DriverTripCard({
             )}
           </div>
 
-          <h2>{driverLegOperationalStartTime(b, leg)} · {b.customer_name}</h2>
-          <p className="muted">Start operacyjny: {driverLegOperationalStartDate(b, leg)} · do {driverLegOperationalEndTime(b, leg)} · {b.booking_number}</p>
+          <h2>{driverLegTime(b, leg)} · {b.customer_name}</h2>
+          <p className="muted">Start operacyjny kierowcy: {driverLegOperationalStartDate(b, leg)} · {driverLegOperationalStartTime(b, leg)}–{driverLegOperationalEndTime(b, leg)} · {b.booking_number}</p>
           <p className="muted driver-flight-scheduled-time">✈ {leg === "return" || b.service_type === "from_airport" ? "Godzina przylotu" : "Godzina wyjazdu na lotnisko"}: {driverLegDate(b, leg)} · {driverLegTime(b, leg)}</p>
         </div>
 
