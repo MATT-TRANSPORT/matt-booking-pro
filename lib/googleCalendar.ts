@@ -421,11 +421,6 @@ function bookingEventBody(
   const summary =
     `${airportPickup ? "LĄDOWANIE" : "WYJAZD"} ${calendarTitleDateLabel(operational.scheduledDate)} ${operational.scheduledTime}${titleFlight} · ${route}`;
 
-  const panelBase = (
-    process.env.NEXT_PUBLIC_APP_URL ||
-    "https://panel.matt-transport.pl"
-  ).replace(/\/$/, "");
-
   const description = [
     `STATUS: ${statusLabel(booking.status)}`,
     `Rezerwacja: ${booking.booking_number}`,
@@ -462,9 +457,7 @@ function bookingEventBody(
       : null,
     booking.notes
       ? `Uwagi: ${booking.notes}`
-      : null,
-    "",
-    `Panel MATT: ${panelBase}/panel/rezerwacje/${booking.id}`
+      : null
   ]
     .filter(Boolean)
     .join("\n");
