@@ -102,23 +102,24 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ v
     </div>
 
     {selectedView === "active" && (weddings ?? []).length > 0 && (
-      <section className="dispatcher-wedding-strip card">
-        <div className="company-section-head">
-          <div>
+      <details className="dispatcher-wedding-strip card">
+        <summary className="dispatcher-wedding-summary">
+          <span>
             <span className="badge">WESELA</span>
-            <h2>Najbliższe transporty weselne</h2>
-          </div>
-          <strong>{(weddings ?? []).length}</strong>
-        </div>
+            <strong>Transporty weselne</strong>
+            <small>Najbliższe: {(weddings ?? [])[0]?.start_date} · {String((weddings ?? [])[0]?.start_time || "").slice(0, 5)}</small>
+          </span>
+          <b>{(weddings ?? []).length}</b>
+        </summary>
         <div className="dispatcher-wedding-list">
-          {(weddings ?? []).slice(0, 6).map((w: any) => (
+          {(weddings ?? []).slice(0, 8).map((w: any) => (
             <a href={`/panel/wesela/${w.id}`} key={w.id}>
               <strong>💍 {w.start_date} · {String(w.start_time || "").slice(0, 5)} · {w.customer_name}</strong>
-              <span>{w.restaurant_name} · samochody: {w.vehicles_count || 1}</span>
+              <span>{w.restaurant_name} · samochody: {w.vehicles_count || 1} · {w.status === "pending" ? "oczekuje" : "zaakceptowane"}</span>
             </a>
           ))}
         </div>
-      </section>
+      </details>
     )}
 
     {bookingsError && <div className="card" style={{ borderColor: "#dc2626", marginBottom: 16 }}><strong>Nie udało się pobrać rezerwacji.</strong></div>}

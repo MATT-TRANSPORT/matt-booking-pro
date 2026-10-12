@@ -56,6 +56,189 @@ async function syncCalendarAfterPayment(admin: any, bookingId: string) {
   }
 }
 
+async function markAdminCheckoutSucceeded(
+  admin: any,
+  session: Stripe.Checkout.Session
+) {
+  const paymentId = session.metadata?.admin_stripe_payment_id || null;
+  if (!paymentId) return null;
+
+  const { data: payment } = await admin
+    .from("admin_stripe_payments")
+    .select("*")
+    .eq("id", paymentId)
+    .single();
+
+  if (!payment) return null;
+
+  const paidAmount = Number(session.amount_total || payment.amount_cents || 0);
+  const paymentIntentId =
+    typeof session.payment_intent === "string"
+      ? session.payment_intent
+      : session.payment_intent?.id || null;
+
+  await admin
+    .from("admin_stripe_payments")
+    .update({
+      status: "succeeded",
+      checkout_session_id: session.id,
+      payment_intent_id: paymentIntentId,
+      failure_reason: null,
+      paid_at: payment.paid_at || new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", payment.id);
+
+  const bookingId = payment.booking_id || null;
+
+  if (bookingId) {
+    const booking = await bookingById(admin, bookingId);
+
+    if (booking) {
+      await admin.from("booking_history").insert({
+        booking_id: booking.id,
+        event:
+          `✓ Płatność Stripe z Panelu: ${(paidAmount / 100).toFixed(2)} zł · metoda ${payment.payment_method || "auto"}`,
+        created_by: payment.created_by || null
+      });
+
+      const expectedAmount = Math.round(
+        Number(
+          booking.company_id
+            ? (booking.price_gross ?? booking.total_price ?? 0)
+            : (booking.total_price ?? 0)
+        ) * 100
+      );
+
+      const canSetPaid =
+        paidAmount === expectedAmount &&
+        String(booking.status || "") !== "cancelled" &&
+        !["paid", "refunded"].includes(String(booking.payment_status || ""));
+
+      if (canSetPaid) {
+        await admin
+          .from("bookings")
+          .update({
+            payment_status: "paid",
+            payment_provider: "stripe_admin",
+            payment_checkout_session_id: session.id,
+            payment_intent_id: paymentIntentId,
+            payment_amount_cents: paidAmount,
+            payment_currency: String(session.currency || "pln").toLowerCase(),
+            payment_paid_at: booking.payment_paid_at || new Date().toISOString(),
+            payment_last_error: null,
+            payment_review_reason: null,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", booking.id);
+
+        const recipient = await recipientForBooking(admin, booking);
+
+        if (recipient) {
+          const template = paymentReceivedEmail({
+            ...booking,
+            payment_status: "paid"
+          });
+
+          await sendMattEmail({
+            to: recipient,
+            subject: template.subject,
+            html: template.html
+          }).catch(() => null);
+        }
+
+        await sendPaymentReceivedAdminPush(admin, booking, paidAmount);
+      }
+
+      await syncCalendarAfterPayment(admin, booking.id);
+    }
+  }
+
+  return bookingId;
+}
+
+async function markAdminCheckoutFailed(
+  admin: any,
+  paymentId: string | null,
+  reason: string
+) {
+  if (!paymentId) return null;
+
+  const { data: payment } = await admin
+    .from("admin_stripe_payments")
+    .select("id,booking_id")
+    .eq("id", paymentId)
+    .single();
+
+  if (!payment) return null;
+
+  await admin
+    .from("admin_stripe_payments")
+    .update({
+      status: "failed",
+      failure_reason: reason,
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", payment.id);
+
+  return payment.booking_id || null;
+}
+
+async function markAdminRefunded(
+  admin: any,
+  paymentIntentId: string
+) {
+  const { data: payment } = await admin
+    .from("admin_stripe_payments")
+    .select("*")
+    .eq("payment_intent_id", paymentIntentId)
+    .maybeSingle();
+
+  if (!payment) return { handled: false, bookingId: null };
+
+  await admin
+    .from("admin_stripe_payments")
+    .update({
+      status: "refunded",
+      refunded_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", payment.id);
+
+  const bookingId = payment.booking_id || null;
+
+  if (bookingId) {
+    const booking = await bookingById(admin, bookingId);
+
+    await admin.from("booking_history").insert({
+      booking_id: bookingId,
+      event:
+        `↩ Zwrot płatności Stripe z Panelu: ${(Number(payment.amount_cents || 0) / 100).toFixed(2)} zł`,
+      created_by: null
+    });
+
+    if (
+      booking &&
+      booking.payment_provider === "stripe_admin" &&
+      booking.payment_intent_id === paymentIntentId
+    ) {
+      await admin
+        .from("bookings")
+        .update({
+          payment_status: "refunded",
+          payment_refunded_at: new Date().toISOString(),
+          payment_last_error: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", booking.id);
+
+      await syncCalendarAfterPayment(admin, booking.id);
+    }
+  }
+
+  return { handled: true, bookingId };
+}
+
 async function markPaid(
   admin: any,
   booking: any,
@@ -406,21 +589,30 @@ export async function POST(req: NextRequest) {
       const session =
         event.data.object as Stripe.Checkout.Session;
 
-      bookingId =
-        session.metadata?.booking_id ||
-        session.client_reference_id ||
-        null;
-
-      const booking = bookingId
-        ? await bookingById(admin, bookingId)
-        : null;
-
-      if (booking) {
+      if (session.metadata?.source === "matt_admin_payment") {
         if (
           event.type === "checkout.session.async_payment_succeeded" ||
           session.payment_status === "paid"
         ) {
-          await markPaid(admin, booking, session);
+          bookingId = await markAdminCheckoutSucceeded(admin, session);
+        }
+      } else {
+        bookingId =
+          session.metadata?.booking_id ||
+          session.client_reference_id ||
+          null;
+
+        const booking = bookingId
+          ? await bookingById(admin, bookingId)
+          : null;
+
+        if (booking) {
+          if (
+            event.type === "checkout.session.async_payment_succeeded" ||
+            session.payment_status === "paid"
+          ) {
+            await markPaid(admin, booking, session);
+          }
         }
       }
     }
@@ -431,20 +623,28 @@ export async function POST(req: NextRequest) {
       const session =
         event.data.object as Stripe.Checkout.Session;
 
-      bookingId =
-        session.metadata?.booking_id ||
-        session.client_reference_id ||
-        null;
+      if (session.metadata?.source === "matt_admin_payment") {
+        bookingId = await markAdminCheckoutFailed(
+          admin,
+          session.metadata?.admin_stripe_payment_id || null,
+          "Operator płatności zgłosił nieudaną płatność."
+        );
+      } else {
+        bookingId =
+          session.metadata?.booking_id ||
+          session.client_reference_id ||
+          null;
 
-      const booking = bookingId
-        ? await bookingById(admin, bookingId)
-        : null;
+        const booking = bookingId
+          ? await bookingById(admin, bookingId)
+          : null;
 
-      await markFailed(
-        admin,
-        booking,
-        "Operator płatności zgłosił nieudaną płatność."
-      );
+        await markFailed(
+          admin,
+          booking,
+          "Operator płatności zgłosił nieudaną płatność."
+        );
+      }
     }
 
     if (event.type === "payment_intent.succeeded") {
@@ -462,6 +662,12 @@ export async function POST(req: NextRequest) {
 
       if (intent.metadata?.source === "matt_driver_terminal") {
         bookingId = await markTerminalPaymentFailed(admin, intent, "failed");
+      } else if (intent.metadata?.source === "matt_admin_payment") {
+        bookingId = await markAdminCheckoutFailed(
+          admin,
+          intent.metadata?.admin_stripe_payment_id || null,
+          intent.last_payment_error?.message || "Płatność została odrzucona."
+        );
       } else {
         bookingId = intent.metadata?.booking_id || null;
 
@@ -484,6 +690,12 @@ export async function POST(req: NextRequest) {
 
       if (intent.metadata?.source === "matt_driver_terminal") {
         bookingId = await markTerminalPaymentFailed(admin, intent, "canceled");
+      } else if (intent.metadata?.source === "matt_admin_payment") {
+        bookingId = await markAdminCheckoutFailed(
+          admin,
+          intent.metadata?.admin_stripe_payment_id || null,
+          "Płatność została anulowana."
+        );
       }
     }
 
@@ -497,6 +709,11 @@ export async function POST(req: NextRequest) {
           : charge.payment_intent?.id || null;
 
       if (paymentIntentId) {
+        const adminRefund = await markAdminRefunded(admin, paymentIntentId);
+
+        if (adminRefund.handled) {
+          bookingId = adminRefund.bookingId;
+        } else {
         const { data: terminalPayment } = await admin
           .from("driver_card_payments")
           .select("*")
@@ -564,6 +781,7 @@ export async function POST(req: NextRequest) {
 
           await syncCalendarAfterPayment(admin, booking.id);
           }
+        }
         }
       }
     }

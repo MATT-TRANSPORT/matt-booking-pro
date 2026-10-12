@@ -2,6 +2,7 @@ export default function PanelNav() {
   return <nav className="nav panel-main-nav">
     <a href="/panel/dyspozytor">Plan kursów</a>
     <a href="/panel/kalendarz">Kalendarz</a>
+    <a href="/panel/platnosc">💳 Płatność Stripe</a>
     <a href="/panel/firmy">Firmy B2B</a>
     <a href="/panel/cennik">Cennik</a>
     <details className="panel-extra-menu">

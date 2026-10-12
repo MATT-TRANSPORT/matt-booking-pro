@@ -2,6 +2,7 @@ import {notFound} from "next/navigation";
 import PanelNav from "@/components/PanelNav";
 import {panelClient} from "@/lib/panel";
 import WeddingAssignments from "@/components/WeddingAssignments";
+import WeddingBookingActions from "@/components/WeddingBookingActions";
 export default async function Page({params}:{params:Promise<{id:string}>}){
   const {id}=await params; const {s}=await panelClient();
   const [{data:b},{data:slots},{data:drivers},{data:vehicles}]=await Promise.all([
@@ -12,7 +13,7 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
   ]);
   if(!b)notFound();
   return <main className="container">
-    <a className="back-link" href="/panel">← Dashboard</a>
+    <a className="back-link" href="/panel/dyspozytor">← Plan kursów</a>
     <h1>💍 {b.booking_number}</h1><PanelNav/>
     <div className="reservation-detail-grid">
       <div className="card">
@@ -25,13 +26,14 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
           <div><span>Ilość samochodów</span><strong>{b.vehicles_count}</strong></div>
           <div><span>Telefon</span><strong>{b.phone}</strong></div>
           <div><span>E-mail</span><strong>{b.email}</strong></div>
-          <div><span>Status</span><strong>{b.status==="pending"?"Oczekuje":b.status}</strong></div>
+          <div><span>Status</span><strong>{b.status==="pending"?"Oczekuje na akceptację":b.status==="confirmed"?"Zaakceptowane":b.status}</strong></div>
         </div>
         {b.notes&&<div className="driver-notes"><strong>Uwagi</strong><span>{b.notes}</span></div>}
       </div>
       <div className="card"><h2>Następny krok</h2><p>Przygotuj umowę na podstawie danych i prześlij ją klientowi na adres e-mail.</p>
       <a className="btn" href={`mailto:${b.email}`}>NAPISZ DO KLIENTA</a></div>
     </div>
+    <WeddingBookingActions booking={b}/>
     <WeddingAssignments booking={b} slots={slots??[]} drivers={drivers??[]} vehicles={vehicles??[]}/>
   </main>
 }

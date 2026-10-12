@@ -2589,3 +2589,46 @@
 .dispatcher-wedding-list>a{display:grid;gap:5px;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:rgba(213,174,93,.04);color:var(--text)}
 .dispatcher-wedding-list>a span{color:var(--muted);font-size:12px}
 @media(max-width:800px){.dispatcher-wedding-list{grid-template-columns:1fr}}
+
+
+/* v5.1 wedding controls + admin Stripe launcher */
+.dispatcher-wedding-summary{display:flex;align-items:center;justify-content:space-between;gap:14px;cursor:pointer;list-style:none}
+.dispatcher-wedding-summary::-webkit-details-marker{display:none}
+.dispatcher-wedding-summary>span{display:flex;align-items:center;gap:10px;min-width:0}
+.dispatcher-wedding-summary small{color:var(--muted);font-weight:400}
+.dispatcher-wedding-summary>b{display:inline-flex;min-width:30px;height:30px;align-items:center;justify-content:center;border-radius:999px;background:var(--panel2);color:var(--gold2)}
+.dispatcher-wedding-strip[open] .dispatcher-wedding-summary{padding-bottom:12px;border-bottom:1px solid var(--line);margin-bottom:12px}
+
+.wedding-admin-actions{margin-top:18px}
+.wedding-admin-status{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2)}
+.wedding-admin-status.pending strong{color:var(--gold2)}
+.wedding-admin-status.confirmed strong{color:var(--ok)}
+.wedding-admin-actions-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.wedding-delete-btn{border-color:rgba(223,105,105,.7)!important;color:#ffb3b3!important}
+
+.admin-stripe-launcher{margin-top:18px}
+.admin-stripe-grid{display:grid;grid-template-columns:1.2fr .7fr 1fr 1fr;gap:12px;margin-top:14px}
+.admin-stripe-description{margin-top:12px}
+.admin-stripe-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.admin-stripe-note{font-size:12px;margin:12px 0 0}
+.admin-stripe-history{margin-top:18px}
+.admin-stripe-history-list{display:grid;gap:8px;margin-top:12px}
+.admin-stripe-history-list>div{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.02)}
+.admin-stripe-history-list span{display:grid;gap:4px}
+.admin-stripe-history-list small{color:var(--muted)}
+.admin-stripe-status{font-size:11px;padding:6px 8px;border-radius:999px;background:var(--panel2)}
+.admin-stripe-status.succeeded{color:var(--ok)}
+.admin-stripe-status.failed,.admin-stripe-status.refunded{color:#ffb3b3}
+.admin-stripe-status.pending{color:var(--gold2)}
+
+@media(max-width:900px){
+  .admin-stripe-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:620px){
+  .admin-stripe-grid{grid-template-columns:1fr}
+  .dispatcher-wedding-summary>span{display:grid;gap:4px}
+  .dispatcher-wedding-summary .badge{width:max-content}
+  .wedding-admin-actions-row .btn{width:100%}
+  .admin-stripe-actions .btn{width:100%;text-align:center}
+  .admin-stripe-history-list>div{align-items:flex-start}
+}
