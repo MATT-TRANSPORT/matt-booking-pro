@@ -40,7 +40,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ v
   if (bookingIds.length) {
     const [flights, alerts] = await Promise.all([
       s.from("booking_flights").select("*").in("booking_id", bookingIds),
-      s.from("booking_flight_alerts").select("*").in("booking_id", bookingIds).eq("active", true).order("updated_at", { ascending: false })
+      s.from("booking_flight_alerts")
+        .select("*")
+        .in("booking_id", bookingIds)
+        .eq("active", true)
+        .in("alert_type", ["cancelled", "diverted", "delay", "eta_conflict"])
+        .order("updated_at", { ascending: false })
     ]);
     flightRows = flights.data ?? [];
     alertRows = alerts.data ?? [];
@@ -75,7 +80,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ v
   return <main className="container">
     <span className="badge">MATT DISPATCHER PRO</span>
     <h1>Plan kursów</h1>
-    <p className="muted">Jedno główne miejsce do obsługi wszystkich przejazdów. Chronologia jest zgodna z Dashboardem i Kalendarzem.</p>
+    <p className="muted">Główne miejsce do obsługi wszystkich przejazdów. Najbliższe kursy, obsada, konflikty i realne alerty lotnicze są w jednym widoku.</p>
     <PanelNav />
 
     <div className="dispatcher-archive-tabs">
