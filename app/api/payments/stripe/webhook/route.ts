@@ -15,6 +15,7 @@ import {
 } from "@/lib/stripeServer";
 import { syncBookingCalendar } from "@/lib/googleCalendar";
 import { sendPaymentReceivedAdminPush } from "@/lib/adminNotifications";
+import { paymentBookingStatusAllowed } from "@/lib/payment";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -254,7 +255,7 @@ async function markPaid(
 
   const mismatch =
     paidAmount !== expectedAmount ||
-    !["confirmed", "assigned"].includes(status);
+    !paymentBookingStatusAllowed(status);
 
   const paymentIntentId =
     typeof session.payment_intent === "string"
@@ -265,7 +266,7 @@ async function markPaid(
     const reason =
       paidAmount !== expectedAmount
         ? `Kwota Stripe ${paidAmount} gr nie zgadza się z aktualną kwotą rezerwacji ${expectedAmount} gr.`
-        : `Rezerwacja ma status ${status} zamiast confirmed/assigned.`;
+        : `Rezerwacja ma status ${status}, który nie pozwala na zaksięgowanie płatności online.`;
 
     await admin
       .from("bookings")

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   onlinePaymentEligible,
+  paymentBookingStatusAllowed,
   paymentStatusLabel
 } from "@/lib/payment";
 
@@ -20,7 +21,7 @@ export default function OnlinePaymentCard({
   const eligible = onlinePaymentEligible(booking);
   const bookingStatus = String(booking.status || "");
   const available =
-    ["confirmed", "assigned"].includes(bookingStatus) &&
+    paymentBookingStatusAllowed(bookingStatus) &&
     !["paid", "refunded", "review"].includes(status);
 
   useEffect(() => {
@@ -181,14 +182,14 @@ export default function OnlinePaymentCard({
           ⚠ Płatność wymaga weryfikacji przez MATT TRANSPORT.
           Nie wykonuj kolejnej płatności.
         </div>
-      ) : !["confirmed", "assigned"].includes(bookingStatus) ? (
+      ) : !paymentBookingStatusAllowed(bookingStatus) ? (
         <div className="online-payment-info">
-          Płatność online zostanie udostępniona po potwierdzeniu rezerwacji przez MATT TRANSPORT.
+          Płatność online jest niedostępna dla aktualnego statusu rezerwacji.
         </div>
       ) : (
         <>
           <p>
-            Zapłać bezpiecznie online za potwierdzoną rezerwację{booking.company_id ? " — kwotę brutto z VAT 8%." : "."}
+            Zapłać bezpiecznie online za rezerwację{bookingStatus === "completed" ? " — płatność jest nadal dostępna po wykonaniu transportu" : ""}{booking.company_id ? " — kwotę brutto z VAT 8%." : "."}
           </p>
           <button
             type="button"
