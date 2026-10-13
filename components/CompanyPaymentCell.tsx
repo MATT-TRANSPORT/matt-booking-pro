@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { paymentStatusLabel } from "@/lib/payment";
+import { paymentBookingStatusAllowed, paymentStatusLabel } from "@/lib/payment";
 
 export default function CompanyPaymentCell({ booking, canPay = true }: { booking: any; canPay?: boolean }) {
   const [busy, setBusy] = useState(false);
@@ -39,7 +39,7 @@ export default function CompanyPaymentCell({ booking, canPay = true }: { booking
   if (status === "refunded") return <span className="payment-refunded">↩ Zwrot płatności</span>;
   if (status === "review") return <span className="payment-review">⚠ Płatność do weryfikacji</span>;
 
-  const paymentAvailable = ["confirmed", "assigned"].includes(String(booking.status || ""));
+  const paymentAvailable = paymentBookingStatusAllowed(booking.status);
 
   async function pay() {
     if (busy) return;
@@ -56,7 +56,7 @@ export default function CompanyPaymentCell({ booking, canPay = true }: { booking
     }
   }
 
-  if (!paymentAvailable) return <span className="payment-waiting">Płatność dostępna po potwierdzeniu</span>;
+  if (!paymentAvailable) return <span className="payment-waiting">Płatność niedostępna dla aktualnego statusu</span>;
   if (!canPay) return <span className="payment-waiting">{paymentStatusLabel(status)} · płatność dostępna dla administratora firmy</span>;
 
   return (
