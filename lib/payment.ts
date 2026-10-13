@@ -26,14 +26,28 @@ export function onlinePaymentEligible(booking: any) {
   return booking.payment_method === "employee_payment";
 }
 
+export const PAYMENT_ALLOWED_BOOKING_STATUSES = [
+  "confirmed",
+  "assigned",
+  "in_progress",
+  "arrived",
+  "picked_up",
+  "completed"
+] as const;
+
+export function paymentBookingStatusAllowed(status: unknown) {
+  return PAYMENT_ALLOWED_BOOKING_STATUSES.includes(
+    String(status || "").toLowerCase() as (typeof PAYMENT_ALLOWED_BOOKING_STATUSES)[number]
+  );
+}
+
 export function paymentCanStart(booking: any) {
   if (!onlinePaymentEligible(booking)) return false;
 
-  const status = String(booking.status || "").toLowerCase();
   const payment = String(booking.payment_status || "pending").toLowerCase();
 
   return (
-    ["confirmed", "assigned"].includes(status) &&
+    paymentBookingStatusAllowed(booking.status) &&
     !["paid", "refunded", "review"].includes(payment) &&
     Number(booking.company_id ? (booking.price_gross ?? booking.total_price ?? 0) : (booking.total_price ?? 0)) > 0
   );
