@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { paymentBookingStatusAllowed } from "@/lib/payment";
 
 export default function B2BEmployeePayment({ token }: { token: string }) {
   const [booking, setBooking] = useState<any>(null);
@@ -84,7 +85,7 @@ export default function B2BEmployeePayment({ token }: { token: string }) {
   const paid = booking.payment_status === "paid";
   const review = booking.payment_status === "review";
   const refunded = booking.payment_status === "refunded";
-  const canPay = ["confirmed", "assigned"].includes(String(booking.booking_status || "")) && !paid && !review && !refunded;
+  const canPay = paymentBookingStatusAllowed(booking.booking_status) && !paid && !review && !refunded;
 
   return (
     <main className="container client-portal-shell">
@@ -111,7 +112,7 @@ export default function B2BEmployeePayment({ token }: { token: string }) {
           ) : refunded ? (
             <div className="online-payment-info" style={{marginTop:18}}>↩ Zarejestrowano zwrot. / This payment has been refunded.</div>
           ) : !canPay ? (
-            <div className="online-payment-info" style={{marginTop:18}}>Płatność będzie dostępna po potwierdzeniu rezerwacji. / Payment will be available after the booking is confirmed.</div>
+            <div className="online-payment-info" style={{marginTop:18}}>Płatność jest niedostępna dla aktualnego statusu rezerwacji. / Payment is unavailable for the current booking status.</div>
           ) : (
             <>
               <div style={{marginTop:20,padding:18,border:"1px solid #4f4733",borderRadius:14}}>
