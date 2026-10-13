@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   onlinePaymentEligible,
+  paymentBookingStatusAllowed,
   paymentStatusLabel
 } from "@/lib/payment";
 
@@ -35,7 +36,7 @@ export default function PaymentLinkBox({
     : "";
   const effectiveLink = isCompanyOnline ? "" : (link || stableLink);
   const paymentAvailable =
-    ["confirmed", "assigned"].includes(booking.status) &&
+    paymentBookingStatusAllowed(booking.status) &&
     paymentStatus !== "paid";
 
   async function copyLink() {
@@ -200,7 +201,7 @@ export default function PaymentLinkBox({
 
       {effectiveLink && !paymentAvailable && paymentStatus !== "paid" && (
         <p className="muted">
-          Link klienta jest dostępny, ale płatność zostanie przyjęta dopiero po potwierdzeniu rezerwacji.
+          Link klienta jest dostępny, ale płatność nie może zostać uruchomiona przy aktualnym statusie rezerwacji.
         </p>
       )}
       {isEmployeePayment && !isCompanyOnline && (
