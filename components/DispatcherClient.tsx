@@ -384,7 +384,25 @@ export default function DispatcherClient({
 function formatOperationalTerm(booking: any, nowKey: string) {
   const leg = nextOperationalLeg(booking, nowKey);
   if (!leg) return "Brak terminu";
-  return `${leg.label}: start ${leg.operationalStartDate} · ${leg.operationalStartTime} (lot ${leg.date} · ${leg.time})`;
+  return `${leg.label}: ${leg.date} · ${leg.time} (${leg.kind === "return" || booking.service_type === "from_airport" ? "godzina przylotu" : "godzina wyjazdu"})`;
+}
+
+function PaymentSummary({ b }: { b: any }) {
+  const status = String(b.payment_status || "pending").toLowerCase();
+  const method = String(b.payment_method || "").toLowerCase();
+  const payer = b.company_id
+    ? method === "employee_payment" ? "Firma · online" : "Firma · przelew"
+    : method === "online" || b.online_payment_requested ? "Klient · online"
+    : method === "bank_transfer" ? "Klient · przelew" : "Klient · gotówka";
+  const label = status === "paid" ? "✓ OPŁACONO"
+    : status === "review" ? "⚠ DO WERYFIKACJI"
+    : status === "refunded" ? "↩ ZWROT"
+    : status === "failed" ? "✕ NIEUDANA"
+    : "NIEOPŁACONO";
+  return <div className="dispatcher-payment-summary" style={{ marginTop: 5, display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", fontSize: 12 }}>
+    <span>{payer}</span>
+    <strong style={{ color: status === "paid" ? "#15803d" : status === "review" || status === "failed" ? "#b45309" : "inherit" }}>{label}</strong>
+  </div>;
 }
 
 function DriverBadge({ b, drivers, leg = "primary" }: { b: any; drivers: any[]; leg?: "primary" | "return" }) {
@@ -426,9 +444,8 @@ function OperationalLegs({ b, nowKey }: { b: any; nowKey: string }) {
       {bookingLegs(b).map((leg) => (
         <div key={leg.kind} className={next?.kind === leg.kind ? "next" : ""}>
           <span>{leg.label}</span>
-          <strong>{leg.operationalStartDate}</strong>
-          <b>START {leg.operationalStartTime}</b>
-          <small>lot {leg.date} · {leg.time}</small>
+          <strong>{leg.date}</strong>
+          <b>{leg.kind === "return" || b.service_type === "from_airport" ? "PRZYLOT" : "WYJAZD"} {leg.time}</b>
           {(!leg.driverId || !leg.vehicleId) && <small className="dispatcher-leg-unassigned">brak pełnej obsady</small>}
         </div>
       ))}
@@ -539,7 +556,7 @@ function DispatchRow({
       <td>
         <div className="booking-origin">{b.company_id ? <span className="origin-badge b2b">🏢 B2B · {company?.name ?? "Firma"}</span> : <span className="origin-badge private">👤 INDYWIDUALNY</span>}</div>
         <a href={`/panel/rezerwacje/${b.id}`}><strong>{b.booking_number}</strong></a>
-        <div className="dispatcher-route">{route}</div><FlightOps b={b} compact /><small>{b.customer_name}{b.phone ? ` · ${b.phone}` : ""}</small>
+        <div className="dispatcher-route">{route}</div><PaymentSummary b={b} /><FlightOps b={b} compact /><small>{b.customer_name}{b.phone ? ` · ${b.phone}` : ""}</small>
       </td>
       <td>
         <span className={`status ${b.status}`}>{statusPl(b.status)}</span>
@@ -584,7 +601,7 @@ function DispatchCard({ b, drivers, vehicles, update, saving, conflicts, nowKey 
       {overdue && <div className="overdue-badge">⚠ TERMIN MINĄŁ — status niezamknięty</div>}<ConflictBadges conflicts={conflicts} />
       {bookingHasMissingAssignment({ ...b, driver_id: driverId || null, vehicle_id: vehicleId || null, return_driver_id: returnDriverId || null, return_vehicle_id: returnVehicleId || null }) && <div className="dispatcher-missing-badge">⚠ NIEPEŁNA OBSADA</div>}
       <div className="booking-origin">{b.company_id ? <span className="origin-badge b2b">🏢 {company?.name ?? "B2B"}</span> : <span className="origin-badge private">👤 INDYWIDUALNY</span>}</div>
-      <div className="dispatcher-card-route"><strong>{b.customer_name}</strong><span>{route}</span></div><FlightOps b={b}/>
+      <div className="dispatcher-card-route"><strong>{b.customer_name}</strong><span>{route}</span></div><PaymentSummary b={b} /><FlightOps b={b}/>
       <LegAssignmentControls b={b} drivers={drivers} vehicles={vehicles} driverId={driverId} vehicleId={vehicleId} returnDriverId={returnDriverId} returnVehicleId={returnVehicleId} setDriverId={setDriverId} setVehicleId={setVehicleId} setReturnDriverId={setReturnDriverId} setReturnVehicleId={setReturnVehicleId}/>
       <div className="dispatcher-mobile-actions"><button className="btn secondary" disabled={saving} onClick={() => save()}>{saving ? "ZAPIS..." : "ZAPISZ OBSADĘ"}</button><QuickStatusAction b={b} driverId={activeDriver} vehicleId={activeVehicle} leg={activeLeg?.kind} update={(_id:any,_d:any,_v:any,status:any,leg:any)=>save(status, leg)} saving={saving}/></div>
       <QuickLinks b={b}/>
