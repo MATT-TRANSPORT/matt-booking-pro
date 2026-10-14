@@ -22,6 +22,11 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
   const [vehicle,setVehicle] = useState<"car"|"bus">(initialEntry?.vehicle ?? "car");
   const [passengers,setPassengers] = useState(1);
   const [distanceKm,setDistanceKm] = useState(0);
+  const [calculatedAddress,setCalculatedAddress] = useState("");
+  const [routeBusy,setRouteBusy] = useState(false);
+  const [routeError,setRouteError] = useState("");
+  const [routeRetry,setRouteRetry] = useState(0);
+  const routeReady = !!address.trim() && calculatedAddress === address.trim() && !routeBusy && !routeError;
   const [suggestions,setSuggestions] = useState<Suggestion[]>([]);
   const [additionalStopEnabled,setAdditionalStopEnabled] = useState(false);
   const [additionalStopAddress,setAdditionalStopAddress] = useState("");
@@ -65,15 +70,46 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
 
   useEffect(()=>{
     if(address.trim().length<3){ setSuggestions([]); return; }
+    const controller = new AbortController();
     const timer=setTimeout(async()=>{
       try{
-        const r=await fetch(`/api/places?q=${encodeURIComponent(address)}`);
+        const r=await fetch(`/api/places?q=${encodeURIComponent(address)}`, {signal:controller.signal});
         const d=await r.json();
-        setSuggestions(d.suggestions??[]);
-      }catch{ setSuggestions([]); }
+        if(!controller.signal.aborted) setSuggestions(r.ok ? d.suggestions??[] : []);
+      }catch{ if(!controller.signal.aborted) setSuggestions([]); }
     },350);
-    return()=>clearTimeout(timer);
+    return()=>{clearTimeout(timer); controller.abort();};
   },[address]);
+
+  useEffect(()=>{
+    const value = address.trim();
+    const controller = new AbortController();
+    setDistanceKm(0);
+    setCalculatedAddress("");
+    setRouteError("");
+    if(value.length<3 || airport==="other") { setRouteBusy(false); return; }
+    setRouteBusy(true);
+    const timer = setTimeout(async()=>{
+      try {
+        const r = await fetch("/api/route", {
+          method:"POST", headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({address:value}), signal:controller.signal
+        });
+        const d = await r.json();
+        if(controller.signal.aborted) return;
+        if(!r.ok || typeof d.distanceKm!=="number" || !Number.isFinite(d.distanceKm) || d.distanceKm<0) {
+          throw new Error("Nie udało się obliczyć dojazdu.");
+        }
+        setDistanceKm(d.distanceKm);
+        setCalculatedAddress(value);
+      } catch {
+        if(!controller.signal.aborted) setRouteError("Nie udało się obliczyć dojazdu. Sprawdź adres (miejscowość, ulica i numer) i spróbuj ponownie.");
+      } finally {
+        if(!controller.signal.aborted) setRouteBusy(false);
+      }
+    },600);
+    return()=>{clearTimeout(timer); controller.abort();};
+  },[address,airport,routeRetry]);
 
   useEffect(()=>{
     if(serviceType!=="roundtrip") {
@@ -115,11 +151,8 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
     return()=>clearTimeout(timer);
   },[additionalStopEnabled,additionalStopAddress,additionalStopPrimary,additionalStopReturn,address,airport,serviceType]);
 
-  async function chooseAddress(value:string){
+  function chooseAddress(value:string){
     setAddress(value); setSuggestions([]);
-    const r=await fetch("/api/route",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({address:value})});
-    const d=await r.json();
-    if(r.ok) setDistanceKm(Number(d.distanceKm));
   }
 
   const standardAirport = airport!=="other";
@@ -128,14 +161,14 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
     if(!item) return {base:0,extra:0,stopFee:0,stopExtraKm:0,stopExtra:0,vat:0,total:0};
     const m=serviceType==="roundtrip"?2:1;
     const base=item[vehicle]*m;
-    const extra=Math.max(0,distanceKm-40)*2.4*m;
+    const extra=routeReady?Math.max(0,distanceKm-40)*2.4*m:0;
     const stopFee=additionalStopEnabled?Number(additionalStopQuote?.stopFee||0):0;
     const stopExtraKm=additionalStopEnabled?Number(additionalStopQuote?.totalExtraKm||0):0;
     const stopExtra=additionalStopEnabled?Number(additionalStopQuote?.stopExtraPrice||0):0;
     const subtotal=base+extra+stopFee+stopExtra;
     const vat=invoice?subtotal*0.08:0;
     return {base,extra,stopFee,stopExtraKm,stopExtra,vat,total:subtotal+vat};
-  },[item,serviceType,vehicle,distanceKm,invoice,additionalStopEnabled,additionalStopQuote]);
+  },[item,serviceType,vehicle,distanceKm,routeReady,invoice,additionalStopEnabled,additionalStopQuote]);
 
   const airportLabel = airport==="other" ? (otherAirport||"Inne lotnisko") : (airports[airport]?.label || "Lotnisko");
   const activeStop = additionalStopEnabled && additionalStopAddress.trim() ? additionalStopAddress.trim() : "";
@@ -171,21 +204,20 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
   }, []);
 
   useEffect(() => {
-    if (address.trim() && distanceKm > 0 && (airport !== "other" || otherAirport.trim().length >= 3)) {
+    if (routeReady && (airport !== "other" || otherAirport.trim().length >= 3)) {
       trackGrowthFunnelEvent("route_ready", funnelDetails);
     }
-  }, [address, distanceKm, airport, otherAirport, serviceType, vehicle, quote.total]);
+  }, [routeReady, airport, otherAirport, serviceType, vehicle, quote.total]);
 
   useEffect(() => {
     if (travelDate && travelTime && roundtripScheduleReady()) trackGrowthFunnelEvent("trip_ready", funnelDetails);
   }, [travelDate, travelTime, returnDate, returnTime, serviceType, airport, vehicle, quote.total]);
 
   useEffect(() => {
-    const routeReady = Boolean(address.trim() && distanceKm > 0 && airport !== "other");
     if (quote.total > 0 && ((!mobile && routeReady) || (mobile && step === 6))) {
       trackGrowthFunnelEvent("quote_viewed", funnelDetails);
     }
-  }, [mobile, step, address, distanceKm, airport, quote.total, serviceType, vehicle]);
+  }, [mobile, step, routeReady, airport, quote.total, serviceType, vehicle]);
 
   useEffect(() => {
     if (name.trim() || phone.trim() || email.trim()) {
@@ -195,11 +227,11 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
 
   useEffect(() => {
     const customerReady = Boolean(name.trim() && phone.trim() && email.trim() && (!invoice || nip10(nip).length === 10));
-    const bookingReady = Boolean(address.trim() && distanceKm > 0 && travelDate && travelTime && roundtripScheduleReady() && airport !== "other" && customerReady);
+    const bookingReady = Boolean(routeReady && travelDate && travelTime && roundtripScheduleReady() && airport !== "other" && customerReady);
     if (bookingReady && (!mobile || step === 6)) {
       trackGrowthFunnelEvent("ready_to_submit", funnelDetails);
     }
-  }, [name, phone, email, invoice, nip, address, distanceKm, travelDate, travelTime, returnDate, returnTime, airport, mobile, step, serviceType, vehicle, quote.total]);
+  }, [name, phone, email, invoice, nip, routeReady, travelDate, travelTime, returnDate, returnTime, airport, mobile, step, serviceType, vehicle, quote.total]);
 
   function markFunnelStarted() {
     trackGrowthFunnelEvent("form_started", funnelDetails);
@@ -216,15 +248,21 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
   }
 
   function valid(n:number){
-    if(n===2) return !!address && !!distanceKm && (airport!=="other" || otherAirport.trim().length>=3) && (!additionalStopEnabled || (!!additionalStopAddress.trim() && !additionalStopBusy && !!additionalStopQuote));
+    if(n===2) return routeReady && (airport!=="other" || otherAirport.trim().length>=3) && (!additionalStopEnabled || (!!additionalStopAddress.trim() && !additionalStopBusy && !!additionalStopQuote));
     if(n===3) return !!travelDate && !!travelTime && roundtripScheduleReady();
     if(n===5) return !!name.trim() && !!phone.trim() && !!email.trim() && (!invoice || nip10(nip).length===10);
     return true;
   }
 
   async function submit(){
+    if(saving) return;
     if(airport==="other"){ setMessage("Dla tego lotniska wycena jest indywidualna telefonicznie."); return; }
-    if(!address||!distanceKm||!travelDate||!travelTime||!name||!phone||!email){ setMessage("Uzupełnij wymagane dane."); return; }
+    const missing = [
+      !address.trim() && "adres", !travelDate && "data wyjazdu", !travelTime && "godzina przejazdu",
+      !name.trim() && "imię i nazwisko", !phone.trim() && "telefon", !email.trim() && "e-mail"
+    ].filter(Boolean);
+    if(missing.length){ setMessage(`Uzupełnij: ${missing.join(", ")}.`); return; }
+    if(!routeReady){ setMessage(routeError || "Poczekaj na obliczenie dojazdu dla podanego adresu."); return; }
     if(serviceType==="roundtrip"&&(!returnDate||!returnTime)){ setMessage("Dla przejazdu w obie strony podaj datę i godzinę powrotu."); return; }
     if(serviceType==="roundtrip"&&!roundtripScheduleReady()){ setMessage("Termin powrotu musi być późniejszy niż wyjazd."); return; }
     if(invoice&&nip10(nip).length!==10){ setMessage("Podaj poprawny 10-cyfrowy NIP."); return; }
@@ -279,6 +317,12 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
     <a className="btn" href="tel:+48691242691">📞 ZADZWOŃ I ZAPYTAJ O CENĘ</a>
   </div> : null;
 
+  const renderRouteStatus = () => airport!=="other" && <div aria-live="polite">
+    {routeBusy && <div className="route-status">Obliczanie dojazdu do adresu...</div>}
+    {routeError && <div className="booking-error">{routeError}<br/><button type="button" className="btn secondary" onClick={()=>setRouteRetry(n=>n+1)}>OBLICZ PONOWNIE</button></div>}
+    {routeReady && <div className="route-status ok">Dojazd z bazy w Książenicach: {distanceKm.toFixed(1)} km · 40 km w cenie.</div>}
+  </div>;
+
   const renderAdditionalStopBox = () => !additionalStopEnabled ? <button type="button" className="btn secondary additional-stop-toggle" onClick={()=>setAdditionalStopEnabled(true)}>+ DODAJ DODATKOWY ADRES / PRZYSTANEK</button> : <div className="additional-stop-box">
     <div className="additional-stop-head"><div><strong>Dodatkowy adres / przystanek</strong><small>+20,00 zł za każdy użyty kierunek. Dopłata kilometrowa tylko za faktyczny objazd poza normalną trasę.</small></div><button type="button" className="btn secondary" onClick={()=>{setAdditionalStopEnabled(false);setAdditionalStopAddress("");setAdditionalStopPrimary(true);setAdditionalStopReturn(false);setAdditionalStopSuggestions([]);setAdditionalStopQuote(null);setAdditionalStopError("");}}>USUŃ</button></div>
     <label>Adres dodatkowego przystanku<input value={additionalStopAddress} onChange={e=>setAdditionalStopAddress(e.target.value)} autoComplete="off" placeholder="Wpisz drugi adres"/>{additionalStopSuggestions.length>0&&<div className="address-suggestions">{additionalStopSuggestions.slice(0,5).map((x,i)=><button key={x.placeId??i} type="button" onClick={()=>{setAdditionalStopAddress(x.text??"");setAdditionalStopSuggestions([]);}}>{x.text}</button>)}</div>}</label>
@@ -320,6 +364,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
           <input value={address} onChange={e=>setAddress(e.target.value)} placeholder="Wpisz adres"/>
           {suggestions.length>0&&<div className="address-suggestions">{suggestions.slice(0,5).map((s,i)=><button key={s.placeId??i} type="button" onClick={()=>chooseAddress(s.text??"")}>{s.text}</button>)}</div>}
         </label>
+        {renderRouteStatus()}
         {renderAirportSelect()}
         {renderOtherAirportBox()}
         {airport!=="other"&&renderAdditionalStopBox()}
@@ -386,6 +431,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
         <h1>Podsumowanie</h1>
         <div className="wizard-summary">
           <div><span>Trasa</span><strong>{routeText}</strong></div>
+          <div><span>Dojazd do adresu</span><strong>{routeReady?`${distanceKm.toFixed(1)} km`:routeBusy?"Obliczanie...":"Nieobliczony"}</strong></div>
           <div><span>Termin</span><strong>{travelDate} {travelTime}</strong></div>
           {serviceType==="roundtrip"&&<div><span>Powrót</span><strong>{returnDate} {returnTime}</strong></div>}
           <div><span>Pojazd</span><strong>{vehicle==="car"?"Samochód osobowy":"Bus do 8 osób"}</strong></div>
@@ -397,7 +443,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
           <div className="total"><span>Razem</span><strong>{quote.total.toFixed(2)} zł</strong></div>
         </div>
         {message&&<div className="booking-error">{message}</div>}
-        <div className="wizard-final-actions"><button className="btn secondary" onClick={()=>go(5)}>WSTECZ</button><button className="btn" disabled={saving} onClick={submit}>{saving?"ZAPISYWANIE...":"ZAREZERWUJ"}</button></div>
+        <div className="wizard-final-actions"><button className="btn secondary" onClick={()=>go(5)}>WSTECZ</button><button className="btn" disabled={saving||routeBusy} onClick={submit}>{saving?"ZAPISYWANIE...":routeBusy?"OBLICZANIE TRASY...":"ZAREZERWUJ"}</button></div>
       </section>}
     </div>;
   }
@@ -415,6 +461,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
         <label>{serviceType==="from_airport"?"Adres docelowy":"Adres odbioru"}<input value={address} onChange={e=>setAddress(e.target.value)} placeholder="Wpisz adres"/>{suggestions.length>0&&<div className="address-suggestions">{suggestions.slice(0,5).map((s,i)=><button key={s.placeId??i} type="button" onClick={()=>chooseAddress(s.text??"")}>{s.text}</button>)}</div>}</label>
         {renderAirportSelect()}
       </div>
+      {renderRouteStatus()}
       {renderOtherAirportBox()}
       {airport!=="other"&&renderAdditionalStopBox()}
       <h3>Termin</h3>
@@ -470,6 +517,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
         <a className="btn" style={{width:"100%",marginTop:16}} href="tel:+48691242691">📞 ZADZWOŃ</a>
       </>:<>
         <div className="row"><span>Trasa</span><strong>{routeText}</strong></div>
+        <div className="row"><span>Dojazd do adresu</span><strong>{routeReady?`${distanceKm.toFixed(1)} km`:routeBusy?"Obliczanie...":"Nieobliczony"}</strong></div>
         <div className="row"><span>Termin</span><strong>{travelDate||"—"} {travelTime||""}</strong></div>
         {serviceType==="roundtrip"&&<div className="row"><span>Powrót</span><strong>{returnDate||"—"} {returnTime||""}</strong></div>}
         <div className="row"><span>Cena bazowa</span><strong>{quote.base.toFixed(2)} zł</strong></div>
@@ -480,7 +528,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
         <div className="row"><span>VAT</span><strong>{quote.vat.toFixed(2)} zł</strong></div>
         <div className="row"><span>Płatność</span><strong>{paymentMethodText}</strong></div>
         <div className="row total"><span>Razem</span><strong>{quote.total.toFixed(2)} zł</strong></div>
-        <button className="btn" style={{width:"100%",marginTop:16}} disabled={saving} onClick={submit}>{saving?"ZAPISYWANIE...":"ZAREZERWUJ"}</button>
+        <button className="btn" style={{width:"100%",marginTop:16}} disabled={saving||routeBusy} onClick={submit}>{saving?"ZAPISYWANIE...":routeBusy?"OBLICZANIE TRASY...":"ZAREZERWUJ"}</button>
       </>}
       {message&&<div className="booking-error">{message}</div>}
     </aside>
