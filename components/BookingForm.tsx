@@ -224,7 +224,10 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
 
   async function submit(){
     if(airport==="other"){ setMessage("Dla tego lotniska wycena jest indywidualna telefonicznie."); return; }
-    if(!address||!distanceKm||!travelDate||!travelTime||!name||!phone||!email){ setMessage("Uzupełnij wymagane dane."); return; }
+    if(!address.trim()){ setMessage("Podaj adres odbioru."); return; }
+    if(!Number.isFinite(distanceKm)||distanceKm<=0){ setMessage("Nie obliczono odległości od adresu odbioru. Wybierz adres ponownie z podpowiedzi, aby wyznaczyć trasę."); return; }
+    if(!travelDate||!travelTime){ setMessage("Podaj datę i godzinę wyjazdu."); return; }
+    if(!name.trim()||!phone.trim()||!email.trim()){ setMessage("Uzupełnij imię i nazwisko, telefon oraz e-mail."); return; }
     if(serviceType==="roundtrip"&&(!returnDate||!returnTime)){ setMessage("Dla przejazdu w obie strony podaj datę i godzinę powrotu."); return; }
     if(serviceType==="roundtrip"&&!roundtripScheduleReady()){ setMessage("Termin powrotu musi być późniejszy niż wyjazd."); return; }
     if(invoice&&nip10(nip).length!==10){ setMessage("Podaj poprawny 10-cyfrowy NIP."); return; }
