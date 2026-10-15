@@ -27,7 +27,7 @@ const MATT_TRUST_NOTICE_TEXT = "\n\n---\nWiadomość automatyczna z systemu reze
 const MATT_TRUST_NOTICE_HTML = `<div style="margin-top:24px;padding:14px 16px;border-top:1px solid #dedede;font:13px/1.6 Arial,sans-serif;color:#555"><strong>Wiadomość z systemu rezerwacji MATT TRANSPORT</strong><br>Jeśli oczekujesz powiadomienia o rezerwacji, a ta wiadomość trafiła do folderu Spam, wybierz „To nie spam” i dodaj <a href="mailto:kontakt@matt-transport.pl">kontakt@matt-transport.pl</a> do kontaktów. W razie wątpliwości skontaktuj się z nami bezpośrednio. Nigdy nie podawaj hasła w odpowiedzi na e-mail.</div>`;
 
 export const MATT_EMAIL_FROM =
-  "MATT TRANSPORT <kontakt@matt-transport.pl>";
+  "MATT TRANSPORT <booking@notify.matt-transport.pl>";
 
 function normalizeRecipients(
   value: string | string[] | null | undefined
@@ -107,13 +107,7 @@ export async function sendMattEmail(
     };
   }
 
-  const from =
-    recipients.some(
-      (recipient) =>
-        recipient.toLowerCase() === "kontakt@matt-transport.pl"
-    )
-      ? "MATT Booking <booking@matt-transport.pl>"
-      : MATT_EMAIL_FROM;
+  const from = MATT_EMAIL_FROM;
 
   if (!payload.html && !payload.text) {
     return {
