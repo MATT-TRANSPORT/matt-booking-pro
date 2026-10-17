@@ -242,6 +242,7 @@ export async function POST(req: NextRequest) {
       total_price: quote.totalPrice,
       status: "pending",
       booking_source: "public",
+      customer_locale: resolveCustomerLocale(body.locale),
       ...growth,
       payment_method: paymentMethod,
       online_payment_requested: paymentMethod === "online",
