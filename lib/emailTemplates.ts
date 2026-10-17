@@ -1,3 +1,4 @@
+import { localizedStatusEmail } from "@/lib/localizedStatusEmails";
 import { resolveCustomerLocale } from "@/lib/localizedBookingEmails";
 import { travelGuideHtml } from "@/lib/travelGuide";
 const esc = (value: unknown) =>
@@ -238,6 +239,7 @@ export function receivedEmail(b: BookingMail) {
 }
 
 export function confirmedEmail(b: BookingMail) {
+  if (resolveCustomerLocale(b.customer_locale) !== "pl") return localizedStatusEmail("confirmed", b);
   return {
     subject: `Rezerwacja ${b.booking_number} została potwierdzona`,
     html: shell(
@@ -256,6 +258,7 @@ export function confirmedEmail(b: BookingMail) {
 }
 
 export function assignedEmail(b: BookingMail) {
+  if (resolveCustomerLocale(b.customer_locale) !== "pl") return localizedStatusEmail("assigned", b, {guideHtml:travelGuideHtml(b.service_type,b.customer_locale)});
   return {
     subject: `Kierowca został przydzielony – ${b.booking_number}`,
     html: shell(
@@ -286,6 +289,7 @@ export function assignedEmail(b: BookingMail) {
 }
 
 export function completedEmail(b: BookingMail) {
+  if (resolveCustomerLocale(b.customer_locale) !== "pl") return localizedStatusEmail("completed", b);
   return {
     subject: `Dziękujemy za przejazd – ${b.booking_number}`,
     html: shell(
@@ -300,6 +304,7 @@ export function completedEmail(b: BookingMail) {
 }
 
 export function cancelledEmail(b: BookingMail) {
+  if (resolveCustomerLocale(b.customer_locale) !== "pl") return localizedStatusEmail("cancelled", b);
   const paidNotice =
     b.payment_status === "paid" ||
     b.payment_status === "review"
@@ -330,6 +335,7 @@ export function cancelledEmail(b: BookingMail) {
 
 
 export function paymentReceivedEmail(b: BookingMail) {
+  if (resolveCustomerLocale(b.customer_locale) !== "pl") return localizedStatusEmail("paymentReceived", b);
   return {
     subject: `Płatność zaksięgowana – ${b.booking_number}`,
     html: shell(
@@ -347,6 +353,7 @@ export function paymentReceivedEmail(b: BookingMail) {
 }
 
 export function paymentRefundedEmail(b: BookingMail) {
+  if (resolveCustomerLocale(b.customer_locale) !== "pl") return localizedStatusEmail("paymentRefunded", b);
   return {
     subject: `Zwrot płatności – ${b.booking_number}`,
     html: shell(
@@ -410,6 +417,7 @@ export function adminNewBookingEmail(b: BookingMail, customerEmail: string, cust
 }
 
 export function reviewRequestEmail(b: BookingMail, reviewUrl: string) {
+  if (resolveCustomerLocale(b.customer_locale) !== "pl") return localizedStatusEmail("review", b, {reviewUrl});
   return {
     subject: `Jak minęła podróż? – ${b.booking_number}`,
     html: shell(
