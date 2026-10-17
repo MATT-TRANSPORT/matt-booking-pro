@@ -1,3 +1,4 @@
+import { resolveCustomerLocale } from "@/lib/localizedBookingEmails";
 import { travelGuideHtml } from "@/lib/travelGuide";
 const esc = (value: unknown) =>
   String(value ?? "")
@@ -69,7 +70,7 @@ function panelBaseUrl() {
 
 function clientUrl(b: BookingMail) {
   return b.customer_access_token
-    ? `${customerBaseUrl()}/rezerwacja/${b.customer_access_token}`
+    ? `${customerBaseUrl()}/rezerwacja/${b.customer_access_token}?lang=${resolveCustomerLocale(b.customer_locale)}`
     : null;
 }
 
