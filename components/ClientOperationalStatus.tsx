@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { resolveCustomerLocale } from "@/lib/localizedBookingEmails";
 
 const STATUS: Record<string, string> = {
   pending: "Oczekuje na potwierdzenie",
@@ -24,6 +25,9 @@ function shortDate(value: unknown) {
 
 export default function ClientOperationalStatus({ token }: { token: string }) {
   const [data, setData] = useState<any>(null);
+  const [locale, setLocale] = useState("pl");
+  useEffect(() => { setLocale(resolveCustomerLocale(new URLSearchParams(window.location.search).get("lang") || data?.booking?.customer_locale)); }, [data?.booking?.customer_locale]);
+  const t = (pl: string, en: string, de: string, cs: string) => ({pl,en,de,cs}[locale as "pl"|"en"|"de"|"cs"] || pl);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -56,47 +60,47 @@ export default function ClientOperationalStatus({ token }: { token: string }) {
   return <section className="card" style={{ margin: "18px auto", maxWidth: 960 }}>
     <div className="company-section-head">
       <div>
-        <span className="badge">STATUS PRZEJAZDU · LIVE</span>
-        <p className="muted" style={{ margin: "6px 0 0" }}>Status odświeża się automatycznie co minutę.</p>
+        <span className="badge">{t("STATUS PRZEJAZDU · LIVE","LIVE TRIP STATUS","FAHRTSTATUS · LIVE","STAV JÍZDY · ŽIVĚ")}</span>
+        <p className="muted" style={{ margin: "6px 0 0" }}>{t("Status odświeża się automatycznie co minutę.","Status refreshes automatically every minute.","Der Status wird jede Minute automatisch aktualisiert.","Stav se automaticky aktualizuje každou minutu.")}</p>
       </div>
-      {booking?.status === "cancelled" && <span className="status cancelled">ANULOWANA</span>}
-      {booking?.status === "pending" && <span className="status pending">OCZEKUJE</span>}
+      {booking?.status === "cancelled" && <span className="status cancelled">{t("ANULOWANA","CANCELLED","STORNIERT","ZRUŠENO")}</span>}
+      {booking?.status === "pending" && <span className="status pending">{t("OCZEKUJE","PENDING","AUSSTEHEND","ČEKÁ")}</span>}
     </div>
 
     {error && <div className="admin-save-message">{error}</div>}
 
     <div className="client-live-status-current">
-      <span className="badge">AKTUALNY STATUS</span>
-      <strong>{STATUS[String(booking?.status || "pending")] || String(booking?.status || "pending")}</strong>
+      <span className="badge">{t("AKTUALNY STATUS","CURRENT STATUS","AKTUELLER STATUS","AKTUÁLNÍ STAV")}</span>
+      <strong>{({pending:t("Oczekuje na potwierdzenie","Awaiting confirmation","Bestätigung ausstehend","Čeká na potvrzení"),confirmed:t("Potwierdzona","Confirmed","Bestätigt","Potvrzeno"),assigned:t("Kierowca i pojazd","Driver and vehicle","Fahrer und Fahrzeug","Řidič a vozidlo"),in_progress:t("Kierowca w drodze","Driver on the way","Fahrer unterwegs","Řidič na cestě"),arrived:t("Kierowca na miejscu","Driver arrived","Fahrer vor Ort","Řidič na místě"),picked_up:t("Pasażer odebrany","Passenger picked up","Fahrgast abgeholt","Cestující vyzvednut"),completed:t("Zakończona","Completed","Abgeschlossen","Dokončeno"),cancelled:t("Anulowana","Cancelled","Storniert","Zrušeno")}[String(booking?.status || "pending")] || String(booking?.status || "pending"))}</strong>
     </div>
 
     {booking && <div className="grid" style={{ marginTop: 16 }}>
       <div style={{ padding: 14, border: "1px solid #343b49", borderRadius: 12 }}>
-        <small className="muted">KIEROWCA</small><br/>
-        <strong>{driver?.full_name || "Jeszcze nie przypisano"}</strong><br/>
+        <small className="muted">{t("KIEROWCA","DRIVER","FAHRER","ŘIDIČ")}</small><br/>
+        <strong>{driver?.full_name || t("Jeszcze nie przypisano","Not assigned yet","Noch nicht zugewiesen","Zatím nepřiřazeno")}</strong><br/>
         {driver?.phone && <a href={`tel:${driver.phone}`}>{driver.phone}</a>}
       </div>
       <div style={{ padding: 14, border: "1px solid #343b49", borderRadius: 12 }}>
-        <small className="muted">POJAZD</small><br/>
-        <strong>{vehicle ? `${vehicle.name}${vehicle.registration ? ` · ${vehicle.registration}` : ""}` : "Jeszcze nie przypisano"}</strong>
+        <small className="muted">{t("POJAZD","VEHICLE","FAHRZEUG","VOZIDLO")}</small><br/>
+        <strong>{vehicle ? `${vehicle.name}${vehicle.registration ? ` · ${vehicle.registration}` : ""}` : t("Jeszcze nie przypisano","Not assigned yet","Noch nicht zugewiesen","Zatím nepřiřazeno")}</strong>
       </div>
       {booking.service_type === "roundtrip" && <>
         <div style={{ padding: 14, border: "1px solid #343b49", borderRadius: 12 }}>
-          <small className="muted">KIEROWCA POWROTU</small><br/>
-          <strong>{returnDriver?.full_name || driver?.full_name || "Jeszcze nie przypisano"}</strong><br/>
+          <small className="muted">{t("KIEROWCA POWROTU","RETURN DRIVER","RÜCKFAHRT-FAHRER","ŘIDIČ ZPÁTEČNÍ CESTY")}</small><br/>
+          <strong>{returnDriver?.full_name || driver?.full_name || t("Jeszcze nie przypisano","Not assigned yet","Noch nicht zugewiesen","Zatím nepřiřazeno")}</strong><br/>
           {(returnDriver?.phone || driver?.phone) && <a href={`tel:${returnDriver?.phone || driver?.phone}`}>{returnDriver?.phone || driver?.phone}</a>}
         </div>
         <div style={{ padding: 14, border: "1px solid #343b49", borderRadius: 12 }}>
-          <small className="muted">POJAZD POWROTU</small><br/>
-          <strong>{returnVehicle ? `${returnVehicle.name}${returnVehicle.registration ? ` · ${returnVehicle.registration}` : ""}` : vehicle ? `${vehicle.name}${vehicle.registration ? ` · ${vehicle.registration}` : ""}` : "Jeszcze nie przypisano"}</strong>
+          <small className="muted">{t("POJAZD POWROTU","RETURN VEHICLE","RÜCKFAHRT-FAHRZEUG","VOZIDLO ZPÁTEČNÍ CESTY")}</small><br/>
+          <strong>{returnVehicle ? `${returnVehicle.name}${returnVehicle.registration ? ` · ${returnVehicle.registration}` : ""}` : vehicle ? `${vehicle.name}${vehicle.registration ? ` · ${vehicle.registration}` : ""}` : t("Jeszcze nie przypisano","Not assigned yet","Noch nicht zugewiesen","Zatím nepřiřazeno")}</strong>
         </div>
       </>}
     </div>}
 
     {!!data?.flights?.length && <div style={{ marginTop: 18 }}>
-      <h3>Monitor lotu</h3>
+      <h3>{t("Monitor lotu","Flight monitor","Flugüberwachung","Sledování letu")}</h3>
       {data.flights.map((f: any) => <div className="row" key={`${f.leg}-${f.flight_number}`}>
-        <span><strong>{f.leg === "return" ? "POWRÓT · " : ""}{f.flight_number}</strong><br/><small className="muted">Aktualizacja: {shortDate(f.updated_at)}</small></span>
+        <span><strong>{f.leg === "return" ? t("POWRÓT · ","RETURN · ","RÜCKFAHRT · ","NÁVRAT · ") : ""}{f.flight_number}</strong><br/><small className="muted">{t("Aktualizacja:","Updated:","Aktualisiert:","Aktualizováno:")} {shortDate(f.updated_at)}</small></span>
         <span><strong>{String(f.status || "brak statusu").toUpperCase()}</strong><br/><small className="muted">ETA: {shortDate(f.estimated_arrival || f.scheduled_arrival)}</small></span>
       </div>)}
     </div>}
