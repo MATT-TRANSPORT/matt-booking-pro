@@ -9,6 +9,7 @@ import { trackBookingPurchase } from "@/lib/ga4";
 import type { BookingEntry } from "@/lib/bookingEntry";
 
 const airportCopy: Record<string,[string,string,string]> = {"Dziękujemy! Rezerwacja przyjęta":["Thank you! Booking received","Vielen Dank! Buchung eingegangen","Děkujeme! Rezervace přijata"],"🕐 Oczekuje na potwierdzenie":["🕐 Awaiting confirmation","🕐 Bestätigung ausstehend","🕐 Čeká na potvrzení"],"Co dalej?":["What happens next?","Wie geht es weiter?","Co bude dál?"],"Twoje zgłoszenie zostało przyjęte. Potwierdzimy rezerwację najszybciej jak to możliwe.":["Your request has been received. We will confirm your booking as soon as possible.","Ihre Anfrage ist eingegangen. Wir bestätigen Ihre Buchung schnellstmöglich.","Vaši poptávku jsme přijali. Rezervaci potvrdíme co nejdříve."],"Oczekuj wiadomości e-mail lub kontaktu z MATT TRANSPORT.":["Please look out for an email or contact from MATT TRANSPORT.","Bitte achten Sie auf eine E-Mail oder Nachricht von MATT TRANSPORT.","Očekávejte e-mail nebo kontakt od MATT TRANSPORT."],"Jakiego przejazdu potrzebujesz?":["What transfer do you need?","Welche Fahrt benötigen Sie?","Jakou přepravu potřebujete?"],"Trasa i lotnisko":["Route and airport","Strecke und Flughafen","Trasa a letiště"],"Termin przejazdu":["Travel date and time","Reisetermin","Termín jízdy"],"Wybierz pojazd":["Choose your vehicle","Fahrzeug auswählen","Vyberte vozidlo"],"Twoje dane":["Your details","Ihre Angaben","Vaše údaje"],"Podsumowanie":["Summary","Zusammenfassung","Shrnutí"],"Zarezerwuj transfer lotniskowy":["Book an airport transfer","Flughafentransfer buchen","Rezervovat letištní transfer"],"Sposób płatności":["Payment method","Zahlungsart","Způsob platby"],"Trasa":["Route","Strecke","Trasa"],"Termin":["Date and time","Termin","Termín"],"Pojazd":["Vehicle","Fahrzeug","Vozidlo"],"Dane klienta":["Customer details","Kundendaten","Údaje zákazníka"],"Adres docelowy":["Destination address","Zieladresse","Cílová adresa"],"Adres odbioru":["Pickup address","Abholadresse","Adresa vyzvednutí"],"Wpisz adres":["Enter address","Adresse eingeben","Zadejte adresu"],"Data":["Date","Datum","Datum"],"Godzina przylotu":["Arrival time","Ankunftszeit","Čas příletu"],"Godzina wyjazdu na lotnisko":["Departure time to airport","Abfahrtszeit zum Flughafen","Čas odjezdu na letiště"],"Lot wylotowy":["Outbound flight","Hinflug","Odletový let"],"Numer lotu":["Flight number","Flugnummer","Číslo letu"],"Pasażerowie":["Passengers","Fahrgäste","Cestující"],"Data powrotu":["Return date","Rückfahrtdatum","Datum návratu"],"Godzina przylotu powrotnego":["Return flight arrival time","Ankunftszeit des Rückflugs","Čas příletu zpátečního letu"],"Lot powrotny":["Return flight","Rückflug","Zpáteční let"],"Imię i nazwisko":["Full name","Vor- und Nachname","Jméno a příjmení"],"Telefon":["Phone","Telefon","Telefon"],"E-mail":["Email","E-Mail","E-mail"],"Faktura VAT":["VAT invoice","MwSt.-Rechnung","Faktura s DPH"],"Nie":["No","Nein","Ne"],"Tak, +8%":["Yes, +8%","Ja, +8%","Ano, +8 %"],"Uwagi do rezerwacji":["Booking notes","Anmerkungen zur Buchung","Poznámky k rezervaci"],"Lotnisko":["Airport","Flughafen","Letiště"],"Jakie lotnisko?":["Which airport?","Welcher Flughafen?","Jaké letiště?"],"np. Berlin Brandenburg":["e.g. Berlin Brandenburg","z. B. Berlin Brandenburg","např. Berlín Brandenburg"]};
+const airportExtraCopy: Record<string,[string,string,string]> = {"NOWA REZERWACJA":["NEW BOOKING","NEUE BUCHUNG","NOVÁ REZERVACE"],"WSTECZ":["BACK","ZURÜCK","ZPĚT"],"DALEJ":["NEXT","WEITER","DALŠÍ"],"PODSUMOWANIE":["SUMMARY","ZUSAMMENFASSUNG","SHRNUTÍ"],"ZAREZERWUJ":["BOOK NOW","JETZT BUCHEN","REZERVOVAT"],"ZAPISYWANIE...":["SAVING...","WIRD GESPEICHERT...","UKLÁDÁNÍ..."],"OBLICZANIE TRASY...":["CALCULATING ROUTE...","ROUTE WIRD BERECHNET...","VÝPOČET TRASY..."],"Godzina przylotu":["Arrival time","Ankunftszeit","Čas příletu"],"Godzina wyjazdu na lotnisko":["Departure time to airport","Abfahrtszeit zum Flughafen","Čas odjezdu na letiště"],"Lotnisko":["Airport","Flughafen","Letiště"],"ZADZWOŃ":["CALL US","ANRUFEN","ZAVOLEJTE"],"OBLICZ PONOWNIE":["RECALCULATE","ERNEUT BERECHNEN","PŘEPOČÍTAT"],"ZADZWOŃ I ZAPYTAJ O CENĘ":["CALL FOR A QUOTE","PREIS TELEFONISCH ERFRAGEN","ZAVOLEJTE PRO CENU"],"Adres dodatkowego przystanku":["Additional stop address","Adresse des Zwischenstopps","Adresa další zastávky"],"Wpisz drugi adres":["Enter another address","Weitere Adresse eingeben","Zadejte další adresu"],"USUŃ":["REMOVE","ENTFERNEN","ODSTRANIT"],"Obliczanie dojazdu do adresu...":["Calculating route to address...","Route zur Adresse wird berechnet...","Výpočet trasy k adrese..."],"Obliczanie objazdu...":["Calculating detour...","Umweg wird berechnet...","Výpočet objížďky..."],"+ DODAJ DODATKOWY ADRES / PRZYSTANEK":["+ ADD ANOTHER ADDRESS / STOP","+ WEITERE ADRESSE / ZWISCHENSTOPP","+ PŘIDAT DALŠÍ ADRESU / ZASTÁVKU"],"Wyjazd na lotnisko (+20 zł)":["Outbound to airport (+20 PLN)","Hinfahrt zum Flughafen (+20 PLN)","Cesta na letiště (+20 PLN)"],"Powrót z lotniska (+20 zł)":["Return from airport (+20 PLN)","Rückfahrt vom Flughafen (+20 PLN)","Návrat z letiště (+20 PLN)"]};
 type Suggestion = { placeId?: string; text?: string };
 type AirportKey = string | "other";
 
@@ -16,7 +17,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
   const { airports } = useAirportPricing();
   const [locale,setLocale]=useState("pl");
   useEffect(()=>{const sync=()=>setLocale(resolveCustomerLocale(new URLSearchParams(window.location.search).get("lang")||window.localStorage.getItem("matt-booking-locale")));sync();window.addEventListener("popstate",sync);return()=>window.removeEventListener("popstate",sync)},[]);
-  const t=(key:string)=>locale==="pl"?key:airportCopy[key]?.[locale==="en"?0:locale==="de"?1:2]??key;
+  const t=(key:string)=>locale==="pl"?key:(airportCopy[key]??airportExtraCopy[key])?.[locale==="en"?0:locale==="de"?1:2]??key;
   const [mobile, setMobile] = useState(false);
   const [step, setStep] = useState(1);
 
@@ -304,7 +305,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
       <div className="success-number"><span>Numer rezerwacji</span><strong>{success.booking_number}</strong></div>
       <div className="success-details"><div><span>{t("Trasa")}</span><strong>{routeText}</strong></div>{serviceType==="roundtrip"&&<div><span>Powrót</span><strong>{returnDate} {returnTime}</strong></div>}<div><span>Kwota</span><strong>{Number(success.total_price).toFixed(2)} zł</strong></div><div><span>Płatność</span><strong>{paymentMethodText}</strong></div></div>
       {success.customer_access_token && <CustomerPushControls token={success.customer_access_token} />}
-      <div className="success-actions"><a className="btn" href="/booking">NOWA REZERWACJA</a></div>
+      <div className="success-actions"><a className="btn" href="/booking">{t("NOWA REZERWACJA")}</a></div>
     </div>;
   }
 
@@ -319,20 +320,20 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
     <label>{t("Jakie lotnisko?")}<input value={otherAirport} onChange={e=>setOtherAirport(e.target.value)} placeholder={t("np. Berlin Brandenburg")}/></label>
     <strong>Wycena indywidualna</strong>
     <p>Dla tego lotniska cenę ustalamy indywidualnie telefonicznie.</p>
-    <a className="btn" href="tel:+48691242691">📞 ZADZWOŃ I ZAPYTAJ O CENĘ</a>
+    <a className="btn" href="tel:+48691242691">📞 {t("ZADZWOŃ I ZAPYTAJ O CENĘ")}</a>
   </div> : null;
 
   const renderRouteStatus = () => airport!=="other" && <div aria-live="polite">
-    {routeBusy && <div className="route-status">Obliczanie dojazdu do adresu...</div>}
-    {routeError && <div className="booking-error">{routeError}<br/><button type="button" className="btn secondary" onClick={()=>setRouteRetry(n=>n+1)}>OBLICZ PONOWNIE</button></div>}
+    {routeBusy && <div className="route-status">{t("Obliczanie dojazdu do adresu...")}</div>}
+    {routeError && <div className="booking-error">{routeError}<br/><button type="button" className="btn secondary" onClick={()=>setRouteRetry(n=>n+1)}>{t("OBLICZ PONOWNIE")}</button></div>}
     {routeReady && <div className="route-status ok">Dojazd z bazy w Książenicach: {distanceKm.toFixed(1)} km · 40 km w cenie.</div>}
   </div>;
 
-  const renderAdditionalStopBox = () => !additionalStopEnabled ? <button type="button" className="btn secondary additional-stop-toggle" onClick={()=>setAdditionalStopEnabled(true)}>+ DODAJ DODATKOWY ADRES / PRZYSTANEK</button> : <div className="additional-stop-box">
-    <div className="additional-stop-head"><div><strong>Dodatkowy adres / przystanek</strong><small>+20,00 zł za każdy użyty kierunek. Dopłata kilometrowa tylko za faktyczny objazd poza normalną trasę.</small></div><button type="button" className="btn secondary" onClick={()=>{setAdditionalStopEnabled(false);setAdditionalStopAddress("");setAdditionalStopPrimary(true);setAdditionalStopReturn(false);setAdditionalStopSuggestions([]);setAdditionalStopQuote(null);setAdditionalStopError("");}}>USUŃ</button></div>
-    <label>Adres dodatkowego przystanku<input value={additionalStopAddress} onChange={e=>setAdditionalStopAddress(e.target.value)} autoComplete="off" placeholder="Wpisz drugi adres"/>{additionalStopSuggestions.length>0&&<div className="address-suggestions">{additionalStopSuggestions.slice(0,5).map((x,i)=><button key={x.placeId??i} type="button" onClick={()=>{setAdditionalStopAddress(x.text??"");setAdditionalStopSuggestions([]);}}>{x.text}</button>)}</div>}</label>
+  const renderAdditionalStopBox = () => !additionalStopEnabled ? <button type="button" className="btn secondary additional-stop-toggle" onClick={()=>setAdditionalStopEnabled(true)}>{t("+ DODAJ DODATKOWY ADRES / PRZYSTANEK")}</button> : <div className="additional-stop-box">
+    <div className="additional-stop-head"><div><strong>Dodatkowy adres / przystanek</strong><small>+20,00 zł za każdy użyty kierunek. Dopłata kilometrowa tylko za faktyczny objazd poza normalną trasę.</small></div><button type="button" className="btn secondary" onClick={()=>{setAdditionalStopEnabled(false);setAdditionalStopAddress("");setAdditionalStopPrimary(true);setAdditionalStopReturn(false);setAdditionalStopSuggestions([]);setAdditionalStopQuote(null);setAdditionalStopError("");}}>{t("USUŃ")}</button></div>
+    <label>{t("Adres dodatkowego przystanku")}<input value={additionalStopAddress} onChange={e=>setAdditionalStopAddress(e.target.value)} autoComplete="off" placeholder={t("Wpisz drugi adres"}/>{additionalStopSuggestions.length>0&&<div className="address-suggestions">{additionalStopSuggestions.slice(0,5).map((x,i)=><button key={x.placeId??i} type="button" onClick={()=>{setAdditionalStopAddress(x.text??"");setAdditionalStopSuggestions([]);}}>{x.text}</button>)}</div>}</label>
     {serviceType==="roundtrip"?<div className="additional-stop-directions"><label><input type="checkbox" checked={additionalStopPrimary} onChange={e=>setAdditionalStopPrimary(e.target.checked)}/> Wyjazd na lotnisko (+20 zł)</label><label><input type="checkbox" checked={additionalStopReturn} onChange={e=>setAdditionalStopReturn(e.target.checked)}/> Powrót z lotniska (+20 zł)</label></div>:<p className="muted">Przystanek dotyczy tego przejazdu · +20,00 zł.</p>}
-    {additionalStopBusy&&<div className="route-status">Obliczanie objazdu...</div>}
+    {additionalStopBusy&&<div className="route-status">{t("Obliczanie objazdu...")}</div>}
     {additionalStopError&&<div className="booking-error">{additionalStopError}</div>}
     {additionalStopQuote&&!additionalStopBusy&&<div className="route-status ok">{Number(additionalStopQuote.totalExtraKm||0)>0?`Objazd poza normalną trasę: ${Number(additionalStopQuote.totalExtraKm).toFixed(1)} km · dopłata ${Number(additionalStopQuote.stopExtraPrice).toFixed(2)} zł`:"✓ Przystanek jest na trasie — bez dopłaty kilometrowej."}</div>}
   </div>;
@@ -373,7 +374,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
         {renderAirportSelect()}
         {renderOtherAirportBox()}
         {airport!=="other"&&renderAdditionalStopBox()}
-        <div className="wizard-nav"><button className="btn secondary" onClick={()=>go(1)}>WSTECZ</button>{airport!=="other"&&<button className="btn" disabled={!valid(2)} onClick={()=>go(3)}>DALEJ</button>}</div>
+        <div className="wizard-nav"><button className="btn secondary" onClick={()=>go(1)}>{t("WSTECZ")}</button>{airport!=="other"&&<button className="btn" disabled={!valid(2)} onClick={()=>go(3)}>{t("DALEJ")}</button>}</div>
       </section>}
 
       {step===3&&<section className="card wizard-card">
@@ -390,7 +391,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
             <label>{t("Lot powrotny")}<input value={returnFlight} onChange={e=>setReturnFlight(e.target.value)}/></label>
           </>}
         </div>
-        <div className="wizard-nav"><button className="btn secondary" onClick={()=>go(2)}>WSTECZ</button><button className="btn" disabled={!valid(3)} onClick={()=>go(4)}>DALEJ</button></div>
+        <div className="wizard-nav"><button className="btn secondary" onClick={()=>go(2)}>{t("WSTECZ")}</button><button className="btn" disabled={!valid(3)} onClick={()=>go(4)}>{t("DALEJ")}</button></div>
       </section>}
 
       {step===4&&<section className="card wizard-card">
@@ -399,7 +400,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
           <button disabled={passengers>3} onClick={()=>{setVehicle("car");go(5)}}><strong>🚘 Samochód osobowy</strong><span>Do 3 pasażerów z bagażami</span></button>
           <button onClick={()=>{setVehicle("bus");go(5)}}><strong>🚐 Bus do 8 osób</strong><span>Dla grup i większego bagażu</span></button>
         </div>
-        <div className="wizard-nav one"><button className="btn secondary" onClick={()=>go(3)}>WSTECZ</button></div>
+        <div className="wizard-nav one"><button className="btn secondary" onClick={()=>go(3)}>{t("WSTECZ")}</button></div>
       </section>}
 
       {step===5&&<section className="card wizard-card">
@@ -429,7 +430,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
             </label>
           </div>
         </div>
-        <div className="wizard-nav"><button className="btn secondary" onClick={()=>go(4)}>WSTECZ</button><button className="btn" disabled={!valid(5)} onClick={()=>go(6)}>PODSUMOWANIE</button></div>
+        <div className="wizard-nav"><button className="btn secondary" onClick={()=>go(4)}>{t("WSTECZ")}</button><button className="btn" disabled={!valid(5)} onClick={()=>go(6)}>{t("PODSUMOWANIE")}</button></div>
       </section>}
 
       {step===6&&<section className="card wizard-card">
@@ -448,7 +449,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
           <div className="total"><span>Razem</span><strong>{quote.total.toFixed(2)} zł</strong></div>
         </div>
         {message&&<div className="booking-error">{message}</div>}
-        <div className="wizard-final-actions"><button className="btn secondary" onClick={()=>go(5)}>WSTECZ</button><button className="btn" disabled={saving||routeBusy} onClick={submit}>{saving?"ZAPISYWANIE...":routeBusy?"OBLICZANIE TRASY...":"ZAREZERWUJ"}</button></div>
+        <div className="wizard-final-actions"><button className="btn secondary" onClick={()=>go(5)}>{t("WSTECZ")}</button><button className="btn" disabled={saving||routeBusy} onClick={submit}>{saving?t("ZAPISYWANIE..."):routeBusy?t("OBLICZANIE TRASY..."):t("ZAREZERWUJ")}</button></div>
       </section>}
     </div>;
   }
@@ -519,7 +520,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
       <h3>{t("Podsumowanie")}</h3>
       {airport==="other"?<>
         <div className="individual-quote-summary"><strong>Wycena indywidualna</strong><span>{otherAirport||"Inne lotnisko"}</span></div>
-        <a className="btn" style={{width:"100%",marginTop:16}} href="tel:+48691242691">📞 ZADZWOŃ</a>
+        <a className="btn" style={{width:"100%",marginTop:16}} href="tel:+48691242691">📞 {t("ZADZWOŃ")}</a>
       </>:<>
         <div className="row"><span>{t("Trasa")}</span><strong>{routeText}</strong></div>
         <div className="row"><span>Dojazd do adresu</span><strong>{routeReady?`${distanceKm.toFixed(1)} km`:routeBusy?"Obliczanie...":"Nieobliczony"}</strong></div>
@@ -533,7 +534,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
         <div className="row"><span>VAT</span><strong>{quote.vat.toFixed(2)} zł</strong></div>
         <div className="row"><span>Płatność</span><strong>{paymentMethodText}</strong></div>
         <div className="row total"><span>Razem</span><strong>{quote.total.toFixed(2)} zł</strong></div>
-        <button className="btn" style={{width:"100%",marginTop:16}} disabled={saving||routeBusy} onClick={submit}>{saving?"ZAPISYWANIE...":routeBusy?"OBLICZANIE TRASY...":"ZAREZERWUJ"}</button>
+        <button className="btn" style={{width:"100%",marginTop:16}} disabled={saving||routeBusy} onClick={submit}>{saving?t("ZAPISYWANIE..."):routeBusy?t("OBLICZANIE TRASY..."):t("ZAREZERWUJ")}</button>
       </>}
       {message&&<div className="booking-error">{message}</div>}
     </aside>
