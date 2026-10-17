@@ -1,4 +1,5 @@
 "use client";
+import {resolveCustomerLocale} from "@/lib/localizedBookingEmails";
 import CustomerPushControls from "@/components/CustomerPushControls";
 
 import { useEffect, useMemo, useState } from "react";
@@ -273,7 +274,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
       serviceType,address,airport,vehicleType:vehicle,passengers,distanceKm,travelDate,travelTime,
       returnDate,returnTime,flightNumber:flight,returnFlightNumber:returnFlight,
       additionalStopAddress:additionalStopEnabled?additionalStopAddress:null,additionalStopPrimary:additionalStopEnabled&&additionalStopPrimary,additionalStopReturn:additionalStopEnabled&&serviceType==="roundtrip"&&additionalStopReturn,
-      customerName:name,phone,email,invoiceRequired:invoice,companyNip:invoice?nip10(nip):null,paymentMethod,onlinePaymentRequested,notes:notes||null,
+      locale:resolveCustomerLocale(typeof window!=="undefined" ? new URLSearchParams(window.location.search).get("lang") || window.localStorage.getItem("matt-booking-locale") : "pl"),customerName:name,phone,email,invoiceRequired:invoice,companyNip:invoice?nip10(nip):null,paymentMethod,onlinePaymentRequested,notes:notes||null,
       tracking,
       funnelSessionId: growthFunnelSessionId()
     })});
