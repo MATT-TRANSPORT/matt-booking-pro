@@ -58,7 +58,7 @@ export default function WeddingBookingForm(){
   </div>;
 
   return <div className="card wedding-form-card">
-    <span className="badge wedding-badge">💍 TRANSPORT WESELNY</span>
+    <span className="badge wedding-badge">💍 {t("TRANSPORT WESELNY")}</span>
     <h1>{t("Dane do przygotowania umowy")}</h1>
     <p className="muted">{t("Prześlij najważniejsze informacje. Po ich otrzymaniu przygotujemy umowę i prześlemy ją e-mailem.")}</p>
     <div className="grid">
@@ -66,7 +66,7 @@ export default function WeddingBookingForm(){
       <label>{t("Data rozpoczęcia rozwozów *")}<input type="date" value={form.startDate} onChange={e=>setForm({...form,startDate:e.target.value})}/></label>
       <label>{t("Godzina rozpoczęcia rozwozów *")}<input type="time" value={form.startTime} onChange={e=>setForm({...form,startTime:e.target.value})}/></label>
       <label>{t("Nazwa restauracji *")}<input value={form.restaurantName} onChange={e=>setForm({...form,restaurantName:e.target.value})}/></label>
-      <label className="wedding-address-field">Adres restauracji *
+      <label className="wedding-address-field">{t("Adres restauracji *")}
         <input autoComplete="off" value={form.restaurantAddress} onChange={e=>setForm({...form,restaurantAddress:e.target.value})}/>
         {restaurantSuggestions.length>0&&<div className="address-suggestions">
           {restaurantSuggestions.slice(0,5).map((s:any,i:number)=><button type="button" key={s.placeId??i} onClick={()=>{
@@ -74,7 +74,7 @@ export default function WeddingBookingForm(){
           }}>{s.text}</button>)}
         </div>}
       </label>
-      <label>Ilość pojazdów *
+      <label>{t("Ilość pojazdów *")}
         <input type="number" min={1} max={20} value={form.vehiclesCount} onChange={e=>{
           const n=Math.max(1,Math.min(20,Number(e.target.value)||1));
           const types=Array.from({length:n},(_,i)=>form.vehicleTypes[i]??"bus");
@@ -98,7 +98,7 @@ export default function WeddingBookingForm(){
         </select>
       </div>)}
     </div>
-    <label style={{marginTop:14}}>Dodatkowe informacje (opcjonalnie)
+    <label style={{marginTop:14}}>{t("Dodatkowe informacje (opcjonalnie)")}
       <textarea rows={4} value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})}/>
     </label>
     {message&&<div className="booking-error">{message}</div>}
