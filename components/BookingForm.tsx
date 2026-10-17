@@ -8,11 +8,15 @@ import { clearGrowthTracking, growthFunnelSessionId, readGrowthTracking, resetGr
 import { trackBookingPurchase } from "@/lib/ga4";
 import type { BookingEntry } from "@/lib/bookingEntry";
 
+const airportCopy: Record<string,[string,string,string]> = {"Dziękujemy! Rezerwacja przyjęta":["Thank you! Booking received","Vielen Dank! Buchung eingegangen","Děkujeme! Rezervace přijata"],"🕐 Oczekuje na potwierdzenie":["🕐 Awaiting confirmation","🕐 Bestätigung ausstehend","🕐 Čeká na potvrzení"],"Co dalej?":["What happens next?","Wie geht es weiter?","Co bude dál?"],"Twoje zgłoszenie zostało przyjęte. Potwierdzimy rezerwację najszybciej jak to możliwe.":["Your request has been received. We will confirm your booking as soon as possible.","Ihre Anfrage ist eingegangen. Wir bestätigen Ihre Buchung schnellstmöglich.","Vaši poptávku jsme přijali. Rezervaci potvrdíme co nejdříve."],"Oczekuj wiadomości e-mail lub kontaktu z MATT TRANSPORT.":["Please look out for an email or contact from MATT TRANSPORT.","Bitte achten Sie auf eine E-Mail oder Nachricht von MATT TRANSPORT.","Očekávejte e-mail nebo kontakt od MATT TRANSPORT."],"Jakiego przejazdu potrzebujesz?":["What transfer do you need?","Welche Fahrt benötigen Sie?","Jakou přepravu potřebujete?"],"Trasa i lotnisko":["Route and airport","Strecke und Flughafen","Trasa a letiště"],"Termin przejazdu":["Travel date and time","Reisetermin","Termín jízdy"],"Wybierz pojazd":["Choose your vehicle","Fahrzeug auswählen","Vyberte vozidlo"],"Twoje dane":["Your details","Ihre Angaben","Vaše údaje"],"Podsumowanie":["Summary","Zusammenfassung","Shrnutí"],"Zarezerwuj transfer lotniskowy":["Book an airport transfer","Flughafentransfer buchen","Rezervovat letištní transfer"],"Sposób płatności":["Payment method","Zahlungsart","Způsob platby"],"Trasa":["Route","Strecke","Trasa"],"Termin":["Date and time","Termin","Termín"],"Pojazd":["Vehicle","Fahrzeug","Vozidlo"],"Dane klienta":["Customer details","Kundendaten","Údaje zákazníka"],"Adres docelowy":["Destination address","Zieladresse","Cílová adresa"],"Adres odbioru":["Pickup address","Abholadresse","Adresa vyzvednutí"],"Wpisz adres":["Enter address","Adresse eingeben","Zadejte adresu"],"Data":["Date","Datum","Datum"],"Godzina przylotu":["Arrival time","Ankunftszeit","Čas příletu"],"Godzina wyjazdu na lotnisko":["Departure time to airport","Abfahrtszeit zum Flughafen","Čas odjezdu na letiště"],"Lot wylotowy":["Outbound flight","Hinflug","Odletový let"],"Numer lotu":["Flight number","Flugnummer","Číslo letu"],"Pasażerowie":["Passengers","Fahrgäste","Cestující"],"Data powrotu":["Return date","Rückfahrtdatum","Datum návratu"],"Godzina przylotu powrotnego":["Return flight arrival time","Ankunftszeit des Rückflugs","Čas příletu zpátečního letu"],"Lot powrotny":["Return flight","Rückflug","Zpáteční let"],"Imię i nazwisko":["Full name","Vor- und Nachname","Jméno a příjmení"],"Telefon":["Phone","Telefon","Telefon"],"E-mail":["Email","E-Mail","E-mail"],"Faktura VAT":["VAT invoice","MwSt.-Rechnung","Faktura s DPH"],"Nie":["No","Nein","Ne"],"Tak, +8%":["Yes, +8%","Ja, +8%","Ano, +8 %"],"Uwagi do rezerwacji":["Booking notes","Anmerkungen zur Buchung","Poznámky k rezervaci"],"Lotnisko":["Airport","Flughafen","Letiště"],"Jakie lotnisko?":["Which airport?","Welcher Flughafen?","Jaké letiště?"],"np. Berlin Brandenburg":["e.g. Berlin Brandenburg","z. B. Berlin Brandenburg","např. Berlín Brandenburg"]};
 type Suggestion = { placeId?: string; text?: string };
 type AirportKey = string | "other";
 
 export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry}) {
   const { airports } = useAirportPricing();
+  const [locale,setLocale]=useState("pl");
+  useEffect(()=>{const sync=()=>setLocale(resolveCustomerLocale(new URLSearchParams(window.location.search).get("lang")||window.localStorage.getItem("matt-booking-locale")));sync();window.addEventListener("popstate",sync);return()=>window.removeEventListener("popstate",sync)},[]);
+  const t=(key:string)=>locale==="pl"?key:airportCopy[key]?.[locale==="en"?0:locale==="de"?1:2]??key;
   const [mobile, setMobile] = useState(false);
   const [step, setStep] = useState(1);
 
@@ -296,9 +300,9 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
     return <div className="booking-success-card">
       <div className="success-check">✓</div>
       <span className="badge">MATT TRANSPORT</span>
-      <h1>Dziękujemy! Rezerwacja przyjęta</h1><div className="pending-confirmation-badge">🕐 Oczekuje na potwierdzenie</div><div className="client-next-step"><strong>Co dalej?</strong><p>Twoje zgłoszenie zostało przyjęte. Potwierdzimy rezerwację najszybciej jak to możliwe.</p><p>Oczekuj wiadomości e-mail lub kontaktu z MATT TRANSPORT.</p></div>
+      <h1>{t("Dziękujemy! Rezerwacja przyjęta")}</h1><div className="pending-confirmation-badge">{t("🕐 Oczekuje na potwierdzenie")}</div><div className="client-next-step"><strong>{t("Co dalej?")}</strong><p>{t("Twoje zgłoszenie zostało przyjęte. Potwierdzimy rezerwację najszybciej jak to możliwe.")}</p><p>{t("Oczekuj wiadomości e-mail lub kontaktu z MATT TRANSPORT.")}</p></div>
       <div className="success-number"><span>Numer rezerwacji</span><strong>{success.booking_number}</strong></div>
-      <div className="success-details"><div><span>Trasa</span><strong>{routeText}</strong></div>{serviceType==="roundtrip"&&<div><span>Powrót</span><strong>{returnDate} {returnTime}</strong></div>}<div><span>Kwota</span><strong>{Number(success.total_price).toFixed(2)} zł</strong></div><div><span>Płatność</span><strong>{paymentMethodText}</strong></div></div>
+      <div className="success-details"><div><span>{t("Trasa")}</span><strong>{routeText}</strong></div>{serviceType==="roundtrip"&&<div><span>Powrót</span><strong>{returnDate} {returnTime}</strong></div>}<div><span>Kwota</span><strong>{Number(success.total_price).toFixed(2)} zł</strong></div><div><span>Płatność</span><strong>{paymentMethodText}</strong></div></div>
       {success.customer_access_token && <CustomerPushControls token={success.customer_access_token} />}
       <div className="success-actions"><a className="btn" href="/booking">NOWA REZERWACJA</a></div>
     </div>;
@@ -312,7 +316,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
   </label>;
 
   const renderOtherAirportBox = () => airport==="other" ? <div className="individual-quote-box">
-    <label>Jakie lotnisko?<input value={otherAirport} onChange={e=>setOtherAirport(e.target.value)} placeholder="np. Berlin Brandenburg"/></label>
+    <label>{t("Jakie lotnisko?")}<input value={otherAirport} onChange={e=>setOtherAirport(e.target.value)} placeholder={t("np. Berlin Brandenburg")}/></label>
     <strong>Wycena indywidualna</strong>
     <p>Dla tego lotniska cenę ustalamy indywidualnie telefonicznie.</p>
     <a className="btn" href="tel:+48691242691">📞 ZADZWOŃ I ZAPYTAJ O CENĘ</a>
@@ -351,7 +355,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
       </div>
 
       {step===1&&<section className="card wizard-card">
-        <h1>Jakiego przejazdu potrzebujesz?</h1>
+        <h1>{t("Jakiego przejazdu potrzebujesz?")}</h1>
         <div className="wizard-choice-list">
           <button onClick={()=>{setServiceType("to_airport");go(2)}}><strong>🛫 Transfer na lotnisko</strong><span>Z adresu na wybrane lotnisko</span></button>
           <button onClick={()=>{setServiceType("from_airport");go(2)}}><strong>🛬 Odbiór z lotniska</strong><span>Z lotniska pod wskazany adres</span></button>
@@ -360,9 +364,9 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
       </section>}
 
       {step===2&&<section className="card wizard-card">
-        <h1>Trasa i lotnisko</h1>
-        <label>{serviceType==="from_airport"?"Adres docelowy":"Adres odbioru"}
-          <input value={address} onChange={e=>setAddress(e.target.value)} placeholder="Wpisz adres"/>
+        <h1>{t("Trasa i lotnisko")}</h1>
+        <label>{serviceType==="from_airport"?t("Adres docelowy"):t("Adres odbioru")}
+          <input value={address} onChange={e=>setAddress(e.target.value)} placeholder={t("Wpisz adres")}/>
           {suggestions.length>0&&<div className="address-suggestions">{suggestions.slice(0,5).map((s,i)=><button key={s.placeId??i} type="button" onClick={()=>chooseAddress(s.text??"")}>{s.text}</button>)}</div>}
         </label>
         {renderRouteStatus()}
@@ -373,24 +377,24 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
       </section>}
 
       {step===3&&<section className="card wizard-card">
-        <h1>Termin przejazdu</h1>
+        <h1>{t("Termin przejazdu")}</h1>
         <p className="muted flight-time-hint">Dla wyjazdu na lotnisko podaj godzinę, o której chcesz wyjechać spod wskazanego adresu. Przy odbiorze z lotniska podaj godzinę przylotu z rozkładu lotu.</p>
         <div className="grid">
-          <label>Data<input required type="date" value={travelDate} onChange={e=>setTravelDate(e.target.value)}/></label>
+          <label>{t("Data")}<input required type="date" value={travelDate} onChange={e=>setTravelDate(e.target.value)}/></label>
           <label>{serviceType === "from_airport" ? "Godzina przylotu" : "Godzina wyjazdu na lotnisko"}<input required type="time" value={travelTime} onChange={e=>setTravelTime(e.target.value)}/></label>
-          <label>{serviceType==="roundtrip"?"Lot wylotowy":"Numer lotu"}<input value={flight} onChange={e=>setFlight(e.target.value)} placeholder="np. FR8214"/></label>
-          <label>Pasażerowie<select value={passengers} onChange={e=>setPassengers(Number(e.target.value))}>{[1,2,3,4,5,6,7,8].map(n=><option key={n}>{n}</option>)}</select></label>
+          <label>{serviceType==="roundtrip"?t("Lot wylotowy"):t("Numer lotu")}<input value={flight} onChange={e=>setFlight(e.target.value)} placeholder="np. FR8214"/></label>
+          <label>{t("Pasażerowie")}<select value={passengers} onChange={e=>setPassengers(Number(e.target.value))}>{[1,2,3,4,5,6,7,8].map(n=><option key={n}>{n}</option>)}</select></label>
           {serviceType==="roundtrip"&&<>
-            <label>Data powrotu<input required min={travelDate||undefined} type="date" value={returnDate} onChange={e=>setReturnDate(e.target.value)}/></label>
-            <label>Godzina przylotu powrotnego<input required type="time" value={returnTime} onChange={e=>setReturnTime(e.target.value)}/></label>
-            <label>Lot powrotny<input value={returnFlight} onChange={e=>setReturnFlight(e.target.value)}/></label>
+            <label>{t("Data powrotu")}<input required min={travelDate||undefined} type="date" value={returnDate} onChange={e=>setReturnDate(e.target.value)}/></label>
+            <label>{t("Godzina przylotu powrotnego")}<input required type="time" value={returnTime} onChange={e=>setReturnTime(e.target.value)}/></label>
+            <label>{t("Lot powrotny")}<input value={returnFlight} onChange={e=>setReturnFlight(e.target.value)}/></label>
           </>}
         </div>
         <div className="wizard-nav"><button className="btn secondary" onClick={()=>go(2)}>WSTECZ</button><button className="btn" disabled={!valid(3)} onClick={()=>go(4)}>DALEJ</button></div>
       </section>}
 
       {step===4&&<section className="card wizard-card">
-        <h1>Wybierz pojazd</h1>
+        <h1>{t("Wybierz pojazd")}</h1>
         <div className="wizard-choice-list">
           <button disabled={passengers>3} onClick={()=>{setVehicle("car");go(5)}}><strong>🚘 Samochód osobowy</strong><span>Do 3 pasażerów z bagażami</span></button>
           <button onClick={()=>{setVehicle("bus");go(5)}}><strong>🚐 Bus do 8 osób</strong><span>Dla grup i większego bagażu</span></button>
@@ -399,17 +403,17 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
       </section>}
 
       {step===5&&<section className="card wizard-card">
-        <h1>Twoje dane</h1>
+        <h1>{t("Twoje dane")}</h1>
         <div className="grid">
-          <label>Imię i nazwisko<input value={name} onChange={e=>setName(e.target.value)}/></label>
-          <label>Telefon<input value={phone} onChange={e=>setPhone(e.target.value)}/></label>
-          <label>E-mail<input type="email" value={email} onChange={e=>setEmail(e.target.value)}/></label>
-          <label>Faktura VAT<select value={invoice?"1":"0"} onChange={e=>{const n=e.target.value==="1";setInvoice(n);if(!n)setNip("");}}><option value="0">Nie</option><option value="1">Tak, +8%</option></select></label>
+          <label>{t("Imię i nazwisko")}<input value={name} onChange={e=>setName(e.target.value)}/></label>
+          <label>{t("Telefon")}<input value={phone} onChange={e=>setPhone(e.target.value)}/></label>
+          <label>{t("E-mail")}<input type="email" value={email} onChange={e=>setEmail(e.target.value)}/></label>
+          <label>{t("Faktura VAT")}<select value={invoice?"1":"0"} onChange={e=>{const n=e.target.value==="1";setInvoice(n);if(!n)setNip("");}}><option value="0">{t("Nie")}</option><option value="1">{t("Tak, +8%")}</option></select></label>
           {invoice&&<label>NIP<input inputMode="numeric" maxLength={10} value={nip} onChange={e=>setNip(nip10(e.target.value))}/></label>}
         </div>
-        <label style={{marginTop:14}}>Uwagi do rezerwacji<textarea rows={4} value={notes} onChange={e=>setNotes(e.target.value)}/></label>
+        <label style={{marginTop:14}}>{t("Uwagi do rezerwacji")}<textarea rows={4} value={notes} onChange={e=>setNotes(e.target.value)}/></label>
         <div className="payment-method-section">
-          <h3>Sposób płatności</h3>
+          <h3>{t("Sposób płatności")}</h3>
           <div className="payment-method-grid">
             <label className={`payment-method-choice ${paymentMethod==="cash"?"selected":""}`}>
               <input type="radio" name="payment-method-mobile" value="cash" checked={paymentMethod==="cash"} onChange={()=>setPaymentMethod("cash")}/>
@@ -429,14 +433,14 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
       </section>}
 
       {step===6&&<section className="card wizard-card">
-        <h1>Podsumowanie</h1>
+        <h1>{t("Podsumowanie")}</h1>
         <div className="wizard-summary">
-          <div><span>Trasa</span><strong>{routeText}</strong></div>
+          <div><span>{t("Trasa")}</span><strong>{routeText}</strong></div>
           <div><span>Dojazd do adresu</span><strong>{routeReady?`${distanceKm.toFixed(1)} km`:routeBusy?"Obliczanie...":"Nieobliczony"}</strong></div>
-          <div><span>Termin</span><strong>{travelDate} {travelTime}</strong></div>
+          <div><span>{t("Termin")}</span><strong>{travelDate} {travelTime}</strong></div>
           {serviceType==="roundtrip"&&<div><span>Powrót</span><strong>{returnDate} {returnTime}</strong></div>}
-          <div><span>Pojazd</span><strong>{vehicle==="car"?"Samochód osobowy":"Bus do 8 osób"}</strong></div>
-          <div><span>Pasażerowie</span><strong>{passengers}</strong></div>
+          <div><span>{t("Pojazd")}</span><strong>{vehicle==="car"?"Samochód osobowy":"Bus do 8 osób"}</strong></div>
+          <div><span>{t("Pasażerowie")}</span><strong>{passengers}</strong></div>
           {additionalStopEnabled&&additionalStopAddress&&<div><span>Dodatkowy przystanek</span><strong>{additionalStopAddress}</strong></div>}
           {quote.stopFee>0&&<div><span>Opłata za przystanek</span><strong>{quote.stopFee.toFixed(2)} zł</strong></div>}
           {quote.stopExtraKm>0&&<div><span>Objazd poza trasą</span><strong>{quote.stopExtraKm.toFixed(1)} km · {quote.stopExtra.toFixed(2)} zł</strong></div>}
@@ -451,49 +455,49 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
 
   return <div className="layout booking-form-wrap" onClickCapture={markFunnelStarted} onInputCapture={markFunnelStarted}>
     <div className="card">
-      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}><span className="badge">MATT TRANSPORT</span>{googleRatingBadge}</div><h1>Zarezerwuj transfer lotniskowy</h1>
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}><span className="badge">MATT TRANSPORT</span>{googleRatingBadge}</div><h1>{t("Zarezerwuj transfer lotniskowy")}</h1>
       <div className="choice-grid">
         <button className={`choice ${serviceType==="to_airport"?"active":""}`} onClick={()=>setServiceType("to_airport")}><strong>🛫 Transfer na lotnisko</strong></button>
         <button className={`choice ${serviceType==="from_airport"?"active":""}`} onClick={()=>setServiceType("from_airport")}><strong>🛬 Odbiór z lotniska</strong></button>
         <button className={`choice ${serviceType==="roundtrip"?"active":""}`} onClick={()=>setServiceType("roundtrip")}><strong>🔁 W obie strony</strong></button>
       </div>
-      <h3>Trasa</h3>
+      <h3>{t("Trasa")}</h3>
       <div className="grid">
-        <label>{serviceType==="from_airport"?"Adres docelowy":"Adres odbioru"}<input value={address} onChange={e=>setAddress(e.target.value)} placeholder="Wpisz adres"/>{suggestions.length>0&&<div className="address-suggestions">{suggestions.slice(0,5).map((s,i)=><button key={s.placeId??i} type="button" onClick={()=>chooseAddress(s.text??"")}>{s.text}</button>)}</div>}</label>
+        <label>{serviceType==="from_airport"?t("Adres docelowy"):t("Adres odbioru")}<input value={address} onChange={e=>setAddress(e.target.value)} placeholder={t("Wpisz adres")}/>{suggestions.length>0&&<div className="address-suggestions">{suggestions.slice(0,5).map((s,i)=><button key={s.placeId??i} type="button" onClick={()=>chooseAddress(s.text??"")}>{s.text}</button>)}</div>}</label>
         {renderAirportSelect()}
       </div>
       {renderRouteStatus()}
       {renderOtherAirportBox()}
       {airport!=="other"&&renderAdditionalStopBox()}
-      <h3>Termin</h3>
+      <h3>{t("Termin")}</h3>
       <p className="muted flight-time-hint">Dla wyjazdu na lotnisko podaj godzinę wyjazdu spod wskazanego adresu. Przy odbiorze z lotniska podaj godzinę przylotu z rozkładu lotu.</p>
       <div className="grid">
-        <label>Data<input required type="date" value={travelDate} onChange={e=>setTravelDate(e.target.value)}/></label>
+        <label>{t("Data")}<input required type="date" value={travelDate} onChange={e=>setTravelDate(e.target.value)}/></label>
         <label>{serviceType === "from_airport" ? "Godzina przylotu" : "Godzina wyjazdu na lotnisko"}<input required type="time" value={travelTime} onChange={e=>setTravelTime(e.target.value)}/></label>
-        <label>{serviceType==="roundtrip"?"Lot wylotowy":"Numer lotu"}<input value={flight} onChange={e=>setFlight(e.target.value)}/></label>
-        <label>Pasażerowie<select value={passengers} onChange={e=>setPassengers(Number(e.target.value))}>{[1,2,3,4,5,6,7,8].map(n=><option key={n}>{n}</option>)}</select></label>
+        <label>{serviceType==="roundtrip"?t("Lot wylotowy"):t("Numer lotu")}<input value={flight} onChange={e=>setFlight(e.target.value)}/></label>
+        <label>{t("Pasażerowie")}<select value={passengers} onChange={e=>setPassengers(Number(e.target.value))}>{[1,2,3,4,5,6,7,8].map(n=><option key={n}>{n}</option>)}</select></label>
         {serviceType==="roundtrip"&&<>
-          <label>Data powrotu<input required min={travelDate||undefined} type="date" value={returnDate} onChange={e=>setReturnDate(e.target.value)}/></label>
-          <label>Godzina przylotu powrotnego<input required type="time" value={returnTime} onChange={e=>setReturnTime(e.target.value)}/></label>
-          <label>Lot powrotny<input value={returnFlight} onChange={e=>setReturnFlight(e.target.value)}/></label>
+          <label>{t("Data powrotu")}<input required min={travelDate||undefined} type="date" value={returnDate} onChange={e=>setReturnDate(e.target.value)}/></label>
+          <label>{t("Godzina przylotu powrotnego")}<input required type="time" value={returnTime} onChange={e=>setReturnTime(e.target.value)}/></label>
+          <label>{t("Lot powrotny")}<input value={returnFlight} onChange={e=>setReturnFlight(e.target.value)}/></label>
         </>}
       </div>
-      <h3>Pojazd</h3>
+      <h3>{t("Pojazd")}</h3>
       <div className="choice-grid vehicle-grid">
         <button className={`choice ${vehicle==="car"?"active":""}`} disabled={passengers>3} onClick={()=>setVehicle("car")}><strong>Samochód osobowy</strong></button>
         <button className={`choice ${vehicle==="bus"?"active":""}`} onClick={()=>setVehicle("bus")}><strong>Bus do 8 osób</strong></button>
       </div>
-      <h3>Dane klienta</h3>
+      <h3>{t("Dane klienta")}</h3>
       <div className="grid">
-        <label>Imię i nazwisko<input value={name} onChange={e=>setName(e.target.value)}/></label>
-        <label>Telefon<input value={phone} onChange={e=>setPhone(e.target.value)}/></label>
-        <label>E-mail<input type="email" value={email} onChange={e=>setEmail(e.target.value)}/></label>
-        <label>Faktura VAT<select value={invoice?"1":"0"} onChange={e=>setInvoice(e.target.value==="1")}><option value="0">Nie</option><option value="1">Tak, +8%</option></select></label>
+        <label>{t("Imię i nazwisko")}<input value={name} onChange={e=>setName(e.target.value)}/></label>
+        <label>{t("Telefon")}<input value={phone} onChange={e=>setPhone(e.target.value)}/></label>
+        <label>{t("E-mail")}<input type="email" value={email} onChange={e=>setEmail(e.target.value)}/></label>
+        <label>{t("Faktura VAT")}<select value={invoice?"1":"0"} onChange={e=>setInvoice(e.target.value==="1")}><option value="0">{t("Nie")}</option><option value="1">{t("Tak, +8%")}</option></select></label>
         {invoice&&<label>NIP<input inputMode="numeric" maxLength={10} value={nip} onChange={e=>setNip(nip10(e.target.value))}/></label>}
       </div>
-      <label style={{marginTop:16}}>Uwagi do rezerwacji<textarea rows={4} value={notes} onChange={e=>setNotes(e.target.value)}/></label>
+      <label style={{marginTop:16}}>{t("Uwagi do rezerwacji")}<textarea rows={4} value={notes} onChange={e=>setNotes(e.target.value)}/></label>
       <div className="payment-method-section">
-        <h3>Sposób płatności</h3>
+        <h3>{t("Sposób płatności")}</h3>
         <div className="payment-method-grid">
           <label className={`payment-method-choice ${paymentMethod==="cash"?"selected":""}`}>
             <input type="radio" name="payment-method-desktop" value="cash" checked={paymentMethod==="cash"} onChange={()=>setPaymentMethod("cash")}/>
@@ -512,14 +516,14 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
 
     </div>
     <aside className="card summary">
-      <h3>Podsumowanie</h3>
+      <h3>{t("Podsumowanie")}</h3>
       {airport==="other"?<>
         <div className="individual-quote-summary"><strong>Wycena indywidualna</strong><span>{otherAirport||"Inne lotnisko"}</span></div>
         <a className="btn" style={{width:"100%",marginTop:16}} href="tel:+48691242691">📞 ZADZWOŃ</a>
       </>:<>
-        <div className="row"><span>Trasa</span><strong>{routeText}</strong></div>
+        <div className="row"><span>{t("Trasa")}</span><strong>{routeText}</strong></div>
         <div className="row"><span>Dojazd do adresu</span><strong>{routeReady?`${distanceKm.toFixed(1)} km`:routeBusy?"Obliczanie...":"Nieobliczony"}</strong></div>
-        <div className="row"><span>Termin</span><strong>{travelDate||"—"} {travelTime||""}</strong></div>
+        <div className="row"><span>{t("Termin")}</span><strong>{travelDate||"—"} {travelTime||""}</strong></div>
         {serviceType==="roundtrip"&&<div className="row"><span>Powrót</span><strong>{returnDate||"—"} {returnTime||""}</strong></div>}
         <div className="row"><span>Cena bazowa</span><strong>{quote.base.toFixed(2)} zł</strong></div>
         <div className="row"><span>Dopłata</span><strong>{quote.extra.toFixed(2)} zł</strong></div>
