@@ -5,6 +5,7 @@ import { getAirportPricing } from "@/lib/airportPricingServer";
 import { calculateAdditionalStopDetour } from "@/lib/additionalStopServer";
 import { ADDITIONAL_STOP_B2C_KM_RATE, ADDITIONAL_STOP_FEE_B2C, additionalStopDirectionCount } from "@/lib/additionalStopConfig";
 import { sendMattEmail } from "@/lib/email";
+import { localizedReceivedEmail, resolveCustomerLocale } from "@/lib/localizedBookingEmails";
 import { sendBookingNotification } from "@/lib/customerNotifications";
 import { sendNewBookingAdminPush } from "@/lib/adminNotifications";
 import {
@@ -297,7 +298,9 @@ export async function POST(req: NextRequest) {
   let emailWarning: string | null = null;
 
   try {
-    const customerMail = receivedEmail(data);
+    const customerMail = resolveCustomerLocale(body.locale) === "pl"
+      ? receivedEmail(data)
+      : localizedReceivedEmail({ ...data, locale: resolveCustomerLocale(body.locale) });
 
     const customerResult = await sendMattEmail({
       to: body.email,
