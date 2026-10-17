@@ -1,3 +1,4 @@
+import { localizedQuoteEmail } from "@/lib/quoteEmails";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMattEmail } from "@/lib/email";
@@ -152,27 +153,7 @@ export async function POST(
 
     await Promise.allSettled([
       updated.email
-        ? sendMattEmail({
-            to: updated.email,
-            subject: `Potwierdzenie zamówienia · ${updated.booking_number}`,
-            html: `
-              <div style="font-family:Arial,sans-serif;background:#0b0e13;color:#fff;padding:28px">
-                <div style="max-width:650px;margin:auto;background:#151923;border:1px solid #d5ae5d;border-radius:16px;padding:28px">
-                  <h2 style="color:#f1d28b">MATT TRANSPORT</h2>
-                  <h1>Wycena zaakceptowana</h1>
-                  <p>Dziękujemy. Twoje zamówienie zostało przyjęte do realizacji.</p>
-                  <p>Trasa: <strong>${esc(updated.pickup_address)} → ${esc(updated.destination_address || updated.airport_label)}</strong></p>
-                  <p>Termin: <strong>${esc(updated.travel_date)} · ${esc(String(updated.travel_time || "").slice(0, 5))}</strong></p>
-                  <p style="font-size:22px">Cena: <strong style="color:#f1d28b">${amount} zł</strong></p>
-                  <p>Sposób płatności: <strong>${paymentLabel(updated.payment_method)}</strong></p>
-                  ${updated.payment_method === "online"
-                    ? "<p>Płatność online jest dostępna w portalu rezerwacji.</p>"
-                    : ""}
-                  <p>Kontakt: +48 691 242 691</p>
-                </div>
-              </div>
-            `
-          })
+        ? sendMattEmail({to: updated.email, ...localizedQuoteEmail("accepted", updated)})
         : Promise.resolve(),
       sendMattEmail({
         to: process.env.ADMIN_EMAIL || "kontakt@matt-transport.pl",
@@ -261,20 +242,7 @@ export async function POST(
 
     await Promise.allSettled([
       updated.email
-        ? sendMattEmail({
-            to: updated.email,
-            subject: `Rezygnacja z wyceny · ${updated.booking_number}`,
-            html: `
-              <div style="font-family:Arial,sans-serif;background:#0b0e13;color:#fff;padding:28px">
-                <div style="max-width:650px;margin:auto;background:#151923;border:1px solid #343b49;border-radius:16px;padding:28px">
-                  <h2 style="color:#f1d28b">MATT TRANSPORT</h2>
-                  <h1>Potwierdzamy rezygnację z wyceny</h1>
-                  <p>Wycena ${amount} zł nie została zaakceptowana i zlecenie nie będzie realizowane.</p>
-                  <p>Jeśli zmienisz zdanie, skontaktuj się z nami: +48 691 242 691.</p>
-                </div>
-              </div>
-            `
-          })
+        ? sendMattEmail({to: updated.email, ...localizedQuoteEmail("rejected", updated)})
         : Promise.resolve(),
       sendMattEmail({
         to: process.env.ADMIN_EMAIL || "kontakt@matt-transport.pl",

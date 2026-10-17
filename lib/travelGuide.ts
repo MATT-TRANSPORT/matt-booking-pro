@@ -23,9 +23,9 @@ const guides: Record<BookingLocale, Record<GuideKind, { heading: string; steps: 
 
 function esc(value: string) { return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;"); }
 
-export function travelGuideHtml(serviceType: string, localeInput: unknown) {
+export function travelGuideHtml(serviceType: string, localeInput: unknown, airportTransfer = true) {
   // Non-airport bookings must not receive airport pickup instructions.
-  if (!["to_airport", "from_airport", "roundtrip"].includes(serviceType)) return "";
+  if (!airportTransfer || !["to_airport", "from_airport", "roundtrip"].includes(serviceType)) return "";
   const locale = resolveCustomerLocale(localeInput);
   const kinds: GuideKind[] = serviceType === "roundtrip" ? ["departure", "arrival"] : [serviceType === "from_airport" ? "arrival" : "departure"];
   return kinds.map(kind => {

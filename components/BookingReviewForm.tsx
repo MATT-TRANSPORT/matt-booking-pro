@@ -1,8 +1,12 @@
 "use client";
+import { customerText } from "@/lib/customerCopy";
+import { useCustomerLocale } from "@/lib/useCustomerLocale";
 
 import { useEffect, useState } from "react";
 
 export default function BookingReviewForm({ token }: { token: string }) {
+  const locale = useCustomerLocale();
+  const t = (key: string) => customerText(key, locale);
   const [booking, setBooking] = useState<any>(null);
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState("");
@@ -15,7 +19,7 @@ export default function BookingReviewForm({ token }: { token: string }) {
       .then(async (r) => ({ ok: r.ok, data: await r.json() }))
       .then(({ ok, data }) => {
         if (!ok) {
-          setMessage(data.error || "Nie udało się otworzyć formularza oceny.");
+          setMessage(data.error || t("Nie udało się otworzyć formularza oceny."));
           return;
         }
         setBooking(data.booking);
@@ -23,7 +27,7 @@ export default function BookingReviewForm({ token }: { token: string }) {
           setRating(Number(data.review.rating || 0));
           setFeedback(data.review.feedback || "");
           setGoogleUrl(data.google_url || "");
-          setMessage("Dziękujemy — Twoja ocena jest już zapisana.");
+          setMessage(t("Dziękujemy — Twoja ocena jest już zapisana."));
         }
       });
   }, [token]);
@@ -40,13 +44,13 @@ export default function BookingReviewForm({ token }: { token: string }) {
     const data = await r.json();
     setBusy(false);
     if (!r.ok) {
-      setMessage(data.error || "Nie udało się zapisać oceny.");
+      setMessage(data.error || t("Nie udało się zapisać oceny."));
       return;
     }
     setGoogleUrl(data.google_url || "");
     setMessage(rating === 5
-      ? "Dziękujemy za 5/5! Jeśli chcesz, możesz teraz dodać opinię również w Google."
-      : "Dziękujemy za opinię. Twoje uwagi trafiły bezpośrednio do MATT TRANSPORT.");
+      ? t("Dziękujemy za 5/5! Jeśli chcesz, możesz teraz dodać opinię również w Google.")
+      : t("Dziękujemy za opinię. Twoje uwagi trafiły bezpośrednio do MATT TRANSPORT."));
   }
 
   async function openGoogle() {
@@ -63,8 +67,8 @@ export default function BookingReviewForm({ token }: { token: string }) {
     <main className="container" style={{ maxWidth: 720 }}>
       <div className="card" style={{ marginTop: 28 }}>
         <span className="badge">MATT TRANSPORT</span>
-        <h1 style={{ marginTop: 10 }}>Jak minęła podróż?</h1>
-        {booking && <p className="muted">Rezerwacja {booking.booking_number} · {booking.customer_name}</p>}
+        <h1 style={{ marginTop: 10 }}>{t("Jak minęła podróż?")}</h1>
+        {booking && <p className="muted">{t("Rezerwacja")} {booking.booking_number} · {booking.customer_name}</p>}
 
         <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", margin: "28px 0" }}>
           {[1,2,3,4,5].map((n) => (
@@ -87,26 +91,25 @@ export default function BookingReviewForm({ token }: { token: string }) {
         </div>
 
         <label>
-          {rating && rating < 5 ? "Co możemy poprawić?" : "Dodatkowa uwaga (opcjonalnie)"}
+          {rating && rating < 5 ? t("Co możemy poprawić?") : t("Dodatkowa uwaga (opcjonalnie)")}
           <textarea
             rows={5}
             maxLength={2000}
             value={feedback}
             onChange={(e) => setFeedback(e.target.value)}
-            placeholder={rating && rating < 5 ? "Napisz krótko, co wymagało poprawy…" : "Możesz zostawić kilka słów…"}
+            placeholder={rating && rating < 5 ? t("Napisz krótko, co wymagało poprawy…") : t("Możesz zostawić kilka słów…")}
           />
         </label>
 
         <button className="btn" style={{ width: "100%", marginTop: 16 }} disabled={!rating || busy} onClick={submit}>
-          {busy ? "ZAPISYWANIE..." : "ZAPISZ OCENĘ"}
+          {busy ? t("ZAPISYWANIE...") : t("ZAPISZ OCENĘ")}
         </button>
 
         {message && <div className="admin-save-message" style={{ marginTop: 14 }}>{message}</div>}
 
         {googleUrl && rating === 5 && (
           <button className="btn secondary" style={{ width: "100%", marginTop: 14 }} onClick={openGoogle}>
-            ⭐ DODAJ OPINIĘ W GOOGLE
-          </button>
+            {t("⭐ DODAJ OPINIĘ W GOOGLE")}</button>
         )}
       </div>
     </main>

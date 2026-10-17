@@ -17,6 +17,8 @@ type BookingMail = {
   pickup_address: string;
   airport_label: string;
   service_type: string;
+  booking_source?: string | null;
+  destination_address?: string | null;
   travel_date: string;
   travel_time: string;
   return_date?: string | null;
@@ -258,7 +260,7 @@ export function confirmedEmail(b: BookingMail) {
 }
 
 export function assignedEmail(b: BookingMail) {
-  if (resolveCustomerLocale(b.customer_locale) !== "pl") return localizedStatusEmail("assigned", b, {guideHtml:travelGuideHtml(b.service_type,b.customer_locale)});
+  if (resolveCustomerLocale(b.customer_locale) !== "pl") return localizedStatusEmail("assigned", b, {guideHtml:travelGuideHtml(b.service_type,b.customer_locale, !b.destination_address && b.booking_source !== "public_general")});
   return {
     subject: `Kierowca został przydzielony – ${b.booking_number}`,
     html: shell(
@@ -267,7 +269,7 @@ export function assignedEmail(b: BookingMail) {
         Przydzieliliśmy obsadę do Twojego transferu.
       </p>
       ${details(b)}
-      ${travelGuideHtml(b.service_type, b.customer_locale)}
+      ${travelGuideHtml(b.service_type, b.customer_locale, !b.destination_address && b.booking_source !== "public_general")}
       <div style="margin-top:18px;background:#10141b;border:1px solid #343b49;border-radius:14px;padding:18px;line-height:1.8">
         <div style="font-weight:900;color:#f1d28b;margin-bottom:6px">→ WYJAZD</div>
         <div><span style="color:#aab1bc">Kierowca:</span> <strong>${esc(b.driver_name || "—")}</strong></div>

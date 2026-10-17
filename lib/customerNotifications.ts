@@ -1,3 +1,5 @@
+import { resolveCustomerLocale, withCustomerLocale } from "@/lib/bookingLocale";
+import { localizedCustomerUpdate } from "@/lib/localizedCustomerUpdates";
 import webpush from "web-push";
 
 export type CustomerNotificationKind =
@@ -92,8 +94,8 @@ function routeText(booking: any, leg?: "primary" | "return") {
 }
 
 function portalUrl(booking: any) {
-  if (!booking.customer_access_token) return customerPortalBaseUrl();
-  return `${customerPortalBaseUrl()}/rezerwacja/${booking.customer_access_token}`;
+  if (!booking.customer_access_token) return withCustomerLocale(customerPortalBaseUrl(), booking.customer_locale);
+  return withCustomerLocale(`${customerPortalBaseUrl()}/rezerwacja/${encodeURIComponent(booking.customer_access_token)}`, booking.customer_locale);
 }
 
 function shortTime(value: unknown) {
@@ -172,6 +174,15 @@ export function customerUpdateText(
   const alert = options.alert;
   const flight = options.flight;
 
+  const translated = localizedCustomerUpdate(booking.customer_locale, options.kind, {
+    number: String(number || ""), date: String(date || ""), time, route,
+    driver: `${driver?.full_name || "MATT TRANSPORT"}${driver?.phone ? `, tel. ${driver.phone}` : ""}`,
+    vehicle: vehicle ? `${vehicle.name}${vehicle.registration ? `, ${vehicle.registration}` : ""}` : "",
+    flight: String(flight?.flight_number || booking.flight_number || ""),
+    delay: Number(alert?.payload?.delay ?? flight?.arr_delayed ?? flight?.dep_delayed ?? 0)
+  });
+  if (translated) return translated;
+
   switch (options.kind) {
     case "received":
       return `Przyjęliśmy rezerwację ${number} na ${date} o ${time}. Oczekuje na potwierdzenie MATT TRANSPORT.`;
@@ -222,6 +233,9 @@ export function quickWhatsAppText(booking: any) {
       : booking.driver_id && booking.vehicle_id
       ? "assigned"
       : "confirmed";
+
+  const locale = resolveCustomerLocale(booking.customer_locale);
+  if (locale !== "pl") return `${customerUpdateText(booking, { kind })} ${{en:"Details",de:"Einzelheiten",cs:"Podrobnosti"}[locale]}: ${portalUrl(booking)}`;
 
   if (kind === "assigned") {
     return quickAssignedText(booking);
@@ -300,8 +314,8 @@ export async function sendBookingNotification(
   configureWebPush();
   const booking = await enrichBooking(admin, bookingInput);
   const body = customerUpdateText(booking, options);
-  const url = options.url || portalUrl(booking);
-  const title = options.title || (options.kind === "review_request" ? "⭐ Jak minęła podróż?" : "MATT TRANSPORT");
+  const url = withCustomerLocale(options.url || portalUrl(booking), booking.customer_locale);
+  const title = options.title || (options.kind === "review_request" ? {pl:"⭐ Jak minęła podróż?",en:"⭐ How was your journey?",de:"⭐ Wie war Ihre Fahrt?",cs:"⭐ Jaká byla vaše cesta?"}[resolveCustomerLocale(booking.customer_locale)] : "MATT TRANSPORT");
 
   const reserved = await reservePushLog(
     admin,

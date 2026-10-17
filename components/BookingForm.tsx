@@ -1,5 +1,6 @@
 "use client";
-import {resolveCustomerLocale} from "@/lib/localizedBookingEmails";
+import { customerText } from "@/lib/customerCopy";
+import { useCustomerLocale } from "@/lib/useCustomerLocale";
 import CustomerPushControls from "@/components/CustomerPushControls";
 
 import { useEffect, useMemo, useState } from "react";
@@ -15,9 +16,8 @@ type AirportKey = string | "other";
 
 export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry}) {
   const { airports } = useAirportPricing();
-  const [locale,setLocale]=useState("pl");
-  useEffect(()=>{const sync=()=>setLocale(resolveCustomerLocale(new URLSearchParams(window.location.search).get("lang")||window.localStorage.getItem("matt-booking-locale")));sync();window.addEventListener("popstate",sync);return()=>window.removeEventListener("popstate",sync)},[]);
-  const t=(key:string)=>locale==="pl"?key:(airportCopy[key]??airportExtraCopy[key])?.[locale==="en"?0:locale==="de"?1:2]??key;
+  const locale = useCustomerLocale();
+  const t=(key:string)=>locale==="pl"?key:(airportCopy[key]??airportExtraCopy[key])?.[locale==="en"?0:locale==="de"?1:2]??customerText(key,locale);
   const [mobile, setMobile] = useState(false);
   const [step, setStep] = useState(1);
 
@@ -104,12 +104,12 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
         const d = await r.json();
         if(controller.signal.aborted) return;
         if(!r.ok || typeof d.distanceKm!=="number" || !Number.isFinite(d.distanceKm) || d.distanceKm<0) {
-          throw new Error("Nie udało się obliczyć dojazdu.");
+          throw new Error(t("Nie udało się obliczyć dojazdu."));
         }
         setDistanceKm(d.distanceKm);
         setCalculatedAddress(value);
       } catch {
-        if(!controller.signal.aborted) setRouteError("Nie udało się obliczyć dojazdu. Sprawdź adres (miejscowość, ulica i numer) i spróbuj ponownie.");
+        if(!controller.signal.aborted) setRouteError(t("Nie udało się obliczyć dojazdu. Sprawdź adres (miejscowość, ulica i numer) i spróbuj ponownie."));
       } finally {
         if(!controller.signal.aborted) setRouteBusy(false);
       }
@@ -150,8 +150,8 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
           serviceType,address,airport,additionalStopAddress,additionalStopPrimary,additionalStopReturn:serviceType==="roundtrip"&&additionalStopReturn
         })});
         const d=await r.json();
-        if(r.ok) setAdditionalStopQuote(d); else setAdditionalStopError(d.error??"Nie udało się obliczyć przystanku.");
-      }catch{ setAdditionalStopError("Nie udało się obliczyć dodatkowego przystanku."); }
+        if(r.ok) setAdditionalStopQuote(d); else setAdditionalStopError(d.error??t("Nie udało się obliczyć przystanku."));
+      }catch{ setAdditionalStopError(t("Nie udało się obliczyć dodatkowego przystanku.")); }
       setAdditionalStopBusy(false);
     },500);
     return()=>clearTimeout(timer);
@@ -176,25 +176,25 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
     return {base,extra,stopFee,stopExtraKm,stopExtra,vat,total:subtotal+vat};
   },[item,serviceType,vehicle,distanceKm,routeReady,invoice,additionalStopEnabled,additionalStopQuote]);
 
-  const airportLabel = airport==="other" ? (otherAirport||"Inne lotnisko") : (airports[airport]?.label || "Lotnisko");
+  const airportLabel = airport==="other" ? (otherAirport||t("Inne lotnisko")) : (airports[airport]?.label || t("Lotnisko"));
   const activeStop = additionalStopEnabled && additionalStopAddress.trim() ? additionalStopAddress.trim() : "";
   const stopLegText = serviceType === "roundtrip"
     ? additionalStopPrimary && additionalStopReturn
-      ? "wyjazd i powrót"
+      ? t("wyjazd i powrót")
       : additionalStopReturn
-      ? "powrót"
-      : "wyjazd"
+      ? t("powrót")
+      : t("wyjazd")
     : "";
   const routeText = serviceType==="from_airport"
     ? (activeStop ? `${airportLabel} → ${activeStop} → ${address||"—"}` : `${airportLabel} → ${address||"—"}`)
     : serviceType==="roundtrip"
-    ? `${address||"—"} ↔ ${airportLabel}${activeStop ? ` · przystanek: ${activeStop} (${stopLegText})` : ""}`
+    ? `${address||"—"} ↔ ${airportLabel}${activeStop ? ` · ${t("przystanek")}: ${activeStop} (${stopLegText})` : ""}`
     : (activeStop ? `${address||"—"} → ${activeStop} → ${airportLabel}` : `${address||"—"} → ${airportLabel}`);
   const paymentMethodText = paymentMethod === "online"
-    ? "Płatność online po potwierdzeniu"
+    ? t("Płatność online po potwierdzeniu")
     : paymentMethod === "bank_transfer"
-    ? "Przelew tradycyjny"
-    : "Gotówka u kierowcy";
+    ? t("Przelew tradycyjny")
+    : t("Gotówka u kierowcy");
 
   const funnelDetails = {
     serviceType,
@@ -262,29 +262,30 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
 
   async function submit(){
     if(saving) return;
-    if(airport==="other"){ setMessage("Dla tego lotniska wycena jest indywidualna telefonicznie."); return; }
+    if(airport==="other"){ setMessage(t("Dla tego lotniska wycena jest indywidualna telefonicznie.")); return; }
     const missing = [
-      !address.trim() && "adres", !travelDate && "data wyjazdu", !travelTime && "godzina przejazdu",
-      !name.trim() && "imię i nazwisko", !phone.trim() && "telefon", !email.trim() && "e-mail"
+      !address.trim() && t("adres"), !travelDate && t("data wyjazdu"), !travelTime && t("godzina przejazdu"),
+      !name.trim() && t("imię i nazwisko"), !phone.trim() && t("telefon"), !email.trim() && t("e-mail")
     ].filter(Boolean);
-    if(missing.length){ setMessage(`Uzupełnij: ${missing.join(", ")}.`); return; }
-    if(!routeReady){ setMessage(routeError || "Poczekaj na obliczenie dojazdu dla podanego adresu."); return; }
-    if(serviceType==="roundtrip"&&(!returnDate||!returnTime)){ setMessage("Dla przejazdu w obie strony podaj datę i godzinę powrotu."); return; }
-    if(serviceType==="roundtrip"&&!roundtripScheduleReady()){ setMessage("Termin powrotu musi być późniejszy niż wyjazd."); return; }
-    if(invoice&&nip10(nip).length!==10){ setMessage("Podaj poprawny 10-cyfrowy NIP."); return; }
-    if(additionalStopEnabled&&(!additionalStopAddress.trim()||(!additionalStopPrimary&&!(serviceType==="roundtrip"&&additionalStopReturn))||!additionalStopQuote)){ setMessage("Poczekaj na poprawne obliczenie dodatkowego przystanku."); return; }
+    if(missing.length){ setMessage(`${t("Uzupełnij")}: ${missing.join(", ")}.`); return; }
+    if(!routeReady){ setMessage(routeError || t("Poczekaj na obliczenie dojazdu dla podanego adresu.")); return; }
+    if(serviceType==="roundtrip"&&(!returnDate||!returnTime)){ setMessage(t("Dla przejazdu w obie strony podaj datę i godzinę powrotu.")); return; }
+    if(serviceType==="roundtrip"&&!roundtripScheduleReady()){ setMessage(t("Termin powrotu musi być późniejszy niż wyjazd.")); return; }
+    if(invoice&&nip10(nip).length!==10){ setMessage(t("Podaj poprawny 10-cyfrowy NIP.")); return; }
+    if(additionalStopEnabled&&(!additionalStopAddress.trim()||(!additionalStopPrimary&&!(serviceType==="roundtrip"&&additionalStopReturn))||!additionalStopQuote)){ setMessage(t("Poczekaj na poprawne obliczenie dodatkowego przystanku.")); return; }
     setSaving(true); setMessage("");
     const tracking = readGrowthTracking();
+    try {
     const r=await fetch("/api/bookings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
       serviceType,address,airport,vehicleType:vehicle,passengers,distanceKm,travelDate,travelTime,
       returnDate,returnTime,flightNumber:flight,returnFlightNumber:returnFlight,
       additionalStopAddress:additionalStopEnabled?additionalStopAddress:null,additionalStopPrimary:additionalStopEnabled&&additionalStopPrimary,additionalStopReturn:additionalStopEnabled&&serviceType==="roundtrip"&&additionalStopReturn,
-      locale:resolveCustomerLocale(typeof window!=="undefined" ? new URLSearchParams(window.location.search).get("lang") || window.localStorage.getItem("matt-booking-locale") : "pl"),customerName:name,phone,email,invoiceRequired:invoice,companyNip:invoice?nip10(nip):null,paymentMethod,onlinePaymentRequested,notes:notes||null,
+      locale,customerName:name,phone,email,invoiceRequired:invoice,companyNip:invoice?nip10(nip):null,paymentMethod,onlinePaymentRequested,notes:notes||null,
       tracking,
       funnelSessionId: growthFunnelSessionId()
     })});
     const d=await r.json();
-    if(!r.ok){ setMessage(d.error??"Błąd rezerwacji."); setSaving(false); return; }
+    if(!r.ok){ setMessage(d.error??t("Błąd rezerwacji.")); setSaving(false); return; }
     trackBookingPurchase({
       bookingNumber: d.booking_number,
       value: Number(d.total_price),
@@ -295,6 +296,9 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
     clearGrowthTracking();
     resetGrowthFunnelSession();
     window.scrollTo({top:0,behavior:"smooth"});
+    } catch {
+      setMessage(t("Nie udało się połączyć z systemem rezerwacji."));
+    } finally { setSaving(false); }
   }
 
   if(success){
@@ -302,40 +306,39 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
       <div className="success-check">✓</div>
       <span className="badge">MATT TRANSPORT</span>
       <h1>{t("Dziękujemy! Rezerwacja przyjęta")}</h1><div className="pending-confirmation-badge">{t("🕐 Oczekuje na potwierdzenie")}</div><div className="client-next-step"><strong>{t("Co dalej?")}</strong><p>{t("Twoje zgłoszenie zostało przyjęte. Potwierdzimy rezerwację najszybciej jak to możliwe.")}</p><p>{t("Oczekuj wiadomości e-mail lub kontaktu z MATT TRANSPORT.")}</p></div>
-      <div className="success-number"><span>Numer rezerwacji</span><strong>{success.booking_number}</strong></div>
-      <div className="success-details"><div><span>{t("Trasa")}</span><strong>{routeText}</strong></div>{serviceType==="roundtrip"&&<div><span>Powrót</span><strong>{returnDate} {returnTime}</strong></div>}<div><span>Kwota</span><strong>{Number(success.total_price).toFixed(2)} zł</strong></div><div><span>Płatność</span><strong>{paymentMethodText}</strong></div></div>
-      {success.customer_access_token && <CustomerPushControls token={success.customer_access_token} />}
-      <div className="success-actions"><a className="btn" href="/booking">{t("NOWA REZERWACJA")}</a></div>
+      <div className="success-number"><span>{t("Numer rezerwacji")}</span><strong>{success.booking_number}</strong></div>
+      <div className="success-details"><div><span>{t("Trasa")}</span><strong>{routeText}</strong></div>{serviceType==="roundtrip"&&<div><span>{t("Powrót")}</span><strong>{returnDate} {returnTime}</strong></div>}<div><span>{t("Kwota")}</span><strong>{Number(success.total_price).toFixed(2)} zł</strong></div><div><span>{t("Płatność")}</span><strong>{paymentMethodText}</strong></div></div>
+      {success.customer_access_token && <CustomerPushControls customerLocale={locale} token={success.customer_access_token} />}
+      <div className="success-actions"><a className="btn" href={`/booking?lang=${locale}`}>{t("NOWA REZERWACJA")}</a></div>
     </div>;
   }
 
-  const renderAirportSelect = () => <label>Lotnisko
-    <select value={airport} onChange={e=>{const v=e.target.value as AirportKey;setAirport(v);if(v!=="other")setOtherAirport("");}}>
+  const renderAirportSelect = () => <label>{t("Lotnisko")}<select value={airport} onChange={e=>{const v=e.target.value as AirportKey;setAirport(v);if(v!=="other")setOtherAirport("");}}>
       {Object.entries(airports).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
-      <option value="other">Inne lotnisko</option>
+      <option value="other">{t("Inne lotnisko")}</option>
     </select>
   </label>;
 
   const renderOtherAirportBox = () => airport==="other" ? <div className="individual-quote-box">
     <label>{t("Jakie lotnisko?")}<input value={otherAirport} onChange={e=>setOtherAirport(e.target.value)} placeholder={t("np. Berlin Brandenburg")}/></label>
-    <strong>Wycena indywidualna</strong>
-    <p>Dla tego lotniska cenę ustalamy indywidualnie telefonicznie.</p>
+    <strong>{t("Wycena indywidualna")}</strong>
+    <p>{t("Dla tego lotniska cenę ustalamy indywidualnie telefonicznie.")}</p>
     <a className="btn" href="tel:+48691242691">📞 {t("ZADZWOŃ I ZAPYTAJ O CENĘ")}</a>
   </div> : null;
 
   const renderRouteStatus = () => airport!=="other" && <div aria-live="polite">
     {routeBusy && <div className="route-status">{t("Obliczanie dojazdu do adresu...")}</div>}
     {routeError && <div className="booking-error">{routeError}<br/><button type="button" className="btn secondary" onClick={()=>setRouteRetry(n=>n+1)}>{t("OBLICZ PONOWNIE")}</button></div>}
-    {routeReady && <div className="route-status ok">Dojazd z bazy w Książenicach: {distanceKm.toFixed(1)} km · 40 km w cenie.</div>}
+    {routeReady && <div className="route-status ok">{t("Dojazd z bazy w Książenicach:")}{distanceKm.toFixed(1)} {t("km · 40 km w cenie.")}</div>}
   </div>;
 
   const renderAdditionalStopBox = () => !additionalStopEnabled ? <button type="button" className="btn secondary additional-stop-toggle" onClick={()=>setAdditionalStopEnabled(true)}>{t("+ DODAJ DODATKOWY ADRES / PRZYSTANEK")}</button> : <div className="additional-stop-box">
-    <div className="additional-stop-head"><div><strong>Dodatkowy adres / przystanek</strong><small>+20,00 zł za każdy użyty kierunek. Dopłata kilometrowa tylko za faktyczny objazd poza normalną trasę.</small></div><button type="button" className="btn secondary" onClick={()=>{setAdditionalStopEnabled(false);setAdditionalStopAddress("");setAdditionalStopPrimary(true);setAdditionalStopReturn(false);setAdditionalStopSuggestions([]);setAdditionalStopQuote(null);setAdditionalStopError("");}}>{t("USUŃ")}</button></div>
+    <div className="additional-stop-head"><div><strong>{t("Dodatkowy adres / przystanek")}</strong><small>{t("+20,00 zł za każdy użyty kierunek. Dopłata kilometrowa tylko za faktyczny objazd poza normalną trasę.")}</small></div><button type="button" className="btn secondary" onClick={()=>{setAdditionalStopEnabled(false);setAdditionalStopAddress("");setAdditionalStopPrimary(true);setAdditionalStopReturn(false);setAdditionalStopSuggestions([]);setAdditionalStopQuote(null);setAdditionalStopError("");}}>{t("USUŃ")}</button></div>
     <label>{t("Adres dodatkowego przystanku")}<input value={additionalStopAddress} onChange={e=>setAdditionalStopAddress(e.target.value)} autoComplete="off" placeholder={t("Wpisz drugi adres")}/>{additionalStopSuggestions.length>0&&<div className="address-suggestions">{additionalStopSuggestions.slice(0,5).map((x,i)=><button key={x.placeId??i} type="button" onClick={()=>{setAdditionalStopAddress(x.text??"");setAdditionalStopSuggestions([]);}}>{x.text}</button>)}</div>}</label>
-    {serviceType==="roundtrip"?<div className="additional-stop-directions"><label><input type="checkbox" checked={additionalStopPrimary} onChange={e=>setAdditionalStopPrimary(e.target.checked)}/> Wyjazd na lotnisko (+20 zł)</label><label><input type="checkbox" checked={additionalStopReturn} onChange={e=>setAdditionalStopReturn(e.target.checked)}/> Powrót z lotniska (+20 zł)</label></div>:<p className="muted">Przystanek dotyczy tego przejazdu · +20,00 zł.</p>}
+    {serviceType==="roundtrip"?<div className="additional-stop-directions"><label><input type="checkbox" checked={additionalStopPrimary} onChange={e=>setAdditionalStopPrimary(e.target.checked)}/> {t("Wyjazd na lotnisko (+20 zł)")}</label><label><input type="checkbox" checked={additionalStopReturn} onChange={e=>setAdditionalStopReturn(e.target.checked)}/> {t("Powrót z lotniska (+20 zł)")}</label></div>:<p className="muted">{t("Przystanek dotyczy tego przejazdu · +20,00 zł.")}</p>}
     {additionalStopBusy&&<div className="route-status">{t("Obliczanie objazdu...")}</div>}
     {additionalStopError&&<div className="booking-error">{additionalStopError}</div>}
-    {additionalStopQuote&&!additionalStopBusy&&<div className="route-status ok">{Number(additionalStopQuote.totalExtraKm||0)>0?`Objazd poza normalną trasę: ${Number(additionalStopQuote.totalExtraKm).toFixed(1)} km · dopłata ${Number(additionalStopQuote.stopExtraPrice).toFixed(2)} zł`:"✓ Przystanek jest na trasie — bez dopłaty kilometrowej."}</div>}
+    {additionalStopQuote&&!additionalStopBusy&&<div className="route-status ok">{Number(additionalStopQuote.totalExtraKm||0)>0?`${t("Objazd poza trasą")}: ${Number(additionalStopQuote.totalExtraKm).toFixed(1)} km · ${t("Dopłata")} ${Number(additionalStopQuote.stopExtraPrice).toFixed(2)} zł`:t("✓ Przystanek jest na trasie — bez dopłaty kilometrowej.")}</div>}
   </div>;
 
   const googleRatingBadge = <a
@@ -343,14 +346,14 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
     href="https://www.google.com/maps/search/?api=1&query=MATT%20TRANSPORT%20Rybnik&query_place_id=ChIJpcffIH5JEUcR7xEM9paQ2Gs"
     target="_blank"
     rel="noreferrer"
-    title="Zobacz opinie MATT TRANSPORT w Google"
-    aria-label="Ocena MATT TRANSPORT w Google: 5.0 na 5"
-  >★★★★★ 5.0 w Google</a>;
+    title={t("Zobacz opinie MATT TRANSPORT w Google")}
+    aria-label={t("Ocena MATT TRANSPORT w Google: 5.0 na 5")}
+  >{t("★★★★★ 5.0 w Google")}</a>;
 
   if(mobile){
     return <div className="mobile-booking-wizard" onClickCapture={markFunnelStarted} onInputCapture={markFunnelStarted}>
       <div className="wizard-header">
-        <div className="wizard-header-top"><span className="badge">MATT TRANSPORT</span><strong>Krok {step} z 6</strong></div>
+        <div className="wizard-header-top"><span className="badge">MATT TRANSPORT</span><strong>{t("Krok")} {step} {t("z 6")}</strong></div>
         <div style={{marginTop:8}}>{googleRatingBadge}</div>
         <div className="wizard-progress"><span style={{width:`${Math.round(step/6*100)}%`}}/></div>
       </div>
@@ -358,9 +361,9 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
       {step===1&&<section className="card wizard-card">
         <h1>{t("Jakiego przejazdu potrzebujesz?")}</h1>
         <div className="wizard-choice-list">
-          <button onClick={()=>{setServiceType("to_airport");go(2)}}><strong>🛫 Transfer na lotnisko</strong><span>Z adresu na wybrane lotnisko</span></button>
-          <button onClick={()=>{setServiceType("from_airport");go(2)}}><strong>🛬 Odbiór z lotniska</strong><span>Z lotniska pod wskazany adres</span></button>
-          <button onClick={()=>{setServiceType("roundtrip");go(2)}}><strong>🔁 W obie strony</strong><span>Wyjazd i powrót</span></button>
+          <button onClick={()=>{setServiceType("to_airport");go(2)}}><strong>{t("🛫 Transfer na lotnisko")}</strong><span>{t("Z adresu na wybrane lotnisko")}</span></button>
+          <button onClick={()=>{setServiceType("from_airport");go(2)}}><strong>{t("🛬 Odbiór z lotniska")}</strong><span>{t("Z lotniska pod wskazany adres")}</span></button>
+          <button onClick={()=>{setServiceType("roundtrip");go(2)}}><strong>{t("🔁 W obie strony")}</strong><span>{t("Wyjazd i powrót")}</span></button>
         </div>
       </section>}
 
@@ -379,11 +382,11 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
 
       {step===3&&<section className="card wizard-card">
         <h1>{t("Termin przejazdu")}</h1>
-        <p className="muted flight-time-hint">Dla wyjazdu na lotnisko podaj godzinę, o której chcesz wyjechać spod wskazanego adresu. Przy odbiorze z lotniska podaj godzinę przylotu z rozkładu lotu.</p>
+        <p className="muted flight-time-hint">{t("Dla wyjazdu na lotnisko podaj godzinę, o której chcesz wyjechać spod wskazanego adresu. Przy odbiorze z lotniska podaj godzinę przylotu z rozkładu lotu.")}</p>
         <div className="grid">
           <label>{t("Data")}<input required type="date" value={travelDate} onChange={e=>setTravelDate(e.target.value)}/></label>
-          <label>{serviceType === "from_airport" ? "Godzina przylotu" : "Godzina wyjazdu na lotnisko"}<input required type="time" value={travelTime} onChange={e=>setTravelTime(e.target.value)}/></label>
-          <label>{serviceType==="roundtrip"?t("Lot wylotowy"):t("Numer lotu")}<input value={flight} onChange={e=>setFlight(e.target.value)} placeholder="np. FR8214"/></label>
+          <label>{serviceType === "from_airport" ? t("Godzina przylotu") : t("Godzina wyjazdu na lotnisko")}<input required type="time" value={travelTime} onChange={e=>setTravelTime(e.target.value)}/></label>
+          <label>{serviceType==="roundtrip"?t("Lot wylotowy"):t("Numer lotu")}<input value={flight} onChange={e=>setFlight(e.target.value)} placeholder={t("np. FR8214")}/></label>
           <label>{t("Pasażerowie")}<select value={passengers} onChange={e=>setPassengers(Number(e.target.value))}>{[1,2,3,4,5,6,7,8].map(n=><option key={n}>{n}</option>)}</select></label>
           {serviceType==="roundtrip"&&<>
             <label>{t("Data powrotu")}<input required min={travelDate||undefined} type="date" value={returnDate} onChange={e=>setReturnDate(e.target.value)}/></label>
@@ -397,8 +400,8 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
       {step===4&&<section className="card wizard-card">
         <h1>{t("Wybierz pojazd")}</h1>
         <div className="wizard-choice-list">
-          <button disabled={passengers>3} onClick={()=>{setVehicle("car");go(5)}}><strong>🚘 Samochód osobowy</strong><span>Do 3 pasażerów z bagażami</span></button>
-          <button onClick={()=>{setVehicle("bus");go(5)}}><strong>🚐 Bus do 8 osób</strong><span>Dla grup i większego bagażu</span></button>
+          <button disabled={passengers>3} onClick={()=>{setVehicle("car");go(5)}}><strong>{t("🚘 Samochód osobowy")}</strong><span>{t("Do 3 pasażerów z bagażami")}</span></button>
+          <button onClick={()=>{setVehicle("bus");go(5)}}><strong>{t("🚐 Bus do 8 osób")}</strong><span>{t("Dla grup i większego bagażu")}</span></button>
         </div>
         <div className="wizard-nav one"><button className="btn secondary" onClick={()=>go(3)}>{t("WSTECZ")}</button></div>
       </section>}
@@ -418,15 +421,15 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
           <div className="payment-method-grid">
             <label className={`payment-method-choice ${paymentMethod==="cash"?"selected":""}`}>
               <input type="radio" name="payment-method-mobile" value="cash" checked={paymentMethod==="cash"} onChange={()=>setPaymentMethod("cash")}/>
-              <span><strong>💵 Gotówka</strong><small>Płatność kierowcy przy realizacji przejazdu.</small></span>
+              <span><strong>{t("💵 Gotówka")}</strong><small>{t("Płatność kierowcy przy realizacji przejazdu.")}</small></span>
             </label>
             <label className={`payment-method-choice ${paymentMethod==="bank_transfer"?"selected":""}`}>
               <input type="radio" name="payment-method-mobile" value="bank_transfer" checked={paymentMethod==="bank_transfer"} onChange={()=>setPaymentMethod("bank_transfer")}/>
-              <span><strong>🏦 Przelew tradycyjny</strong><small>Dane do przelewu ustalimy / przekażemy po potwierdzeniu rezerwacji.</small></span>
+              <span><strong>{t("🏦 Przelew tradycyjny")}</strong><small>{t("Dane do przelewu ustalimy / przekażemy po potwierdzeniu rezerwacji.")}</small></span>
             </label>
             <label className={`payment-method-choice ${paymentMethod==="online"?"selected":""}`}>
               <input type="radio" name="payment-method-mobile" value="online" checked={paymentMethod==="online"} onChange={()=>setPaymentMethod("online")}/>
-              <span><strong>💳 Płatność online</strong><small>Po potwierdzeniu rezerwacji pojawi się bezpieczny przycisk płatności online.</small></span>
+              <span><strong>{t("💳 Płatność online")}</strong><small>{t("Po potwierdzeniu rezerwacji pojawi się bezpieczny przycisk płatności online.")}</small></span>
             </label>
           </div>
         </div>
@@ -437,16 +440,16 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
         <h1>{t("Podsumowanie")}</h1>
         <div className="wizard-summary">
           <div><span>{t("Trasa")}</span><strong>{routeText}</strong></div>
-          <div><span>Dojazd do adresu</span><strong>{routeReady?`${distanceKm.toFixed(1)} km`:routeBusy?"Obliczanie...":"Nieobliczony"}</strong></div>
+          <div><span>{t("Dojazd do adresu")}</span><strong>{routeReady?`${distanceKm.toFixed(1)} km`:routeBusy?t("Obliczanie..."):t("Nieobliczony")}</strong></div>
           <div><span>{t("Termin")}</span><strong>{travelDate} {travelTime}</strong></div>
-          {serviceType==="roundtrip"&&<div><span>Powrót</span><strong>{returnDate} {returnTime}</strong></div>}
-          <div><span>{t("Pojazd")}</span><strong>{vehicle==="car"?"Samochód osobowy":"Bus do 8 osób"}</strong></div>
+          {serviceType==="roundtrip"&&<div><span>{t("Powrót")}</span><strong>{returnDate} {returnTime}</strong></div>}
+          <div><span>{t("Pojazd")}</span><strong>{vehicle==="car"?t("Samochód osobowy"):t("Bus do 8 osób")}</strong></div>
           <div><span>{t("Pasażerowie")}</span><strong>{passengers}</strong></div>
-          {additionalStopEnabled&&additionalStopAddress&&<div><span>Dodatkowy przystanek</span><strong>{additionalStopAddress}</strong></div>}
-          {quote.stopFee>0&&<div><span>Opłata za przystanek</span><strong>{quote.stopFee.toFixed(2)} zł</strong></div>}
-          {quote.stopExtraKm>0&&<div><span>Objazd poza trasą</span><strong>{quote.stopExtraKm.toFixed(1)} km · {quote.stopExtra.toFixed(2)} zł</strong></div>}
-          <div><span>Płatność</span><strong>{paymentMethodText}</strong></div>
-          <div className="total"><span>Razem</span><strong>{quote.total.toFixed(2)} zł</strong></div>
+          {additionalStopEnabled&&additionalStopAddress&&<div><span>{t("Dodatkowy przystanek")}</span><strong>{additionalStopAddress}</strong></div>}
+          {quote.stopFee>0&&<div><span>{t("Opłata za przystanek")}</span><strong>{quote.stopFee.toFixed(2)} zł</strong></div>}
+          {quote.stopExtraKm>0&&<div><span>{t("Objazd poza trasą")}</span><strong>{quote.stopExtraKm.toFixed(1)} km · {quote.stopExtra.toFixed(2)} zł</strong></div>}
+          <div><span>{t("Płatność")}</span><strong>{paymentMethodText}</strong></div>
+          <div className="total"><span>{t("Razem")}</span><strong>{quote.total.toFixed(2)} zł</strong></div>
         </div>
         {message&&<div className="booking-error">{message}</div>}
         <div className="wizard-final-actions"><button className="btn secondary" onClick={()=>go(5)}>{t("WSTECZ")}</button><button className="btn" disabled={saving||routeBusy} onClick={submit}>{saving?t("ZAPISYWANIE..."):routeBusy?t("OBLICZANIE TRASY..."):t("ZAREZERWUJ")}</button></div>
@@ -458,9 +461,9 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
     <div className="card">
       <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}><span className="badge">MATT TRANSPORT</span>{googleRatingBadge}</div><h1>{t("Zarezerwuj transfer lotniskowy")}</h1>
       <div className="choice-grid">
-        <button className={`choice ${serviceType==="to_airport"?"active":""}`} onClick={()=>setServiceType("to_airport")}><strong>🛫 Transfer na lotnisko</strong></button>
-        <button className={`choice ${serviceType==="from_airport"?"active":""}`} onClick={()=>setServiceType("from_airport")}><strong>🛬 Odbiór z lotniska</strong></button>
-        <button className={`choice ${serviceType==="roundtrip"?"active":""}`} onClick={()=>setServiceType("roundtrip")}><strong>🔁 W obie strony</strong></button>
+        <button className={`choice ${serviceType==="to_airport"?"active":""}`} onClick={()=>setServiceType("to_airport")}><strong>{t("🛫 Transfer na lotnisko")}</strong></button>
+        <button className={`choice ${serviceType==="from_airport"?"active":""}`} onClick={()=>setServiceType("from_airport")}><strong>{t("🛬 Odbiór z lotniska")}</strong></button>
+        <button className={`choice ${serviceType==="roundtrip"?"active":""}`} onClick={()=>setServiceType("roundtrip")}><strong>{t("🔁 W obie strony")}</strong></button>
       </div>
       <h3>{t("Trasa")}</h3>
       <div className="grid">
@@ -471,10 +474,10 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
       {renderOtherAirportBox()}
       {airport!=="other"&&renderAdditionalStopBox()}
       <h3>{t("Termin")}</h3>
-      <p className="muted flight-time-hint">Dla wyjazdu na lotnisko podaj godzinę wyjazdu spod wskazanego adresu. Przy odbiorze z lotniska podaj godzinę przylotu z rozkładu lotu.</p>
+      <p className="muted flight-time-hint">{t("Dla wyjazdu na lotnisko podaj godzinę wyjazdu spod wskazanego adresu. Przy odbiorze z lotniska podaj godzinę przylotu z rozkładu lotu.")}</p>
       <div className="grid">
         <label>{t("Data")}<input required type="date" value={travelDate} onChange={e=>setTravelDate(e.target.value)}/></label>
-        <label>{serviceType === "from_airport" ? "Godzina przylotu" : "Godzina wyjazdu na lotnisko"}<input required type="time" value={travelTime} onChange={e=>setTravelTime(e.target.value)}/></label>
+        <label>{serviceType === "from_airport" ? t("Godzina przylotu") : t("Godzina wyjazdu na lotnisko")}<input required type="time" value={travelTime} onChange={e=>setTravelTime(e.target.value)}/></label>
         <label>{serviceType==="roundtrip"?t("Lot wylotowy"):t("Numer lotu")}<input value={flight} onChange={e=>setFlight(e.target.value)}/></label>
         <label>{t("Pasażerowie")}<select value={passengers} onChange={e=>setPassengers(Number(e.target.value))}>{[1,2,3,4,5,6,7,8].map(n=><option key={n}>{n}</option>)}</select></label>
         {serviceType==="roundtrip"&&<>
@@ -485,8 +488,8 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
       </div>
       <h3>{t("Pojazd")}</h3>
       <div className="choice-grid vehicle-grid">
-        <button className={`choice ${vehicle==="car"?"active":""}`} disabled={passengers>3} onClick={()=>setVehicle("car")}><strong>Samochód osobowy</strong></button>
-        <button className={`choice ${vehicle==="bus"?"active":""}`} onClick={()=>setVehicle("bus")}><strong>Bus do 8 osób</strong></button>
+        <button className={`choice ${vehicle==="car"?"active":""}`} disabled={passengers>3} onClick={()=>setVehicle("car")}><strong>{t("Samochód osobowy")}</strong></button>
+        <button className={`choice ${vehicle==="bus"?"active":""}`} onClick={()=>setVehicle("bus")}><strong>{t("Bus do 8 osób")}</strong></button>
       </div>
       <h3>{t("Dane klienta")}</h3>
       <div className="grid">
@@ -502,15 +505,15 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
         <div className="payment-method-grid">
           <label className={`payment-method-choice ${paymentMethod==="cash"?"selected":""}`}>
             <input type="radio" name="payment-method-desktop" value="cash" checked={paymentMethod==="cash"} onChange={()=>setPaymentMethod("cash")}/>
-            <span><strong>💵 Gotówka</strong><small>Płatność kierowcy przy realizacji przejazdu.</small></span>
+            <span><strong>{t("💵 Gotówka")}</strong><small>{t("Płatność kierowcy przy realizacji przejazdu.")}</small></span>
           </label>
           <label className={`payment-method-choice ${paymentMethod==="bank_transfer"?"selected":""}`}>
             <input type="radio" name="payment-method-desktop" value="bank_transfer" checked={paymentMethod==="bank_transfer"} onChange={()=>setPaymentMethod("bank_transfer")}/>
-            <span><strong>🏦 Przelew tradycyjny</strong><small>Dane do przelewu ustalimy / przekażemy po potwierdzeniu rezerwacji.</small></span>
+            <span><strong>{t("🏦 Przelew tradycyjny")}</strong><small>{t("Dane do przelewu ustalimy / przekażemy po potwierdzeniu rezerwacji.")}</small></span>
           </label>
           <label className={`payment-method-choice ${paymentMethod==="online"?"selected":""}`}>
             <input type="radio" name="payment-method-desktop" value="online" checked={paymentMethod==="online"} onChange={()=>setPaymentMethod("online")}/>
-            <span><strong>💳 Płatność online</strong><small>Po potwierdzeniu rezerwacji pojawi się bezpieczny przycisk płatności online.</small></span>
+            <span><strong>{t("💳 Płatność online")}</strong><small>{t("Po potwierdzeniu rezerwacji pojawi się bezpieczny przycisk płatności online.")}</small></span>
           </label>
         </div>
       </div>
@@ -519,21 +522,21 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
     <aside className="card summary">
       <h3>{t("Podsumowanie")}</h3>
       {airport==="other"?<>
-        <div className="individual-quote-summary"><strong>Wycena indywidualna</strong><span>{otherAirport||"Inne lotnisko"}</span></div>
+        <div className="individual-quote-summary"><strong>{t("Wycena indywidualna")}</strong><span>{otherAirport||t("Inne lotnisko")}</span></div>
         <a className="btn" style={{width:"100%",marginTop:16}} href="tel:+48691242691">📞 {t("ZADZWOŃ")}</a>
       </>:<>
         <div className="row"><span>{t("Trasa")}</span><strong>{routeText}</strong></div>
-        <div className="row"><span>Dojazd do adresu</span><strong>{routeReady?`${distanceKm.toFixed(1)} km`:routeBusy?"Obliczanie...":"Nieobliczony"}</strong></div>
+        <div className="row"><span>{t("Dojazd do adresu")}</span><strong>{routeReady?`${distanceKm.toFixed(1)} km`:routeBusy?t("Obliczanie..."):t("Nieobliczony")}</strong></div>
         <div className="row"><span>{t("Termin")}</span><strong>{travelDate||"—"} {travelTime||""}</strong></div>
-        {serviceType==="roundtrip"&&<div className="row"><span>Powrót</span><strong>{returnDate||"—"} {returnTime||""}</strong></div>}
-        <div className="row"><span>Cena bazowa</span><strong>{quote.base.toFixed(2)} zł</strong></div>
-        <div className="row"><span>Dopłata</span><strong>{quote.extra.toFixed(2)} zł</strong></div>
-        {additionalStopEnabled&&additionalStopAddress&&<div className="row"><span>Dodatkowy przystanek</span><strong style={{textAlign:"right",maxWidth:"60%"}}>{additionalStopAddress}</strong></div>}
-        {quote.stopFee>0&&<div className="row"><span>Opłata za przystanek</span><strong>{quote.stopFee.toFixed(2)} zł</strong></div>}
-        {quote.stopExtraKm>0&&<div className="row"><span>Objazd poza trasą</span><strong>{quote.stopExtraKm.toFixed(1)} km · {quote.stopExtra.toFixed(2)} zł</strong></div>}
+        {serviceType==="roundtrip"&&<div className="row"><span>{t("Powrót")}</span><strong>{returnDate||"—"} {returnTime||""}</strong></div>}
+        <div className="row"><span>{t("Cena bazowa")}</span><strong>{quote.base.toFixed(2)} zł</strong></div>
+        <div className="row"><span>{t("Dopłata")}</span><strong>{quote.extra.toFixed(2)} zł</strong></div>
+        {additionalStopEnabled&&additionalStopAddress&&<div className="row"><span>{t("Dodatkowy przystanek")}</span><strong style={{textAlign:"right",maxWidth:"60%"}}>{additionalStopAddress}</strong></div>}
+        {quote.stopFee>0&&<div className="row"><span>{t("Opłata za przystanek")}</span><strong>{quote.stopFee.toFixed(2)} zł</strong></div>}
+        {quote.stopExtraKm>0&&<div className="row"><span>{t("Objazd poza trasą")}</span><strong>{quote.stopExtraKm.toFixed(1)} km · {quote.stopExtra.toFixed(2)} zł</strong></div>}
         <div className="row"><span>VAT</span><strong>{quote.vat.toFixed(2)} zł</strong></div>
-        <div className="row"><span>Płatność</span><strong>{paymentMethodText}</strong></div>
-        <div className="row total"><span>Razem</span><strong>{quote.total.toFixed(2)} zł</strong></div>
+        <div className="row"><span>{t("Płatność")}</span><strong>{paymentMethodText}</strong></div>
+        <div className="row total"><span>{t("Razem")}</span><strong>{quote.total.toFixed(2)} zł</strong></div>
         <button className="btn" style={{width:"100%",marginTop:16}} disabled={saving||routeBusy} onClick={submit}>{saving?t("ZAPISYWANIE..."):routeBusy?t("OBLICZANIE TRASY..."):t("ZAREZERWUJ")}</button>
       </>}
       {message&&<div className="booking-error">{message}</div>}

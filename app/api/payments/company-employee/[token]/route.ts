@@ -1,3 +1,4 @@
+import { resolveCustomerLocale } from "@/lib/bookingLocale";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { appBaseUrl, paymentCanStart } from "@/lib/payment";
@@ -19,6 +20,7 @@ async function getBooking(token: string) {
 function safeSummary(booking: any) {
   return {
     booking_number: booking.booking_number,
+    customer_locale: resolveCustomerLocale(booking.customer_locale),
     customer_name: booking.customer_name,
     travel_date: booking.travel_date,
     travel_time: String(booking.travel_time || "").slice(0, 5),
@@ -123,6 +125,7 @@ export async function POST(
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
+      locale: resolveCustomerLocale(booking.customer_locale),
       client_reference_id: String(booking.id),
       customer_email: booking.email || undefined,
       line_items: [
@@ -143,8 +146,8 @@ export async function POST(
       ],
       metadata,
       payment_intent_data: { metadata },
-      success_url: `${base}/platnosc/${token}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${base}/platnosc/${token}?payment=cancelled`
+      success_url: `${base}/platnosc/${token}?lang=${resolveCustomerLocale(booking.customer_locale)}&payment=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${base}/platnosc/${token}?lang=${resolveCustomerLocale(booking.customer_locale)}&payment=cancelled`
     });
 
     await admin

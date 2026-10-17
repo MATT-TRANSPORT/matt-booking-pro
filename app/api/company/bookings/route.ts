@@ -1,3 +1,5 @@
+import { resolveCustomerLocale } from "@/lib/bookingLocale";
+import { localizedReceivedEmail } from "@/lib/localizedBookingEmails";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -153,6 +155,7 @@ export async function POST(req: NextRequest) {
       company_employee_id: employee.id,
       ordered_by_user_id: user.id,
       booking_source: "b2b_portal",
+      customer_locale: resolveCustomerLocale(body.locale),
       acquisition_source: "b2b_portal",
       utm_source: "company_portal",
       utm_medium: "owned",
@@ -215,7 +218,9 @@ export async function POST(req: NextRequest) {
     const companyAdminEmail = companyForMail?.email || user.email || null;
 
     if (companyAdminEmail) {
-      const customerMail = receivedEmail(data);
+      const customerMail = resolveCustomerLocale(data.customer_locale) === "pl"
+        ? receivedEmail(data)
+        : localizedReceivedEmail({ ...data, locale: resolveCustomerLocale(data.customer_locale) });
       const customerResult = await sendMattEmail({
         to: companyAdminEmail,
         subject: customerMail.subject,

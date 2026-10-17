@@ -1,7 +1,7 @@
 "use client";
+import { useCustomerLocale } from "@/lib/useCustomerLocale";
 
 import { useEffect, useState } from "react";
-import { resolveCustomerLocale } from "@/lib/localizedBookingEmails";
 
 const STATUS: Record<string, string> = {
   pending: "Oczekuje na potwierdzenie",
@@ -25,8 +25,7 @@ function shortDate(value: unknown) {
 
 export default function ClientOperationalStatus({ token }: { token: string }) {
   const [data, setData] = useState<any>(null);
-  const [locale, setLocale] = useState("pl");
-  useEffect(() => { setLocale(resolveCustomerLocale(new URLSearchParams(window.location.search).get("lang") || data?.booking?.customer_locale)); }, [data?.booking?.customer_locale]);
+  const locale = useCustomerLocale(data?.booking?.customer_locale);
   const t = (pl: string, en: string, de: string, cs: string) => ({pl,en,de,cs}[locale as "pl"|"en"|"de"|"cs"] || pl);
   const [error, setError] = useState("");
 

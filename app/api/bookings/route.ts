@@ -1,3 +1,4 @@
+import { customerText } from "@/lib/customerCopy";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { calculateQuote } from "@/lib/pricing";
@@ -47,6 +48,7 @@ function validFunnelSessionId(value: unknown) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
+  const t = (key: string) => customerText(key, body.locale);
   const supabase = createAdminClient();
 
   const required = [
@@ -63,7 +65,7 @@ export async function POST(req: NextRequest) {
   for (const key of required) {
     if (!body[key]) {
       return NextResponse.json(
-        { error: "Uzupełnij wymagane pola." },
+        { error: t("Uzupełnij wymagane pola.") },
         { status: 400 }
       );
     }
@@ -73,7 +75,7 @@ export async function POST(req: NextRequest) {
 
   if (!airportPricing) {
     return NextResponse.json(
-      { error: "Nieprawidłowe lub nieaktywne lotnisko." },
+      { error: t("Nieprawidłowe lub nieaktywne lotnisko.") },
       { status: 400 }
     );
   }
@@ -83,7 +85,7 @@ export async function POST(req: NextRequest) {
     body.vehicleType !== "bus"
   ) {
     return NextResponse.json(
-      { error: "Dla więcej niż 3 pasażerów wybierz bus." },
+      { error: t("Dla więcej niż 3 pasażerów wybierz bus.") },
       { status: 400 }
     );
   }
@@ -94,7 +96,7 @@ export async function POST(req: NextRequest) {
 
   if (!Number.isFinite(when.getTime())) {
     return NextResponse.json(
-      { error: "Podaj prawidłowy termin wyjazdu." },
+      { error: t("Podaj prawidłowy termin wyjazdu.") },
       { status: 400 }
     );
   }
@@ -102,7 +104,7 @@ export async function POST(req: NextRequest) {
   if (body.serviceType === "roundtrip") {
     if (!body.returnDate || !body.returnTime) {
       return NextResponse.json(
-        { error: "Dla przejazdu w obie strony podaj datę i godzinę powrotu." },
+        { error: t("Dla przejazdu w obie strony podaj datę i godzinę powrotu.") },
         { status: 400 }
       );
     }
@@ -110,7 +112,7 @@ export async function POST(req: NextRequest) {
     const back = new Date(`${body.returnDate}T${body.returnTime}`);
     if (!Number.isFinite(back.getTime()) || back.getTime() <= when.getTime()) {
       return NextResponse.json(
-        { error: "Termin powrotu musi być późniejszy niż wyjazd." },
+        { error: t("Termin powrotu musi być późniejszy niż wyjazd.") },
         { status: 400 }
       );
     }
@@ -120,7 +122,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         error:
-          "Rezerwacja online wymaga minimum 24 godzin wyprzedzenia. W pilnej sprawie zadzwoń: +48 691 242 691"
+          t("Rezerwacja online wymaga minimum 24 godzin wyprzedzenia. W pilnej sprawie zadzwoń: +48 691 242 691")
       },
       { status: 400 }
     );

@@ -1,5 +1,7 @@
 "use client";
 import {useEffect,useState} from "react";
+import { useCustomerLocale, CUSTOMER_LOCALE_EVENT } from "@/lib/useCustomerLocale";
+import { customerText } from "@/lib/customerCopy";
 import BookingForm from "@/components/BookingForm";
 import CustomerAppInstall from "@/components/CustomerAppInstall";
 import type { BookingEntry } from "@/lib/bookingEntry";
@@ -9,16 +11,21 @@ const MAIN_SITE_URL = "https://www.matt-transport.pl/";
 
 export default function BookingLanding({initialEntry}: {initialEntry?: BookingEntry}){
  const [step,setStep]=useState(1);
- const [locale,setLocale]=useState<BookingLocale>("pl");
- useEffect(()=>{try{const params=new URLSearchParams(window.location.search);const requested=params.get("lang");const saved=window.localStorage.getItem("matt-booking-locale");const next=isBookingLocale(requested)?requested:isBookingLocale(saved)?saved:"pl";setLocale(next);document.documentElement.lang=next;}catch{}},[]);
- const changeLocale=(next:BookingLocale)=>{setLocale(next);try{window.localStorage.setItem("matt-booking-locale",next);document.documentElement.lang=next;const url=new URL(window.location.href);url.searchParams.set("lang",next);window.history.replaceState(null,"",url.toString());}catch{}};
+ const locale = useCustomerLocale();
+ const changeLocale=(next:BookingLocale)=>{
+   const url=new URL(window.location.href);
+   url.searchParams.set("lang",next);
+   window.history.replaceState(null,"",url.toString());
+   try { window.localStorage.setItem("matt-booking-locale",next); } catch { /* URL remains the source of truth. */ }
+   window.dispatchEvent(new Event(CUSTOMER_LOCALE_EVENT));
+ };
  const localized=(path:string)=>`${path}${path.includes("?")?"&":"?"}lang=${locale}`;
  const t=bookingHubTranslations[locale];
  useEffect(()=>{const h=(e:Event)=>setStep(Number((e as CustomEvent).detail?.step||1));window.addEventListener("matt:booking-step",h);return()=>window.removeEventListener("matt:booking-step",h)},[]);
  const chooseService=initialEntry?.chooseService!==false;
  return <>
   <div className="booking-brand-head">
-   <a className="booking-brand-main-link" href={MAIN_SITE_URL} aria-label="Przejdź na stronę MATT TRANSPORT">
+   <a className="booking-brand-main-link" href={MAIN_SITE_URL} aria-label={customerText("Przejdź na stronę MATT TRANSPORT",locale)}>
     <img src="/MATT_TRANSPORT_gold_black.gif" alt="MATT TRANSPORT"/>
     <div><strong>MATT TRANSPORT</strong><span>{t.tagline}</span></div>
    </a>
@@ -54,7 +61,7 @@ export default function BookingLanding({initialEntry}: {initialEntry?: BookingEn
     <div className="booking-change-service"><a href={localized("/booking")}>{t.change}</a></div>
     <BookingForm initialEntry={initialEntry}/>
   </>}
-  {!chooseService&&step===1&&<section className="booking-site-bridge" aria-label="Pełna oferta MATT TRANSPORT">
+  {!chooseService&&step===1&&<section className="booking-site-bridge" aria-label={customerText("Pełna oferta MATT TRANSPORT",locale)}>
    <div><strong>{t.bridgeTitle}</strong><span>{t.bridgeDesc}</span></div>
    <a href={MAIN_SITE_URL}>{t.bridgeLink}</a>
   </section>}

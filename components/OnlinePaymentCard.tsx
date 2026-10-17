@@ -1,7 +1,8 @@
 "use client";
+import { customerText } from "@/lib/customerCopy";
+import { useCustomerLocale } from "@/lib/useCustomerLocale";
 
 import { useEffect, useState } from "react";
-import {resolveCustomerLocale} from "@/lib/localizedBookingEmails";
 import {
   onlinePaymentEligible,
   paymentBookingStatusAllowed,
@@ -14,9 +15,8 @@ export default function OnlinePaymentCard({
 }: {
   booking: any;
 }) {
-  const [locale,setLocale]=useState("pl");
-  useEffect(()=>{setLocale(resolveCustomerLocale(new URLSearchParams(window.location.search).get("lang")||booking.customer_locale))},[booking.customer_locale]);
-  const t=(key:string)=>locale==="pl"?key:paymentCopy[key]?.[locale==="en"?0:locale==="de"?1:2]??key;
+  const locale = useCustomerLocale(booking.customer_locale);
+  const t=(key:string)=>locale==="pl"?key:paymentCopy[key]?.[locale==="en"?0:locale==="de"?1:2]??customerText(key,locale);
   const [status, setStatus] = useState(
     String(booking.payment_status || "pending")
   );
@@ -167,7 +167,7 @@ export default function OnlinePaymentCard({
       <div className="online-payment-head">
         <div>
           <span className="badge">{t("PŁATNOŚĆ ONLINE")}</span>
-          <h3>{paymentStatusLabel(status)}</h3>
+          <h3>{t(paymentStatusLabel(status))}</h3>
         </div>
         <strong>
           {Number(booking.company_id ? (booking.price_gross ?? booking.total_price) : booking.total_price).toFixed(2)} zł
@@ -176,12 +176,10 @@ export default function OnlinePaymentCard({
 
       {status === "paid" ? (
         <div className="online-payment-success">
-          ✓ Płatność została zaksięgowana.
-        </div>
+          {t("✓ Płatność została zaksięgowana.")}</div>
       ) : status === "refunded" ? (
         <div className="online-payment-info">
-          ↩ Dla tej płatności zarejestrowano zwrot.
-        </div>
+          {t("↩ Dla tej płatności zarejestrowano zwrot.")}</div>
       ) : status === "review" ? (
         <div className="online-payment-warning">
           ⚠ Płatność wymaga weryfikacji przez MATT TRANSPORT.
@@ -189,12 +187,11 @@ export default function OnlinePaymentCard({
         </div>
       ) : !paymentBookingStatusAllowed(bookingStatus) ? (
         <div className="online-payment-info">
-          Płatność online jest niedostępna dla aktualnego statusu rezerwacji.
-        </div>
+          {t("Płatność online jest niedostępna dla aktualnego statusu rezerwacji.")}</div>
       ) : (
         <>
           <p>
-            Zapłać bezpiecznie online za rezerwację{bookingStatus === "completed" ? " — płatność jest nadal dostępna po wykonaniu transportu" : ""}{booking.company_id ? " — kwotę brutto z VAT 8%." : "."}
+            {t("Zapłać bezpiecznie online za rezerwację")}{bookingStatus === "completed" ? t(" — płatność jest nadal dostępna po wykonaniu transportu") : ""}{booking.company_id ? t(" — kwotę brutto z VAT 8%.") : "."}
           </p>
           <button
             type="button"
@@ -203,12 +200,11 @@ export default function OnlinePaymentCard({
             disabled={busy || !available}
           >
             {busy
-              ? "PRZECHODZĘ DO PŁATNOŚCI..."
-              : "💳 OPŁAĆ REZERWACJĘ ONLINE"}
+              ? t("PRZECHODZĘ DO PŁATNOŚCI...")
+              : t("💳 OPŁAĆ REZERWACJĘ ONLINE")}
           </button>
           <small>
-            Dostępne metody zależą od konfiguracji operatora płatności.
-          </small>
+            {t("Dostępne metody zależą od konfiguracji operatora płatności.")}</small>
         </>
       )}
 

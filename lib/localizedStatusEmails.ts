@@ -1,3 +1,5 @@
+import { customerText } from "@/lib/customerCopy";
+import { withCustomerLocale } from "@/lib/bookingLocale";
 import { resolveCustomerLocale } from "@/lib/localizedBookingEmails";
 import type { BookingLocale } from "@/lib/bookingLocale";
 type Kind = "confirmed" | "assigned" | "completed" | "cancelled" | "paymentReceived" | "paymentRefunded" | "review";
@@ -14,11 +16,11 @@ export function localizedStatusEmail(kind:Kind,b:Booking,options?:{reviewUrl?:st
  const route=b.service_type==="from_airport"?b.airport_label+" → "+b.pickup_address:b.service_type==="roundtrip"?b.pickup_address+" ↔ "+b.airport_label:b.pickup_address+" → "+b.airport_label;
  const portal=b.customer_access_token?"https://booking.matt-transport.pl/rezerwacja/"+encodeURIComponent(b.customer_access_token)+"?lang="+locale:null;
  const line=(name:string,value:unknown)=>'<div><span style="color:#aab1bc">'+esc(name)+':</span> <strong>'+esc(value)+'</strong></div>';
- const details=line(l.reference,b.booking_number)+line(l.route,route)+line(b.service_type==="from_airport"?l.arrival:l.departure,b.travel_date+" "+b.travel_time)+(b.return_date?line(l.return,b.return_date+" "+(b.return_time||"")):"")+line(l.passengers,b.passengers)+line(l.vehicle,b.vehicle_type==="bus"?"Minibus (up to 8)":"Car")+line(l.flight,b.flight_number||"—")+line(l.price,Number(b.total_price).toFixed(2)+" PLN");
+ const details=line(l.reference,b.booking_number)+line(l.route,route)+line(b.service_type==="from_airport"?l.arrival:l.departure,b.travel_date+" "+b.travel_time)+(b.return_date?line(l.return,b.return_date+" "+(b.return_time||"")):"")+line(l.passengers,b.passengers)+line(l.vehicle,customerText(b.vehicle_type==="bus"?"Bus do 8 osób":"Samochód osobowy",locale))+line(l.flight,b.flight_number||"—")+line(l.price,Number(b.total_price).toFixed(2)+" PLN");
  const driver=kind==="assigned"?'<div style="margin-top:20px">'+line(l.driver,b.driver_name||l.unassigned)+line(l.phone,b.driver_phone||"—")+line(l.vehicle,b.vehicle_name||"—")+line(l.registration,b.vehicle_registration||"—")+(b.service_type==="roundtrip"?'<h3>'+esc(l.return)+'</h3>'+line(l.driver,b.return_driver_name||l.unassigned)+line(l.phone,b.return_driver_phone||"—")+line(l.vehicle,b.return_vehicle_name||"—")+line(l.registration,b.return_vehicle_registration||"—"):"")+'</div>':"";
  const button=(url:string,label:string)=>'<p style="margin-top:22px"><a href="'+esc(url)+'" style="background:#d5ae5d;color:#111;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:bold">'+esc(label)+'</a></p>';
  const payment=kind==="confirmed"&&b.payment_link&&b.payment_status!=="paid"?button(b.payment_link,l.payment):"";
- const review=kind==="review"&&options?.reviewUrl?button(options.reviewUrl,l.review):"";
+ const review=kind==="review"&&options?.reviewUrl?button(withCustomerLocale(options.reviewUrl,locale),l.review):"";
  const warning=kind==="cancelled"&&(b.payment_status==="paid"||b.payment_status==="review")?'<p>'+esc(l.warning)+'</p>':"";
  const html='<div lang="'+locale+'" style="background:#10141b;color:#f7f7f7;padding:28px;font-family:Arial,sans-serif;line-height:1.8"><h2 style="color:#f1d28b">MATT TRANSPORT</h2><h1>'+esc(t.titles[kind])+'</h1><p>'+esc(t.intro[kind])+'</p><div style="padding:16px;background:#151923;border-radius:12px">'+details+'</div>'+driver+(kind==="assigned"?(options?.guideHtml||""):"")+payment+review+warning+(portal?button(portal,l.portal)+'<p style="font-size:12px;color:#aab1bc">'+esc(l.private)+'</p>':"")+'<p>+48 691 242 691 · kontakt@matt-transport.pl</p></div>';
  return {subject:t.titles[kind]+" – "+b.booking_number,html};

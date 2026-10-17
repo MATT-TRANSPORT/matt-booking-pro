@@ -1,3 +1,5 @@
+import { resolveCustomerLocale } from "@/lib/bookingLocale";
+import { customerText } from "@/lib/customerCopy";
 import Script from "next/script";
 import BookingLanding from "@/components/BookingLanding";
 import CustomerRepeatBooking from "@/components/CustomerRepeatBooking";
@@ -11,6 +13,7 @@ export default async function BookingPage({searchParams}: {
   const params = await searchParams;
   const repeatValue = Array.isArray(params.repeat) ? params.repeat[0] : params.repeat;
   const initialEntry = parseBookingEntry(params);
+  const locale=resolveCustomerLocale(Array.isArray(params.lang)?params.lang[0]:params.lang);
 
   const tracking = <>
     <Script
@@ -31,7 +34,7 @@ export default async function BookingPage({searchParams}: {
     return <>
       {tracking}
       <main className="container">
-        <a className="back-link" href="/moje-przejazdy">← Moje przejazdy</a>
+        <a className="back-link" href={`/moje-przejazdy?lang=${locale}`}>← {customerText("Moje przejazdy",locale)}</a>
         <CustomerRepeatBooking expectedKind="airport" />
       </main>
     </>;

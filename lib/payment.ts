@@ -1,3 +1,4 @@
+import { withCustomerLocale } from "@/lib/bookingLocale";
 export const PAYMENT_STATUS_LABELS: Record<string, string> = {
   pending: "Oczekuje na płatność",
   paid: "Opłacono",
@@ -63,7 +64,7 @@ export function appBaseUrl() {
 export function stablePaymentUrl(booking: any) {
   if (!booking?.customer_access_token) return null;
 
-  return `${appBaseUrl()}/rezerwacja/${booking.customer_access_token}?pay=1`;
+  return withCustomerLocale(`${appBaseUrl()}/rezerwacja/${encodeURIComponent(booking.customer_access_token)}?pay=1`, booking.customer_locale);
 }
 
 export function visiblePaymentUrl(booking: any) {

@@ -1,9 +1,7 @@
-import { isBookingLocale, type BookingLocale } from "@/lib/bookingLocale";
+import { resolveCustomerLocale, type BookingLocale } from "@/lib/bookingLocale";
+export { resolveCustomerLocale } from "@/lib/bookingLocale";
 
 /** Customer-facing email copy. Polish is the safe fallback for legacy bookings. */
-export function resolveCustomerLocale(value: unknown): BookingLocale {
-  return isBookingLocale(value) ? value : "pl";
-}
 
 const copy = {
   pl: { receivedSubject: "Przyjęliśmy rezerwację", receivedTitle: "Rezerwacja została przyjęta", greeting: "Dzień dobry", received: "Dziękujemy za złożenie rezerwacji. Otrzymaliśmy zgłoszenie i oczekuje ono na potwierdzenie przez dyspozytora.", eta: "Potwierdzimy rezerwację do 60 minut.", number: "Numer rezerwacji", details: "Szczegóły rezerwacji", support: "Pytania? Napisz na kontakt@matt-transport.pl." },

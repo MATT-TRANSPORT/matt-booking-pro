@@ -136,6 +136,7 @@ export async function POST(req: NextRequest) {
   try {
     const result = await sendMattEmail({
       to: email,
+      locale,
       subject: `${copy.subject} – ${data.booking_number}`,
       html: `<div style="font-family:Arial,sans-serif;background:#0b0e13;color:#fff;padding:28px"><div style="max-width:650px;margin:auto;background:#151923;border:1px solid #343b49;border-radius:16px;padding:28px"><h2 style="color:#f1d28b">MATT TRANSPORT</h2><h1>${esc(copy.title)}</h1><p>${esc(copy.intro)}</p><p><strong>${esc(data.booking_number)}</strong><br>${details}<br>${esc(travelDate)} · ${esc(travelTime)} · ${passengers} ${esc(copy.people)}</p><p><a href="${portalUrl}" style="display:inline-block;background:#d5ae5d;color:#111;padding:14px 20px;border-radius:11px;text-decoration:none;font-weight:800">${esc(copy.open)}</a></p></div></div>`
     });

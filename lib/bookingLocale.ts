@@ -5,6 +5,17 @@ export const BOOKING_LANGUAGE_NAMES: Record<BookingLocale,string> = {pl:"Polski"
 export function isBookingLocale(value: unknown): value is BookingLocale {
   return typeof value === "string" && BOOKING_LOCALES.includes(value as BookingLocale);
 }
+export function resolveCustomerLocale(value: unknown): BookingLocale {
+  return isBookingLocale(value) ? value : "pl";
+}
+
+/** Preserve other query parameters and fragments, including Stripe placeholders. */
+export function withCustomerLocale(path: string, value: unknown): string {
+  const url = new URL(path, "https://booking.matt-transport.pl");
+  url.searchParams.set("lang", resolveCustomerLocale(value));
+  const result = `${url.pathname}${url.search}${url.hash}`;
+  return /^https?:\/\//.test(path) ? `${url.origin}${result}` : result;
+}
 export const bookingHubTranslations = {
  pl:{tagline:"Transport zawsze na czas",offer:"PEŁNA OFERTA ↗",heading:"Jakiego transportu potrzebujesz?",intro:"Wybierz usługę. Wszystkie zgłoszenia trafiają bezpośrednio do dyspozytorni MATT TRANSPORT.",airport:"Transfery na lotniska",airportDesc:"Wycena online, lotniska, monitoring lotu i płatność online.",wedding:"Transport weselny",weddingDesc:"Transport i rozwożenie gości weselnych samochodem, busem lub większą flotą.",other:"Transport pozostały",otherDesc:"Przejazd z punktu A do punktu B, grupy, wydarzenia, szkoły i inne przewozy.",choose:"WYBIERAM →",trips:"Moje przejazdy",tripsDesc:"Najbliższe kursy i ponowienie.",open:"OTWÓRZ →",contact:"Wolisz porozmawiać?",change:"← ZMIEŃ RODZAJ TRANSPORTU",bridgeTitle:"Chcesz najpierw poznać pełną ofertę?",bridgeDesc:"Transfery, przewozy prywatne i firmowe, wesela oraz pozostałe usługi MATT TRANSPORT.",bridgeLink:"PRZEJDŹ NA MATT-TRANSPORT.PL",language:"Wybierz język"},
  en:{tagline:"Always on time",offer:"FULL OFFER ↗",heading:"What kind of transport do you need?",intro:"Choose a service. All requests go directly to the MATT TRANSPORT dispatch team.",airport:"Airport transfers",airportDesc:"Online quotes, airport transfers, flight tracking and online payments.",wedding:"Wedding transport",weddingDesc:"Guest transport by car, minibus or larger vehicles.",other:"Other transport",otherDesc:"Point-to-point rides, groups, events, schools and other journeys.",choose:"SELECT →",trips:"My rides",tripsDesc:"Upcoming rides and repeat bookings.",open:"OPEN →",contact:"Prefer to talk?",change:"← CHANGE SERVICE",bridgeTitle:"Want to explore our full offer first?",bridgeDesc:"Airport transfers, private and business transport, weddings and other MATT TRANSPORT services.",bridgeLink:"VISIT MATT-TRANSPORT.PL",language:"Choose language"},

@@ -1,3 +1,4 @@
+import { localizedQuoteEmail } from "@/lib/quoteEmails";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -209,32 +210,7 @@ export async function POST(req: NextRequest) {
         updated.quote_expires_at
       );
 
-      const result = await sendMattEmail({
-        to: updated.email,
-        subject:
-          `Wycena transportu ${updated.booking_number} · ${rounded.toFixed(2)} zł`,
-        html: `
-          <div style="font-family:Arial,sans-serif;background:#0b0e13;color:#fff;padding:28px">
-            <div style="max-width:650px;margin:auto;background:#151923;border:1px solid #d5ae5d;border-radius:16px;padding:28px">
-              <h2 style="color:#f1d28b">MATT TRANSPORT</h2>
-              <h1>Wycena transportu jest gotowa</h1>
-              <p>Trasa: <strong>${esc(updated.pickup_address)} → ${esc(updated.destination_address || updated.airport_label)}</strong></p>
-              <p>Termin: <strong>${esc(updated.travel_date)} · ${esc(String(updated.travel_time || "").slice(0, 5))}</strong></p>
-              <p style="font-size:22px">Cena końcowa: <strong style="color:#f1d28b">${rounded.toFixed(2)} zł</strong></p>
-              ${quoteNote ? `<p>${esc(quoteNote)}</p>` : ""}
-              <p><strong>Wycena jest ważna do ${esc(expiryLabel)}.</strong></p>
-              <p>Ta wiadomość nie potwierdza jeszcze realizacji transportu. Otwórz wycenę i wybierz, czy ją akceptujesz.</p>
-              <p style="margin-top:22px">
-                <a href="${portal}" style="display:inline-block;background:#d5ae5d;color:#111;padding:14px 20px;border-radius:11px;text-decoration:none;font-weight:800">
-                  SPRAWDŹ I ZAAKCEPTUJ WYCENĘ
-                </a>
-              </p>
-              <p style="font-size:12px;color:#aeb4c0">Akceptacja wyceny w portalu oznacza złożenie odpłatnego zamówienia na wskazaną kwotę.</p>
-              <p>W razie pytań: +48 691 242 691.</p>
-            </div>
-          </div>
-        `
-      });
+      const result = await sendMattEmail({to: updated.email, ...localizedQuoteEmail("offered", updated)});
 
       emailSent = Boolean(result.sent);
     } catch (mailError) {

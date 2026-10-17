@@ -1,3 +1,4 @@
+import { resolveCustomerLocale } from "@/lib/bookingLocale";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -93,6 +94,7 @@ export async function POST(
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
+      locale: resolveCustomerLocale(booking.customer_locale),
       client_reference_id: String(booking.id),
       line_items: [
         {
@@ -112,8 +114,8 @@ export async function POST(
       ],
       metadata,
       payment_intent_data: { metadata },
-      success_url: `${base}/firma/rezerwacje/${booking.id}?payment=success`,
-      cancel_url: `${base}/firma/rezerwacje/${booking.id}?payment=cancelled`
+      success_url: `${base}/firma/rezerwacje/${booking.id}?lang=${resolveCustomerLocale(booking.customer_locale)}&payment=success`,
+      cancel_url: `${base}/firma/rezerwacje/${booking.id}?lang=${resolveCustomerLocale(booking.customer_locale)}&payment=cancelled`
     });
 
     await admin

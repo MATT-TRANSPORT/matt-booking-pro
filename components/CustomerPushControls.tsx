@@ -1,4 +1,6 @@
 "use client";
+import { customerText } from "@/lib/customerCopy";
+import { useCustomerLocale } from "@/lib/useCustomerLocale";
 
 import { useEffect, useState } from "react";
 
@@ -15,11 +17,15 @@ function urlBase64ToUint8Array(base64String: string) {
 
 export default function CustomerPushControls({
   token,
-  compact = false
+  compact = false,
+  customerLocale
 }: {
   token: string;
   compact?: boolean;
+  customerLocale?: unknown;
 }) {
+  const locale = useCustomerLocale(customerLocale);
+  const t = (key: string) => customerText(key, locale);
   const [state, setState] = useState<"loading"|"off"|"on"|"denied"|"unsupported">("loading");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -79,12 +85,12 @@ export default function CustomerPushControls({
       }
 
       const reg = await registration();
-      if (!reg) throw new Error("Ta przeglądarka nie obsługuje powiadomień.");
+      if (!reg) throw new Error(t("Ta przeglądarka nie obsługuje powiadomień."));
 
       const keyResponse = await fetch(`/api/client-booking/${token}/push/public-key`);
       const keyData = await keyResponse.json();
       if (!keyResponse.ok || !keyData.publicKey) {
-        throw new Error(keyData.error || "Brak klucza powiadomień.");
+        throw new Error(keyData.error || t("Brak klucza powiadomień."));
       }
 
       let sub = await reg.pushManager.getSubscription();
@@ -101,13 +107,13 @@ export default function CustomerPushControls({
         body: JSON.stringify(sub)
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Nie udało się zapisać powiadomień.");
+      if (!response.ok) throw new Error(data.error || t("Nie udało się zapisać powiadomień."));
 
       setState("on");
-      setMessage("✓ Bezpłatne powiadomienia są aktywne na tym urządzeniu.");
+      setMessage(t("✓ Bezpłatne powiadomienia są aktywne na tym urządzeniu."));
     } catch (error) {
       setState("off");
-      setMessage(error instanceof Error ? error.message : "Nie udało się włączyć powiadomień.");
+      setMessage(error instanceof Error ? error.message : t("Nie udało się włączyć powiadomień."));
     }
     setBusy(false);
   }
@@ -124,28 +130,28 @@ export default function CustomerPushControls({
           body: JSON.stringify({ endpoint: sub.endpoint })
         });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Nie udało się wyłączyć powiadomień.");
+        if (!response.ok) throw new Error(data.error || t("Nie udało się wyłączyć powiadomień."));
       }
       // Nie kasujemy przeglądarkowej subskrypcji PushManager — ten sam telefon
       // może równocześnie używać MATT DRIVER lub innej rezerwacji.
       setState("off");
-      setMessage("Powiadomienia tej rezerwacji zostały wyłączone.");
+      setMessage(t("Powiadomienia tej rezerwacji zostały wyłączone."));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Nie udało się wyłączyć powiadomień.");
+      setMessage(error instanceof Error ? error.message : t("Nie udało się wyłączyć powiadomień."));
     }
     setBusy(false);
   }
 
   async function test() {
     setBusy(true);
-    setMessage("Wysyłanie testu...");
+    setMessage(t("Wysyłanie testu..."));
     try {
       const response = await fetch(`/api/client-booking/${token}/push/test`, { method: "POST" });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Test nie został wysłany.");
-      setMessage(data.sent ? "✓ Test wysłany — sprawdź powiadomienie na telefonie." : "Brak aktywnej subskrypcji na tym urządzeniu.");
+      if (!response.ok) throw new Error(data.error || t("Test nie został wysłany."));
+      setMessage(data.sent ? t("✓ Test wysłany — sprawdź powiadomienie na telefonie.") : t("Brak aktywnej subskrypcji na tym urządzeniu."));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Nie udało się wysłać testu.");
+      setMessage(error instanceof Error ? error.message : t("Nie udało się wysłać testu."));
     }
     setBusy(false);
   }
@@ -153,26 +159,24 @@ export default function CustomerPushControls({
   return (
     <div className={compact ? "customer-push-controls compact" : "customer-push-controls"}>
       {!compact && <>
-        <h3>🔔 Bezpłatne powiadomienia</h3>
-        <p className="muted">Włącz na tym telefonie aktualizacje o kierowcy, statusie przejazdu i ważnych zmianach lotu. E-mail nadal działa niezależnie.</p>
+        <h3>{t("🔔 Bezpłatne powiadomienia")}</h3>
+        <p className="muted">{t("Włącz na tym telefonie aktualizacje o kierowcy, statusie przejazdu i ważnych zmianach lotu. E-mail nadal działa niezależnie.")}</p>
       </>}
 
       <div className="customer-push-actions">
         {state === "off" && (
           <button type="button" className="btn" disabled={busy} onClick={enable}>
-            🔔 WŁĄCZ POWIADOMIENIA
-          </button>
+            {t("🔔 WŁĄCZ POWIADOMIENIA")}</button>
         )}
         {state === "on" && <>
           <button type="button" className="btn secondary push-on" disabled={busy} onClick={disable}>
-            🔔 POWIADOMIENIA: ON
-          </button>
+            {t("🔔 POWIADOMIENIA: ON")}</button>
           <button type="button" className="btn secondary" disabled={busy} onClick={test}>
             🧪 TEST
           </button>
         </>}
-        {state === "denied" && <span className="push-warning">🔕 Powiadomienia są zablokowane w ustawieniach przeglądarki.</span>}
-        {state === "unsupported" && <span className="push-warning">Ta przeglądarka nie obsługuje Web Push.</span>}
+        {state === "denied" && <span className="push-warning">{t("🔕 Powiadomienia są zablokowane w ustawieniach przeglądarki.")}</span>}
+        {state === "unsupported" && <span className="push-warning">{t("Ta przeglądarka nie obsługuje Web Push.")}</span>}
       </div>
       {message && <small className="driver-app-control-message">{message}</small>}
     </div>

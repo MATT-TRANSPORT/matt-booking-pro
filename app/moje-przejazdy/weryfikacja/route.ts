@@ -1,3 +1,4 @@
+import { withCustomerLocale } from "@/lib/bookingLocale";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -11,7 +12,7 @@ import {
 export const dynamic = "force-dynamic";
 
 function redirectTo(req: NextRequest, path: string) {
-  return NextResponse.redirect(new URL(path, req.nextUrl.origin));
+  return NextResponse.redirect(new URL(withCustomerLocale(path, req.nextUrl.searchParams.get("lang")), req.nextUrl.origin));
 }
 
 export async function GET(req: NextRequest) {

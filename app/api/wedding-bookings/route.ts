@@ -43,6 +43,7 @@ export async function POST(req:NextRequest){
   await Promise.allSettled([
     sendMattEmail({
       to:b.email,
+      locale,
       subject:`${copy.subject} ${data.booking_number}`,
       html:`<div style="font-family:Arial;background:#0b0e13;color:white;padding:28px"><div style="max-width:650px;margin:auto;background:#151923;padding:28px;border-radius:16px">
       <h2 style="color:#f1d28b">MATT TRANSPORT 💍</h2><h1>${esc(copy.title)}</h1>

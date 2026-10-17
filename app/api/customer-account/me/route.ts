@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     admin
       .from("bookings")
       .select([
-        "id","booking_number","service_type","pickup_address","destination_address",
+        "id","customer_locale","booking_number","service_type","pickup_address","destination_address",
         "airport_key","airport_label","travel_date","travel_time","return_date","return_time",
         "passengers","vehicle_type","distance_km","customer_name","phone","email","invoice_required","company_nip",
         "notes","status","booking_source","customer_access_token","payment_method","payment_status",
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
       .order("travel_time", { ascending: true }),
     admin
       .from("wedding_bookings")
-      .select("id,booking_number,customer_name,start_date,start_time,restaurant_name,restaurant_address,vehicles_count,phone,email,notes,status,created_at")
+      .select("id,customer_locale,booking_number,customer_name,start_date,start_time,restaurant_name,restaurant_address,vehicles_count,phone,email,notes,status,created_at")
       .eq("customer_email_normalized", session.email)
       .order("start_date", { ascending: true })
       .order("start_time", { ascending: true })
