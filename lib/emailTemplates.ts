@@ -1,3 +1,4 @@
+import { travelGuideHtml } from "@/lib/travelGuide";
 const esc = (value: unknown) =>
   String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -37,6 +38,7 @@ type BookingMail = {
   company_id?: string | null;
   payment_method?: string | null;
   payment_status?: string | null;
+  customer_locale?: string | null;
   payment_link?: string | null;
   online_payment_requested?: boolean | null;
 };
@@ -261,6 +263,7 @@ export function assignedEmail(b: BookingMail) {
         Przydzieliliśmy obsadę do Twojego transferu.
       </p>
       ${details(b)}
+      ${travelGuideHtml(b.service_type, b.customer_locale)}
       <div style="margin-top:18px;background:#10141b;border:1px solid #343b49;border-radius:14px;padding:18px;line-height:1.8">
         <div style="font-weight:900;color:#f1d28b;margin-bottom:6px">→ WYJAZD</div>
         <div><span style="color:#aab1bc">Kierowca:</span> <strong>${esc(b.driver_name || "—")}</strong></div>
