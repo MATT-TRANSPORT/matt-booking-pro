@@ -15,11 +15,11 @@ export async function POST(req:NextRequest){
   }[locale];
   const esc=(v:unknown)=>String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
   if(!b.customerName||!b.startDate||!b.startTime||!b.restaurantName||!b.restaurantAddress||!b.phone||!b.email)
-    return NextResponse.json({error:"Uzupełnij wymagane pola."},{status:400});
+    return NextResponse.json({error:{pl:"Uzupełnij wymagane pola.",en:"Please complete the required fields.",de:"Bitte füllen Sie alle Pflichtfelder aus.",cs:"Vyplňte povinná pole."}[locale]},{status:400});
 
   const s=createAdminClient();
   const {data,error}=await s.from("wedding_bookings").insert({
-    customer_name:b.customerName,start_date:b.startDate,start_time:b.startTime,
+    customer_name:b.customerName,customer_locale:locale,start_date:b.startDate,start_time:b.startTime,
     restaurant_name:b.restaurantName,restaurant_address:b.restaurantAddress,
     vehicles_count:Number(b.vehiclesCount||1),phone:b.phone,email:b.email,notes:b.notes||null,status:"pending"
   }).select("*").single();
@@ -47,7 +47,7 @@ export async function POST(req:NextRequest){
       html:`<div style="font-family:Arial;background:#0b0e13;color:white;padding:28px"><div style="max-width:650px;margin:auto;background:#151923;padding:28px;border-radius:16px">
       <h2 style="color:#f1d28b">MATT TRANSPORT 💍</h2><h1>${esc(copy.title)}</h1>
       <p>${esc(copy.intro)}</p>
-      <p><strong>${data.start_date} ${data.start_time}</strong><br>${data.restaurant_name}<br>${data.restaurant_address}</p>
+      <p><strong>${esc(data.start_date)} ${esc(data.start_time)}</strong><br>${esc(data.restaurant_name)}<br>${esc(data.restaurant_address)}</p>
       <p>${esc(copy.next)}</p></div></div>`
     }),
     sendMattEmail({
