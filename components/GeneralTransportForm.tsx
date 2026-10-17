@@ -145,11 +145,11 @@ export default function GeneralTransportForm() {
 
       <h2>{t("1. Trasa")}</h2>
       <div className="grid">
-        <label>Punkt A — skąd jedziemy
+        <label>{t("Punkt A — skąd jedziemy")}
           <input value={origin} onChange={(e)=>setOrigin(e.target.value)} placeholder={t("Wpisz adres odbioru")} autoComplete="off" />
           {originSuggestions.length>0 && <div className="address-suggestions">{originSuggestions.slice(0,5).map((x,i)=><button type="button" key={x.placeId??i} onClick={()=>{setOrigin(x.text??"");setOriginSuggestions([]);}}>{x.text}</button>)}</div>}
         </label>
-        <label>Punkt B — dokąd jedziemy
+        <label>{t("Punkt B — dokąd jedziemy")}
           <input value={destination} onChange={(e)=>setDestination(e.target.value)} placeholder={t("Wpisz adres docelowy")} autoComplete="off" />
           {destinationSuggestions.length>0 && <div className="address-suggestions">{destinationSuggestions.slice(0,5).map((x,i)=><button type="button" key={x.placeId??i} onClick={()=>{setDestination(x.text??"");setDestinationSuggestions([]);}}>{x.text}</button>)}</div>}
         </label>
