@@ -1,3 +1,4 @@
+import { resolveCustomerLocale } from "@/lib/localizedBookingEmails";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { shortestDrivingRouteKm } from "@/lib/routesServer";
@@ -31,6 +32,13 @@ function vehicleLabel(value: string) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
+  const locale = resolveCustomerLocale(body.locale);
+  const copy = {
+    pl:{subject:"Przyjęliśmy zapytanie o transport",title:"Zapytanie przyjęte",intro:"Dziękujemy. Przygotujemy indywidualną wycenę transportu.",open:"OTWÓRZ REZERWACJĘ",people:"os."},
+    en:{subject:"Transport quote request received",title:"Request received",intro:"Thank you. We will prepare a personalised transport quote.",open:"VIEW BOOKING",people:"passengers"},
+    de:{subject:"Transportanfrage eingegangen",title:"Anfrage eingegangen",intro:"Vielen Dank. Wir erstellen ein individuelles Transportangebot.",open:"BUCHUNG ANSEHEN",people:"Fahrgäste"},
+    cs:{subject:"Poptávka dopravy přijata",title:"Poptávka přijata",intro:"Děkujeme. Připravíme individuální cenovou nabídku.",open:"ZOBRAZIT REZERVACI",people:"cestujících"}
+  }[locale];
   const origin = String(body.origin || "").trim();
   const destination = String(body.destination || "").trim();
   const travelDate = String(body.travelDate || "").trim();
@@ -77,6 +85,7 @@ export async function POST(req: NextRequest) {
   const serviceType = roundtrip ? "roundtrip" : "point_to_point";
   const { data, error } = await admin.from("bookings").insert({
     service_type: serviceType,
+    customer_locale: locale,
     pickup_address: origin,
     destination_address: destination,
     airport_key: "point_to_point",
@@ -119,7 +128,7 @@ export async function POST(req: NextRequest) {
     created_by: null
   });
 
-  const portalUrl = data.customer_access_token ? `${customerBaseUrl()}/rezerwacja/${data.customer_access_token}` : customerBaseUrl();
+  const portalUrl = data.customer_access_token ? `${customerBaseUrl()}/rezerwacja/${data.customer_access_token}?lang=${locale}` : `${customerBaseUrl()}?lang=${locale}`;
   const details = `${esc(origin)} → ${esc(destination)}${roundtrip ? ` → ${esc(origin)}` : ""}`;
   let customerEmailSent = false;
   let adminEmailSent = false;
@@ -127,8 +136,8 @@ export async function POST(req: NextRequest) {
   try {
     const result = await sendMattEmail({
       to: email,
-      subject: `Przyjęliśmy zapytanie o transport – ${data.booking_number}`,
-      html: `<div style="font-family:Arial,sans-serif;background:#0b0e13;color:#fff;padding:28px"><div style="max-width:650px;margin:auto;background:#151923;border:1px solid #343b49;border-radius:16px;padding:28px"><h2 style="color:#f1d28b">MATT TRANSPORT</h2><h1>Zapytanie przyjęte</h1><p>Dziękujemy. Przygotujemy indywidualną wycenę transportu.</p><p><strong>${esc(data.booking_number)}</strong><br>${details}<br>${esc(travelDate)} · ${esc(travelTime)} · ${passengers} os.</p><p><a href="${portalUrl}" style="display:inline-block;background:#d5ae5d;color:#111;padding:14px 20px;border-radius:11px;text-decoration:none;font-weight:800">OTWÓRZ REZERWACJĘ</a></p></div></div>`
+      subject: `${copy.subject} – ${data.booking_number}`,
+      html: `<div style="font-family:Arial,sans-serif;background:#0b0e13;color:#fff;padding:28px"><div style="max-width:650px;margin:auto;background:#151923;border:1px solid #343b49;border-radius:16px;padding:28px"><h2 style="color:#f1d28b">MATT TRANSPORT</h2><h1>${esc(copy.title)}</h1><p>${esc(copy.intro)}</p><p><strong>${esc(data.booking_number)}</strong><br>${details}<br>${esc(travelDate)} · ${esc(travelTime)} · ${passengers} ${esc(copy.people)}</p><p><a href="${portalUrl}" style="display:inline-block;background:#d5ae5d;color:#111;padding:14px 20px;border-radius:11px;text-decoration:none;font-weight:800">${esc(copy.open)}</a></p></div></div>`
     });
     customerEmailSent = Boolean(result.sent);
   } catch (mailError) {
