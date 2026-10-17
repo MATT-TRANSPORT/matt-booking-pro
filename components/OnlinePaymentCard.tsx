@@ -1,17 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {resolveCustomerLocale} from "@/lib/localizedBookingEmails";
 import {
   onlinePaymentEligible,
   paymentBookingStatusAllowed,
   paymentStatusLabel
 } from "@/lib/payment";
 
+const paymentCopy: Record<string,[string,string,string]> = {"PŁATNOŚĆ ONLINE":["ONLINE PAYMENT","ONLINE-ZAHLUNG","ONLINE PLATBA"],"✓ Płatność została zaksięgowana.":["✓ Payment received.","✓ Zahlung eingegangen.","✓ Platba přijata."],"↩ Dla tej płatności zarejestrowano zwrot.":["↩ This payment has been refunded.","↩ Diese Zahlung wurde erstattet.","↩ Tato platba byla vrácena."],"⚠ Płatność wymaga weryfikacji przez MATT TRANSPORT.":["⚠ Payment requires verification by MATT TRANSPORT.","⚠ Die Zahlung muss von MATT TRANSPORT geprüft werden.","⚠ Platbu musí ověřit MATT TRANSPORT."],"Nie wykonuj kolejnej płatności.":["Do not pay again.","Bitte nicht erneut bezahlen.","Neplaťte znovu."],"Płatność online jest niedostępna dla aktualnego statusu rezerwacji.":["Online payment is unavailable for the current booking status.","Online-Zahlung ist für den aktuellen Buchungsstatus nicht verfügbar.","Online platba není pro aktuální stav rezervace dostupná."],"Płatność została przerwana. Możesz spróbować ponownie.":["Payment was cancelled. You can try again.","Die Zahlung wurde abgebrochen. Sie können es erneut versuchen.","Platba byla zrušena. Můžete to zkusit znovu."],"Płatność została przyjęta. Potwierdzamy jej status…":["Payment submitted. Checking its status…","Zahlung übermittelt. Status wird geprüft…","Platba odeslána. Ověřujeme stav…"],"✓ Płatność została zaksięgowana. Dziękujemy.":["✓ Payment received. Thank you.","✓ Zahlung eingegangen. Vielen Dank.","✓ Platba přijata. Děkujeme."],"Płatność dotarła, ale wymaga weryfikacji przez MATT TRANSPORT.":["Payment received but requires review by MATT TRANSPORT.","Zahlung eingegangen, muss aber von MATT TRANSPORT geprüft werden.","Platba dorazila, ale musí ji ověřit MATT TRANSPORT."],"Płatność została wysłana do operatora. Status może zaktualizować się za chwilę.":["Payment submitted to the provider. Status may update shortly.","Zahlung an den Anbieter gesendet. Der Status wird in Kürze aktualisiert.","Platba byla odeslána poskytovateli. Stav se brzy aktualizuje."],"Nie udało się rozpocząć płatności.":["Could not start payment.","Zahlung konnte nicht gestartet werden.","Platbu se nepodařilo zahájit."]};
 export default function OnlinePaymentCard({
   booking
 }: {
   booking: any;
 }) {
+  const [locale,setLocale]=useState("pl");
+  useEffect(()=>{setLocale(resolveCustomerLocale(new URLSearchParams(window.location.search).get("lang")||booking.customer_locale))},[booking.customer_locale]);
+  const t=(key:string)=>locale==="pl"?key:paymentCopy[key]?.[locale==="en"?0:locale==="de"?1:2]??key;
   const [status, setStatus] = useState(
     String(booking.payment_status || "pending")
   );
@@ -42,13 +47,13 @@ export default function OnlinePaymentCard({
 
     if (paymentResult === "cancelled") {
       setMessage(
-        "Płatność została przerwana. Możesz spróbować ponownie."
+        t("Płatność została przerwana. Możesz spróbować ponownie.")
       );
     }
 
     if (paymentResult === "success") {
       setMessage(
-        "Płatność została przyjęta. Potwierdzamy jej status…"
+        t("Płatność została przyjęta. Potwierdzamy jej status…")
       );
       refreshPaymentStatus();
     }
@@ -69,13 +74,13 @@ export default function OnlinePaymentCard({
         setStatus(next);
 
         if (next === "paid") {
-          setMessage("✓ Płatność została zaksięgowana. Dziękujemy.");
+          setMessage(t("✓ Płatność została zaksięgowana. Dziękujemy."));
           return;
         }
 
         if (next === "review") {
           setMessage(
-            "Płatność dotarła, ale wymaga weryfikacji przez MATT TRANSPORT."
+            t("Płatność dotarła, ale wymaga weryfikacji przez MATT TRANSPORT.")
           );
           return;
         }
@@ -89,7 +94,7 @@ export default function OnlinePaymentCard({
     }
 
     setMessage(
-      "Płatność została wysłana do operatora. Status może zaktualizować się za chwilę."
+      t("Płatność została wysłana do operatora. Status może zaktualizować się za chwilę.")
     );
   }
 
@@ -146,7 +151,7 @@ export default function OnlinePaymentCard({
       setMessage(
         error instanceof Error
           ? error.message
-          : "Nie udało się rozpocząć płatności."
+          : t("Nie udało się rozpocząć płatności.")
       );
       setBusy(false);
     }
@@ -161,7 +166,7 @@ export default function OnlinePaymentCard({
     >
       <div className="online-payment-head">
         <div>
-          <span className="badge">PŁATNOŚĆ ONLINE</span>
+          <span className="badge">{t("PŁATNOŚĆ ONLINE")}</span>
           <h3>{paymentStatusLabel(status)}</h3>
         </div>
         <strong>
