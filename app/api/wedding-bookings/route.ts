@@ -1,3 +1,4 @@
+import { resolveCustomerLocale } from "@/lib/localizedBookingEmails";
 import { NextRequest,NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMattEmail } from "@/lib/email";
@@ -5,6 +6,14 @@ import { sendNewWeddingAdminPush } from "@/lib/adminNotifications";
 
 export async function POST(req:NextRequest){
   const b=await req.json();
+  const locale=resolveCustomerLocale(b.locale);
+  const copy={
+    pl:{subject:"Transport weselny – otrzymaliśmy dane",title:"Dziękujemy za przesłanie danych",intro:"Otrzymaliśmy informacje potrzebne do przygotowania umowy dotyczącej transportu weselnego.",next:"Przygotujemy umowę i prześlemy ją na ten adres e-mail. W razie potrzeby skontaktujemy się telefonicznie."},
+    en:{subject:"Wedding transport – details received",title:"Thank you for your details",intro:"We have received the information needed to prepare your wedding transport agreement.",next:"We will prepare the agreement and email it to you. We may call if we need further information."},
+    de:{subject:"Hochzeitstransport – Angaben erhalten",title:"Vielen Dank für Ihre Angaben",intro:"Wir haben die Informationen erhalten, die wir für Ihren Hochzeitstransportvertrag benötigen.",next:"Wir erstellen den Vertrag und senden ihn per E-Mail. Bei Rückfragen melden wir uns telefonisch."},
+    cs:{subject:"Svatební doprava – údaje přijaty",title:"Děkujeme za zaslané údaje",intro:"Obdrželi jsme informace potřebné k přípravě smlouvy o svatební dopravě.",next:"Připravíme smlouvu a zašleme ji na váš e-mail. V případě dotazů vám zavoláme."}
+  }[locale];
+  const esc=(v:unknown)=>String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
   if(!b.customerName||!b.startDate||!b.startTime||!b.restaurantName||!b.restaurantAddress||!b.phone||!b.email)
     return NextResponse.json({error:"Uzupełnij wymagane pola."},{status:400});
 
@@ -34,12 +43,12 @@ export async function POST(req:NextRequest){
   await Promise.allSettled([
     sendMattEmail({
       to:b.email,
-      subject:`Transport weselny – otrzymaliśmy dane ${data.booking_number}`,
+      subject:`${copy.subject} ${data.booking_number}`,
       html:`<div style="font-family:Arial;background:#0b0e13;color:white;padding:28px"><div style="max-width:650px;margin:auto;background:#151923;padding:28px;border-radius:16px">
-      <h2 style="color:#f1d28b">MATT TRANSPORT 💍</h2><h1>Dziękujemy za przesłanie danych</h1>
-      <p>Otrzymaliśmy informacje potrzebne do przygotowania umowy dotyczącej transportu weselnego.</p>
+      <h2 style="color:#f1d28b">MATT TRANSPORT 💍</h2><h1>${esc(copy.title)}</h1>
+      <p>${esc(copy.intro)}</p>
       <p><strong>${data.start_date} ${data.start_time}</strong><br>${data.restaurant_name}<br>${data.restaurant_address}</p>
-      <p>Przygotujemy umowę i prześlemy ją na ten adres e-mail. W razie potrzeby skontaktujemy się telefonicznie.</p></div></div>`
+      <p>${esc(copy.next)}</p></div></div>`
     }),
     sendMattEmail({
       to:"kontakt@matt-transport.pl",
