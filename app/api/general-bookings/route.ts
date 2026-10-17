@@ -55,20 +55,20 @@ export async function POST(req: NextRequest) {
   const notes = String(body.notes || "").trim().slice(0, 4000) || null;
 
   if (!origin || !destination || !travelDate || !travelTime || !customerName || !phone || !email) {
-    return NextResponse.json({ error: "Uzupełnij punkt A, punkt B, termin i dane kontaktowe." }, { status: 400 });
+    return NextResponse.json({ error: ({pl:"Uzupełnij punkt A, punkt B, termin i dane kontaktowe.",en:"Please enter both locations, date, time and contact details.",de:"Bitte geben Sie beide Orte, Termin und Kontaktdaten an.",cs:"Zadejte obě místa, termín a kontaktní údaje."}[locale]) }, { status: 400 });
   }
   if (roundtrip && (!returnDate || !returnTime)) {
-    return NextResponse.json({ error: "Podaj datę i godzinę powrotu." }, { status: 400 });
+    return NextResponse.json({ error: ({pl:"Podaj datę i godzinę powrotu.",en:"Please enter your return date and time.",de:"Bitte geben Sie Datum und Uhrzeit der Rückfahrt ein.",cs:"Zadejte datum a čas návratu."}[locale]) }, { status: 400 });
   }
 
   const when = new Date(`${travelDate}T${travelTime}`);
   if (!Number.isFinite(when.getTime()) || when.getTime() - Date.now() < 24 * 3600 * 1000) {
-    return NextResponse.json({ error: "Rezerwacja online wymaga minimum 24 godzin wyprzedzenia. W pilnej sprawie zadzwoń: +48 691 242 691" }, { status: 400 });
+    return NextResponse.json({ error: ({pl:"Rezerwacja online wymaga minimum 24 godzin wyprzedzenia. W pilnej sprawie zadzwoń: +48 691 242 691",en:"Online requests require at least 24 hours' notice. For urgent bookings call: +48 691 242 691",de:"Online-Anfragen erfordern mindestens 24 Stunden Vorlauf. Bei dringenden Buchungen: +48 691 242 691",cs:"Online poptávky vyžadují alespoň 24 hodin předem. Naléhavé objednávky: +48 691 242 691"}[locale]) }, { status: 400 });
   }
   if (roundtrip) {
     const back = new Date(`${returnDate}T${returnTime}`);
     if (!Number.isFinite(back.getTime()) || back.getTime() <= when.getTime()) {
-      return NextResponse.json({ error: "Termin powrotu musi być późniejszy niż wyjazd." }, { status: 400 });
+      return NextResponse.json({ error: ({pl:"Termin powrotu musi być późniejszy niż wyjazd.",en:"Return must be after departure.",de:"Die Rückfahrt muss nach der Hinfahrt liegen.",cs:"Návrat musí být později než odjezd."}[locale]) }, { status: 400 });
     }
   }
 
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
   try {
     route = await shortestDrivingRouteKm(origin, destination);
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Nie udało się obliczyć trasy." }, { status: 400 });
+    return NextResponse.json({ error: ({pl:"Nie udało się obliczyć trasy.",en:"Could not calculate the route.",de:"Die Route konnte nicht berechnet werden.",cs:"Trasu se nepodařilo vypočítat."}[locale]) }, { status: 400 });
   }
 
   const admin = createAdminClient();
@@ -119,7 +119,7 @@ export async function POST(req: NextRequest) {
   }).select("*").single();
 
   if (error || !data) {
-    return NextResponse.json({ error: error?.message || "Nie udało się zapisać zgłoszenia." }, { status: 500 });
+    return NextResponse.json({ error: ({pl:"Nie udało się zapisać zgłoszenia.",en:"Could not save your request.",de:"Die Anfrage konnte nicht gespeichert werden.",cs:"Poptávku se nepodařilo uložit."}[locale]) }, { status: 500 });
   }
 
   await admin.from("booking_history").insert({
