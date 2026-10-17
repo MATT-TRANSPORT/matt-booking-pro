@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { resolveCustomerLocale } from "@/lib/localizedBookingEmails";
 import OnlinePaymentCard from "@/components/OnlinePaymentCard";
 import CustomerPushControls from "@/components/CustomerPushControls";
 import { companyBookingMoney } from "@/lib/companyPortal";
@@ -60,6 +61,10 @@ export default function ClientBookingPortal({
   token: string;
 }) {
   const [data, setData] = useState<any>(null);
+  const [locale,setLocale]=useState("pl");
+  useEffect(()=>{setLocale(resolveCustomerLocale(new URLSearchParams(window.location.search).get("lang")||data?.booking?.customer_locale))},[data?.booking?.customer_locale]);
+  const portalCopy: Record<string,[string,string,string]> = {"Twoja rezerwacja":["Your booking","Ihre Buchung","Vaše rezervace"],"Szczegóły przejazdu":["Trip details","Fahrtdetails","Podrobnosti jízdy"],"Podsumowanie":["Summary","Zusammenfassung","Shrnutí"],"Wycena":["Quote","Angebot","Cenová nabídka"],"Decyzja":["Decision","Entscheidung","Rozhodnutí"],"Płatność":["Payment","Zahlung","Platba"],"Netto":["Net","Netto","Bez DPH"],"Brutto":["Gross","Brutto","Včetně DPH"],"Kwota":["Amount","Betrag","Částka"],"Status":["Status","Status","Stav"],"Pojazd":["Vehicle","Fahrzeug","Vozidlo"],"Kierowca":["Driver","Fahrer","Řidič"]};
+  const t=(key:string)=>locale==="pl"?key:portalCopy[key]?.[locale==="en"?0:locale==="de"?1:2]??key;
   const [form, setForm] = useState<any>(null);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
@@ -287,7 +292,7 @@ export default function ClientBookingPortal({
     return (
       <main className="container client-portal-shell">
         <div className="card">
-          <h1>Twoja rezerwacja</h1>
+          <h1>{t("Twoja rezerwacja")}</h1>
           <div className="booking-error">
             {message}
           </div>
@@ -393,7 +398,7 @@ export default function ClientBookingPortal({
 
       <div className="client-portal-grid">
         <section className="card" id="client-edit-data">
-          <h2>Szczegóły przejazdu</h2>
+          <h2>{t("Szczegóły przejazdu")}</h2>
 
           {general ? (
             <div className="grid">
@@ -1214,7 +1219,7 @@ export default function ClientBookingPortal({
         </section>
 
         <aside className="card client-booking-summary">
-          <h2>Podsumowanie</h2>
+          <h2>{t("Podsumowanie")}</h2>
 
           <div>
             <span>
@@ -1232,7 +1237,7 @@ export default function ClientBookingPortal({
           {general ? (
             <>
               <div>
-                <span>Wycena</span>
+                <span>{t("Wycena")}</span>
                 <strong>
                   {b.quote_status ===
                   "pending"
@@ -1246,7 +1251,7 @@ export default function ClientBookingPortal({
                 </strong>
               </div>
               <div>
-                <span>Decyzja</span>
+                <span>{t("Decyzja")}</span>
                 <strong>
                   {b.quote_status ===
                   "accepted"
@@ -1269,7 +1274,7 @@ export default function ClientBookingPortal({
                 b.quote_status
               ) && (
                 <div>
-                  <span>Płatność</span>
+                  <span>{t("Płatność")}</span>
                   <strong>
                     {paymentLabel(b)}
                   </strong>
@@ -1280,7 +1285,7 @@ export default function ClientBookingPortal({
             b2bMoney ? (
             <>
               <div>
-                <span>Netto</span>
+                <span>{t("Netto")}</span>
                 <strong>
                   {b2bMoney.net.toFixed(
                     2
@@ -1304,7 +1309,7 @@ export default function ClientBookingPortal({
                 </strong>
               </div>
               <div>
-                <span>Brutto</span>
+                <span>{t("Brutto")}</span>
                 <strong>
                   {b2bMoney.gross.toFixed(
                     2
@@ -1315,7 +1320,7 @@ export default function ClientBookingPortal({
             </>
           ) : (
             <div>
-              <span>Kwota</span>
+              <span>{t("Kwota")}</span>
               <strong>
                 {Number(
                   b.total_price
@@ -1326,7 +1331,7 @@ export default function ClientBookingPortal({
           )}
 
           <div>
-            <span>Status</span>
+            <span>{t("Status")}</span>
             <strong>
               {general
                 ? quoteHeroStatus(b)
@@ -1337,7 +1342,7 @@ export default function ClientBookingPortal({
 
           {!general && (
             <div>
-              <span>Płatność</span>
+              <span>{t("Płatność")}</span>
               <strong>
                 {b.company_id
                   ? b.payment_method ===
@@ -1366,7 +1371,7 @@ export default function ClientBookingPortal({
 
           {vehicle && (
             <div>
-              <span>Pojazd</span>
+              <span>{t("Pojazd")}</span>
               <strong>
                 {vehicle.name} ·{" "}
                 {vehicle.registration}
@@ -1376,7 +1381,7 @@ export default function ClientBookingPortal({
 
           {driver && (
             <div>
-              <span>Kierowca</span>
+              <span>{t("Kierowca")}</span>
               <strong>
                 {driver.full_name}
               </strong>
