@@ -11,6 +11,7 @@ let testBooking, checkoutCalls=[], dbWrites=[];
 // These tests never open a socket or read production credentials.
 const admin = {from(table){ const chain={select(){return chain},eq(){return chain},single:async()=>({data:testBooking}),maybeSingle:async()=>({data:testBooking}),update(value){dbWrites.push({table,value});return chain},insert:async value=>{dbWrites.push({table,value});return {error:null}}};return chain;}};
 Module._load = function(id,parent,isMain){
+  if(id==='@/lib/supabase/server') return {createClient:async()=>({auth:{getUser:async()=>({data:{user:{id:'test-user'}}})},from:()=>({select(){return this},eq(){return this},single:async()=>({data:{company_id:'test-company',role:'admin'}})})})};
   if(id==='@/lib/supabase/admin') return {createAdminClient:()=>admin};
   if(id==='@/lib/stripeServer') return {getStripe:()=>({checkout:{sessions:{create:async input=>{checkoutCalls.push(input);return {id:'cs_test_fixture',url:'https://example.invalid/local-checkout'}}}}}),expireCheckoutSession:async()=>{}};
   if(id.startsWith('@/')) id=path.join(root,id.slice(2));
@@ -99,4 +100,69 @@ const {customerAccountEmail}=require('../lib/customerAccountEmail.ts');
 for(const locale of ['pl','en','de','cs'])test(`${locale}: account login email uses chosen language and escapes email and URL`,()=>{
   const mail=customerAccountEmail(locale,'<test>@example.invalid',`https://example.invalid/login?token=test&lang=${locale}`);
   assert.equal(mail.locale,locale);assert.match(mail.html,new RegExp(`lang="${locale}"`));assert.ok(mail.html.includes('&lt;test&gt;'));assert.ok(mail.html.includes('&amp;lang='+locale));
+});
+const {b2bEmployeeConfirmedEmail,b2bEmployeeAssignedEmail}=require('../lib/b2bEmployeeNotifications.ts');
+for(const locale of ['pl','en','de','cs'])test(`${locale}: B2B employee templates use one language, gross amount and both assignments`,()=>{
+ const booking={...base,customer_locale:locale,company_id:'test-company',payment_method:'employee_payment',price_gross:864,driver_name:'<Driver>',return_driver_name:'Return Driver'};
+ for(const template of [b2bEmployeeConfirmedEmail(booking),b2bEmployeeAssignedEmail(booking)]){
+  assert.ok(template.html.includes(`lang="${locale}"`));assert.ok(template.html.includes('/platnosc/test-token?lang='+locale));assert.ok(template.html.includes('864.00 PLN'));assert.ok(!template.html.includes(' / Online payment'));
+ }
+ const assigned=b2bEmployeeAssignedEmail(booking).html;assert.ok(assigned.includes('&lt;Driver&gt;'));assert.ok(assigned.includes('Return Driver'));assert.equal((assigned.match(/<section lang=/g)||[]).length,2);
+ for(const payment_status of ['paid','review','refunded'])assert.ok(!b2bEmployeeConfirmedEmail({...booking,payment_status}).html.includes('/platnosc/'));
+ assert.ok(!b2bEmployeeConfirmedEmail({...booking,status:'cancelled'}).html.includes('/platnosc/'));
+});
+const {reviewRatingEmail}=require('../lib/reviewRatingEmail.ts');
+for(const locale of ['pl','en','de','cs'])test(`${locale}: review mail preserves language in cron-generated rating links`,()=>{
+ const mail=reviewRatingEmail({...base,customer_locale:locale},'https://booking.matt-transport.pl/opinia/test-token?source=email');
+ assert.ok(mail.html.includes(`lang="${locale}"`));assert.ok(mail.html.includes('source=email&amp;lang='+locale));assert.ok(mail.html.includes('&lt;script&gt;test&lt;/script&gt;'));assert.ok(!mail.html.includes('<script>'));
+});
+const {customerFlightStatus,customerFlightAlert}=require('../lib/customerFlightText.ts');
+for(const locale of ['pl','en','de','cs'])test(`${locale}: public flight alerts are localized and omit dispatcher instructions`,()=>{
+ for(const state of ['scheduled','active','landed','cancelled','diverted','incident','unknown'])assert.ok(customerFlightStatus(state,locale));
+ const value=customerFlightAlert({alert_type:'delay',leg:'return',severity:'warning',payload:{delay:35},message:'Sprawdź wpływ na obsadę i kolejny kurs.'},locale,{flight_number:'TEST123'});
+ assert.ok(value.title.includes('TEST123'));assert.ok(value.title.includes('+35 min'));assert.ok(!value.message.includes('obsadę'));assert.equal(value.leg,'return');
+});
+const {requestCustomerLocale,customerErrorText,customerJson}=require('../lib/customerErrors.ts');
+const {customerFetch}=require('../lib/customerFetch.ts');
+for(const locale of ['pl','en','de','cs'])test(`${locale}: API errors preserve status, language and safe details`,async()=>{
+ assert.equal(requestCustomerLocale({headers:new Headers({'x-matt-locale':locale})},'pl'),locale);
+ assert.equal(requestCustomerLocale({headers:new Headers()},locale),locale);
+ const error=customerErrorText('Dla rezerwacji indywidualnych wybierz gotówkę lub płatność online.',locale);
+ assert.equal(customerErrorText(error,locale),error);
+ const response=customerJson(locale,{error,id:'unchanged',details:{message:'customer content'}},{status:400,headers:{'x-test':'retained'}});
+ assert.equal(response.status,400);assert.equal(response.headers.get('x-test'),'retained');assert.deepEqual(await response.json(),{error,id:'unchanged',details:{message:'customer content'}});
+ assert.ok(!customerErrorText('SQL password=secret details',locale).includes('secret'));
+ const key='Jeżeli ten adres e-mail jest powiązany z rezerwacjami MATT TRANSPORT, wysłaliśmy link do Moich przejazdów.';
+ assert.notEqual(customerErrorText(key,locale),customerErrorText('unknown',locale));
+});
+test('locale request header is attached only to our own API and preserves existing headers',async()=>{
+ const original=global.fetch,requests=[];global.fetch=async(input,init)=>{requests.push({input,init});return new Response('{}')};
+ try{
+  await customerFetch('de','/api/bookings',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});
+  assert.equal(requests[0].init.headers.get('x-matt-locale'),'de');assert.equal(requests[0].init.headers.get('content-type'),'application/json');
+  await customerFetch('de','https://example.invalid/external');assert.equal(requests[1].init,undefined);
+ }finally{global.fetch=original;}
+});
+const {POST:createPrivateBooking}=require('../app/api/bookings/route.ts');
+for(const locale of ['pl','en','de','cs'])test(`${locale}: private bank transfer is rejected before writes`,async()=>{
+ dbWrites=[];checkoutCalls=[];
+ const response=await createPrivateBooking({headers:new Headers({'x-matt-locale':locale}),json:async()=>({locale,paymentMethod:'bank_transfer'})});
+ assert.equal(response.status,400);assert.deepEqual(dbWrites,[]);assert.deepEqual(checkoutCalls,[]);
+ assert.equal((await response.json()).error,customerErrorText('Dla rezerwacji indywidualnych wybierz gotówkę lub płatność online.',locale));
+});
+const {companyBookingUpdateEmail}=require('../lib/companyBookingUpdateEmail.ts');
+for(const locale of ['pl','en','de','cs'])test(`${locale}: company change and cancellation mail preserve language and refund review`,()=>{
+ for(const kind of ['updated','cancelled']){
+  const mail=companyBookingUpdateEmail(kind,{...base,customer_locale:locale,booking_number:'<test>'},true);
+  assert.equal(mail.locale,locale);assert.ok(mail.html.includes(`lang="${locale}"`));assert.ok(mail.html.includes('lang='+locale));assert.ok(mail.html.includes('&lt;test&gt;'));assert.ok(!mail.html.includes('<test>'));
+ }
+});
+
+const {POST:companyBookingAction}=require('../app/api/company/bookings/[id]/route.ts');
+for(const locale of ['pl','en','de','cs'])test(`${locale}: company repeat requires a later return leg before writes`,async()=>{
+ testBooking={...base,company_id:'test-company',customer_locale:locale};dbWrites=[];
+ for(const dates of [{},{returnDate:'2027-02-19',returnTime:'14:55'}]){
+  const response=await companyBookingAction({headers:new Headers({'x-matt-locale':locale}),json:async()=>({action:'repeat',locale,travelDate:'2027-02-20',travelTime:'08:30',...dates})},{params:Promise.resolve({id:'test-only'})});
+  assert.equal(response.status,400);assert.equal((await response.json()).error,customerErrorText('Powrót musi nastąpić po wyjeździe.',locale));assert.deepEqual(dbWrites,[]);
+ }
 });

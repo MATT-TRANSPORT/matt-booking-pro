@@ -1,13 +1,15 @@
 "use client";
+import { customerFetch } from "@/lib/customerFetch";
 import { customerText } from "@/lib/customerCopy";
 import { useCustomerLocale } from "@/lib/useCustomerLocale";
 
 import { useEffect, useState } from "react";
 
 export default function BookingReviewForm({ token }: { token: string }) {
-  const locale = useCustomerLocale();
+ const fetchCustomer=(input:RequestInfo|URL,init?:RequestInit)=>customerFetch(locale,input,init);
   const t = (key: string) => customerText(key, locale);
   const [booking, setBooking] = useState<any>(null);
+  const locale = useCustomerLocale(booking?.customer_locale);
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState("");
   const [googleUrl, setGoogleUrl] = useState("");
@@ -15,7 +17,7 @@ export default function BookingReviewForm({ token }: { token: string }) {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/review/${token}`)
+    fetchCustomer(`/api/review/${token}`)
       .then(async (r) => ({ ok: r.ok, data: await r.json() }))
       .then(({ ok, data }) => {
         if (!ok) {
@@ -36,7 +38,7 @@ export default function BookingReviewForm({ token }: { token: string }) {
     if (!rating || busy) return;
     setBusy(true);
     setMessage("");
-    const r = await fetch(`/api/review/${token}`, {
+    const r = await fetchCustomer(`/api/review/${token}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ rating, feedback })
@@ -55,7 +57,7 @@ export default function BookingReviewForm({ token }: { token: string }) {
 
   async function openGoogle() {
     if (!googleUrl) return;
-    await fetch(`/api/review/${token}`, {
+    await fetchCustomer(`/api/review/${token}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "google_click" })

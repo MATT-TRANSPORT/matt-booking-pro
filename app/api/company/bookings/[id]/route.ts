@@ -1,3 +1,5 @@
+import { companyBookingUpdateEmail } from "@/lib/companyBookingUpdateEmail";
+import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -26,12 +28,14 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let responseLocale=requestCustomerLocale(req);
+  const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
   const { id } = await params;
   const auth = await createClient();
   const { data: { user } } = await auth.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Brak autoryzacji." }, { status: 401 });
+    return json({ error: "Brak autoryzacji." }, { status: 401 });
   }
 
   const { data: membership } = await auth
@@ -42,10 +46,11 @@ export async function POST(
     .single();
 
   if (!membership) {
-    return NextResponse.json({ error: "Brak firmy." }, { status: 403 });
+    return json({ error: "Brak firmy." }, { status: 403 });
   }
 
   const body = await req.json();
+ responseLocale=requestCustomerLocale(req,body?.locale);
   const admin = createAdminClient();
 
   const { data: current } = await admin
@@ -56,12 +61,12 @@ export async function POST(
     .single();
 
   if (!current) {
-    return NextResponse.json({ error: "Nie znaleziono rezerwacji." }, { status: 404 });
+    return json({ error: "Nie znaleziono rezerwacji." }, { status: 404 });
   }
 
   if (body.action === "cancel") {
     if (!EDITABLE_STATUSES.includes(current.status)) {
-      return NextResponse.json(
+      return json(
         { error: current.status === "cancelled" ? "Ta rezerwacja jest już anulowana." : "Rezerwacji w realizacji lub zakończonej nie można anulować w portalu firmy." },
         { status: 409 }
       );
@@ -103,7 +108,7 @@ export async function POST(
       .single();
 
     if (cancelError || !cancelled) {
-      return NextResponse.json(
+      return json(
         { error: cancelError?.message || "Nie udało się anulować rezerwacji." },
         { status: 500 }
       );
@@ -156,15 +161,10 @@ export async function POST(
       .eq("id", membership.company_id)
       .single();
 
-    const cancellationText = wasPaid
-      ? "Rezerwacja została anulowana. Płatność była już zaksięgowana — MATT TRANSPORT zweryfikuje ewentualny zwrot zgodnie z warunkami anulacji."
-      : "Rezerwacja została anulowana i nie będzie realizowana.";
-
     if (companyForMail?.email) {
       await sendMattEmail({
         to: companyForMail.email,
-        subject: `Anulowano rezerwację ${cancelled.booking_number}`,
-        html: htmlUpdate(cancelled.booking_number, cancellationText)
+        ...companyBookingUpdateEmail("cancelled", cancelled, wasPaid)
       });
     }
 
@@ -177,15 +177,18 @@ export async function POST(
       )
     });
 
-    return NextResponse.json({
+    return json({
       ...cancelled,
       payment_requires_review: wasPaid
     });
   }
 
   if (body.action === "repeat") {
+    if (current.service_type === "roundtrip" && (!body.returnDate || !body.returnTime || `${body.returnDate}T${body.returnTime}` <= `${body.travelDate}T${body.travelTime}`)) {
+      return json({ error: "Powrót musi nastąpić po wyjeździe." }, { status: 400 });
+    }
     if (!body.travelDate || !body.travelTime) {
-      return NextResponse.json(
+      return json(
         { error: "Podaj nową datę i godzinę." },
         { status: 400 }
       );
@@ -202,7 +205,7 @@ export async function POST(
         serviceType: current.service_type
       });
     } catch (error) {
-      return NextResponse.json(
+      return json(
         { error: error instanceof Error ? error.message : "Nie udało się wycenić nowej rezerwacji." },
         { status: 400 }
       );
@@ -222,12 +225,13 @@ export async function POST(
       status: "pending",
       travel_date: body.travelDate,
       travel_time: body.travelTime,
-      return_date: null,
-      return_time: null,
+      return_date: current.service_type === "roundtrip" ? body.returnDate : null,
+      return_time: current.service_type === "roundtrip" ? body.returnTime : null,
       invoice_number: null,
       invoice_status: "not_invoiced",
       ordered_by_user_id: user.id,
       booking_source: "b2b_repeat",
+      customer_locale: requestCustomerLocale(req, body.locale ?? current.customer_locale),
       payment_status: "pending",
       payment_link: null,
       payment_provider: null,
@@ -257,7 +261,7 @@ export async function POST(
       .single();
 
     if (error || !data) {
-      return NextResponse.json({ error: error?.message || "Błąd zapisu." }, { status: 500 });
+      return json({ error: error?.message || "Błąd zapisu." }, { status: 500 });
     }
 
     await admin.from("booking_history").insert({
@@ -268,22 +272,22 @@ export async function POST(
       created_by: user.id
     });
 
-    return NextResponse.json(data);
+    return json(data);
   }
 
   if (body.action !== "update") {
-    return NextResponse.json({ error: "Nieznana operacja." }, { status: 400 });
+    return json({ error: "Nieznana operacja." }, { status: 400 });
   }
 
   if (["paid", "review"].includes(current.payment_status)) {
-    return NextResponse.json(
+    return json(
       { error: "Rezerwacji z zaksięgowaną lub weryfikowaną płatnością nie można edytować w portalu firmy. Skontaktuj się z MATT TRANSPORT." },
       { status: 409 }
     );
   }
 
   if (!EDITABLE_STATUSES.includes(current.status)) {
-    return NextResponse.json(
+    return json(
       { error: "Tej rezerwacji nie można już edytować w portalu firmy." },
       { status: 409 }
     );
@@ -307,7 +311,7 @@ export async function POST(
       allowInactiveAirport: true
     });
   } catch (error) {
-    return NextResponse.json(
+    return json(
       { error: error instanceof Error ? error.message : "Nie udało się przeliczyć rezerwacji." },
       { status: 400 }
     );
@@ -384,7 +388,7 @@ export async function POST(
     .single();
 
   if (error || !data) {
-    return NextResponse.json({ error: error?.message || "Błąd zapisu." }, { status: 500 });
+    return json({ error: error?.message || "Błąd zapisu." }, { status: 500 });
   }
 
   await admin.from("booking_history").insert({
@@ -445,13 +449,12 @@ export async function POST(
     try {
       await sendMattEmail({
         to: companyForMail.email,
-        subject: `Zmieniono rezerwację ${data.booking_number}`,
-        html: htmlUpdate(data.booking_number, `Zaktualizowano: ${changes.join(", ")}`)
+        ...companyBookingUpdateEmail("updated", data)
       });
     } catch (error) {
       console.error("E-mail po edycji B2B:", error);
     }
   }
 
-  return NextResponse.json(data);
+  return json(data);
 }

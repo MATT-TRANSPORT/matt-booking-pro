@@ -72,7 +72,10 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const bookingId = String(body.bookingId || "").trim();
   const amount = Number(body.amount);
-  const paymentMethod = ["cash", "bank_transfer", "online"].includes(
+  if (body.paymentMethod && !["cash", "online"].includes(body.paymentMethod)) {
+    return NextResponse.json({ error: "Dla klienta indywidualnego wybierz gotówkę lub płatność online." }, { status: 400 });
+  }
+  const paymentMethod = ["cash", "online"].includes(
     String(body.paymentMethod)
   )
     ? String(body.paymentMethod)

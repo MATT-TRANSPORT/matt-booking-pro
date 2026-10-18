@@ -2700,6 +2700,86 @@ export const customerCopy: Record<string, [string, string, string]> = {
     "Bank transfer",
     "Banküberweisung",
     "Bankovní převod"
+  ],
+  "Dashboard": [
+    "Dashboard",
+    "Übersicht",
+    "Přehled"
+  ],
+  "+ Nowa rezerwacja": [
+    "+ New booking",
+    "+ Neue Buchung",
+    "+ Nová rezervace"
+  ],
+  "Szablony i cykliczne": [
+    "Templates and recurring rides",
+    "Vorlagen und regelmäßige Fahrten",
+    "Šablony a opakované jízdy"
+  ],
+  "Kalendarz": [
+    "Calendar",
+    "Kalender",
+    "Kalendář"
+  ],
+  "Cennik i warunki": [
+    "Prices and terms",
+    "Preise und Konditionen",
+    "Ceník a podmínky"
+  ],
+  "Pracownicy": [
+    "Employees",
+    "Mitarbeiter",
+    "Zaměstnanci"
+  ],
+  "Rozliczenia": [
+    "Billing",
+    "Abrechnung",
+    "Vyúčtování"
+  ],
+  "Dane firmy": [
+    "Company details",
+    "Firmendaten",
+    "Údaje firmy"
+  ],
+  "Panel klienta biznesowego": [
+    "Business customer portal",
+    "Geschäftskundenportal",
+    "Portál firemního zákazníka"
+  ],
+  "Zamawiaj transfery i kontroluj rezerwacje swojej firmy.": [
+    "Book transfers and manage your company bookings.",
+    "Buchen Sie Transfers und verwalten Sie Ihre Firmenbuchungen.",
+    "Objednávejte transfery a spravujte firemní rezervace."
+  ],
+  "E-mail służbowy": [
+    "Work email",
+    "Geschäftliche E-Mail",
+    "Pracovní e-mail"
+  ],
+  "Hasło": [
+    "Password",
+    "Passwort",
+    "Heslo"
+  ],
+  "LOGOWANIE...": [
+    "SIGNING IN...",
+    "ANMELDUNG...",
+    "PŘIHLAŠOVÁNÍ..."
+  ],
+  "ZALOGUJ DO PANELU FIRMY": [
+    "SIGN IN TO COMPANY PORTAL",
+    "IM FIRMENPORTAL ANMELDEN",
+    "PŘIHLÁSIT DO FIREMNÍHO PORTÁLU"
+  ],
+  "Nieprawidłowy e-mail lub hasło.": [
+    "Incorrect email or password.",
+    "Falsche E-Mail-Adresse oder falsches Passwort.",
+    "Nesprávný e-mail nebo heslo."
+  ],
+  "Nie udało się zalogować. Spróbuj ponownie.": [
+    "Could not sign in. Please try again.",
+    "Anmeldung fehlgeschlagen. Bitte versuchen Sie es erneut.",
+    "Přihlášení se nezdařilo. Zkuste to znovu."
   ]
 };
 

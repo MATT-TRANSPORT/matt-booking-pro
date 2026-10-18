@@ -1,3 +1,4 @@
+import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
 import { resolveCustomerLocale } from "@/lib/bookingLocale";
 import { localizedReceivedEmail } from "@/lib/localizedBookingEmails";
 import { NextRequest, NextResponse } from "next/server";
@@ -11,11 +12,13 @@ import { sendNewBookingAdminPush } from "@/lib/adminNotifications";
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
+  let responseLocale=requestCustomerLocale(req);
+  const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
   const auth = await createClient();
   const { data: { user } } = await auth.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Brak autoryzacji." }, { status: 401 });
+    return json({ error: "Brak autoryzacji." }, { status: 401 });
   }
 
   const { data: membership } = await auth
@@ -26,10 +29,11 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (!membership) {
-    return NextResponse.json({ error: "Brak przypisanej firmy." }, { status: 403 });
+    return json({ error: "Brak przypisanej firmy." }, { status: 403 });
   }
 
   const body = await req.json();
+ responseLocale=requestCustomerLocale(req,body?.locale);
   const admin = createAdminClient();
 
   let employee: any = null;
@@ -47,7 +51,7 @@ export async function POST(req: NextRequest) {
     const n = body.newEmployee;
 
     if (!n.firstName || !n.lastName) {
-      return NextResponse.json(
+      return json(
         { error: "Podaj imię i nazwisko nowego pracownika." },
         { status: 400 }
       );
@@ -92,14 +96,14 @@ export async function POST(req: NextRequest) {
         .single();
 
       if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return json({ error: error.message }, { status: 500 });
       }
       employee = data;
     }
   }
 
   if (!employee) {
-    return NextResponse.json(
+    return json(
       { error: "Nie udało się ustalić pasażera." },
       { status: 400 }
     );
@@ -109,7 +113,7 @@ export async function POST(req: NextRequest) {
   const passengers = Math.max(1, Math.min(8, Number(body.passengers || 1)));
 
   if (passengers > 3 && vehicle !== "bus") {
-    return NextResponse.json(
+    return json(
       { error: "Dla więcej niż 3 pasażerów wybierz bus." },
       { status: 400 }
     );
@@ -130,7 +134,7 @@ export async function POST(req: NextRequest) {
       additionalStopReturn: Boolean(body.additionalStopReturn)
     });
   } catch (error) {
-    return NextResponse.json(
+    return json(
       {
         error:
           error instanceof Error
@@ -185,7 +189,7 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error || !data) {
-    return NextResponse.json(
+    return json(
       { error: error?.message || "Nie udało się zapisać rezerwacji." },
       { status: 500 }
     );
@@ -285,7 +289,7 @@ export async function POST(req: NextRequest) {
     created_by: null
   });
 
-  return NextResponse.json({
+  return json({
     ...data,
     quote,
     email_sent: emailSent,

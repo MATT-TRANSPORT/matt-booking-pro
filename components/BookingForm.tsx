@@ -1,4 +1,5 @@
 "use client";
+import { customerFetch } from "@/lib/customerFetch";
 import { customerText } from "@/lib/customerCopy";
 import { useCustomerLocale } from "@/lib/useCustomerLocale";
 import CustomerPushControls from "@/components/CustomerPushControls";
@@ -15,6 +16,7 @@ type Suggestion = { placeId?: string; text?: string };
 type AirportKey = string | "other";
 
 export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry}) {
+ const fetchCustomer=(input:RequestInfo|URL,init?:RequestInit)=>customerFetch(locale,input,init);
   const { airports } = useAirportPricing();
   const locale = useCustomerLocale();
   const t=(key:string)=>locale==="pl"?key:(airportCopy[key]??airportExtraCopy[key])?.[locale==="en"?0:locale==="de"?1:2]??customerText(key,locale);
@@ -52,7 +54,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
   const [phone,setPhone] = useState("");
   const [email,setEmail] = useState("");
   const [invoice,setInvoice] = useState(false);
-  const [paymentMethod,setPaymentMethod] = useState<"cash"|"bank_transfer"|"online">("cash");
+  const [paymentMethod,setPaymentMethod] = useState<"cash"|"online">("cash");
   const onlinePaymentRequested = paymentMethod === "online";
   const [nip,setNip] = useState("");
   const [notes,setNotes] = useState("");
@@ -79,7 +81,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
     const controller = new AbortController();
     const timer=setTimeout(async()=>{
       try{
-        const r=await fetch(`/api/places?q=${encodeURIComponent(address)}`, {signal:controller.signal});
+        const r=await fetchCustomer(`/api/places?q=${encodeURIComponent(address)}`, {signal:controller.signal});
         const d=await r.json();
         if(!controller.signal.aborted) setSuggestions(r.ok ? d.suggestions??[] : []);
       }catch{ if(!controller.signal.aborted) setSuggestions([]); }
@@ -97,7 +99,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
     setRouteBusy(true);
     const timer = setTimeout(async()=>{
       try {
-        const r = await fetch("/api/route", {
+        const r = await fetchCustomer("/api/route", {
           method:"POST", headers:{"Content-Type":"application/json"},
           body:JSON.stringify({address:value}), signal:controller.signal
         });
@@ -130,7 +132,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
     if(!additionalStopEnabled||additionalStopAddress.trim().length<3){ setAdditionalStopSuggestions([]); return; }
     const timer=setTimeout(async()=>{
       try{
-        const r=await fetch(`/api/places?q=${encodeURIComponent(additionalStopAddress)}`);
+        const r=await fetchCustomer(`/api/places?q=${encodeURIComponent(additionalStopAddress)}`);
         const d=await r.json();
         setAdditionalStopSuggestions(d.suggestions??[]);
       }catch{ setAdditionalStopSuggestions([]); }
@@ -146,7 +148,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
     const timer=setTimeout(async()=>{
       setAdditionalStopBusy(true); setAdditionalStopError("");
       try{
-        const r=await fetch("/api/additional-stop/quote",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+        const r=await fetchCustomer("/api/additional-stop/quote",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
           serviceType,address,airport,additionalStopAddress,additionalStopPrimary,additionalStopReturn:serviceType==="roundtrip"&&additionalStopReturn
         })});
         const d=await r.json();
@@ -192,8 +194,6 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
     : (activeStop ? `${address||"—"} → ${activeStop} → ${airportLabel}` : `${address||"—"} → ${airportLabel}`);
   const paymentMethodText = paymentMethod === "online"
     ? t("Płatność online po potwierdzeniu")
-    : paymentMethod === "bank_transfer"
-    ? t("Przelew tradycyjny")
     : t("Gotówka u kierowcy");
 
   const funnelDetails = {
@@ -276,7 +276,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
     setSaving(true); setMessage("");
     const tracking = readGrowthTracking();
     try {
-    const r=await fetch("/api/bookings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+    const r=await fetchCustomer("/api/bookings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
       serviceType,address,airport,vehicleType:vehicle,passengers,distanceKm,travelDate,travelTime,
       returnDate,returnTime,flightNumber:flight,returnFlightNumber:returnFlight,
       additionalStopAddress:additionalStopEnabled?additionalStopAddress:null,additionalStopPrimary:additionalStopEnabled&&additionalStopPrimary,additionalStopReturn:additionalStopEnabled&&serviceType==="roundtrip"&&additionalStopReturn,
@@ -423,10 +423,6 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
               <input type="radio" name="payment-method-mobile" value="cash" checked={paymentMethod==="cash"} onChange={()=>setPaymentMethod("cash")}/>
               <span><strong>{t("💵 Gotówka")}</strong><small>{t("Płatność kierowcy przy realizacji przejazdu.")}</small></span>
             </label>
-            <label className={`payment-method-choice ${paymentMethod==="bank_transfer"?"selected":""}`}>
-              <input type="radio" name="payment-method-mobile" value="bank_transfer" checked={paymentMethod==="bank_transfer"} onChange={()=>setPaymentMethod("bank_transfer")}/>
-              <span><strong>{t("🏦 Przelew tradycyjny")}</strong><small>{t("Dane do przelewu ustalimy / przekażemy po potwierdzeniu rezerwacji.")}</small></span>
-            </label>
             <label className={`payment-method-choice ${paymentMethod==="online"?"selected":""}`}>
               <input type="radio" name="payment-method-mobile" value="online" checked={paymentMethod==="online"} onChange={()=>setPaymentMethod("online")}/>
               <span><strong>{t("💳 Płatność online")}</strong><small>{t("Po potwierdzeniu rezerwacji pojawi się bezpieczny przycisk płatności online.")}</small></span>
@@ -506,10 +502,6 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
           <label className={`payment-method-choice ${paymentMethod==="cash"?"selected":""}`}>
             <input type="radio" name="payment-method-desktop" value="cash" checked={paymentMethod==="cash"} onChange={()=>setPaymentMethod("cash")}/>
             <span><strong>{t("💵 Gotówka")}</strong><small>{t("Płatność kierowcy przy realizacji przejazdu.")}</small></span>
-          </label>
-          <label className={`payment-method-choice ${paymentMethod==="bank_transfer"?"selected":""}`}>
-            <input type="radio" name="payment-method-desktop" value="bank_transfer" checked={paymentMethod==="bank_transfer"} onChange={()=>setPaymentMethod("bank_transfer")}/>
-            <span><strong>{t("🏦 Przelew tradycyjny")}</strong><small>{t("Dane do przelewu ustalimy / przekażemy po potwierdzeniu rezerwacji.")}</small></span>
           </label>
           <label className={`payment-method-choice ${paymentMethod==="online"?"selected":""}`}>
             <input type="radio" name="payment-method-desktop" value="online" checked={paymentMethod==="online"} onChange={()=>setPaymentMethod("online")}/>

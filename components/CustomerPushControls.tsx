@@ -1,4 +1,5 @@
 "use client";
+import { customerFetch } from "@/lib/customerFetch";
 import { customerText } from "@/lib/customerCopy";
 import { useCustomerLocale } from "@/lib/useCustomerLocale";
 
@@ -24,6 +25,7 @@ export default function CustomerPushControls({
   compact?: boolean;
   customerLocale?: unknown;
 }) {
+ const fetchCustomer=(input:RequestInfo|URL,init?:RequestInit)=>customerFetch(locale,input,init);
   const locale = useCustomerLocale(customerLocale);
   const t = (key: string) => customerText(key, locale);
   const [state, setState] = useState<"loading"|"off"|"on"|"denied"|"unsupported">("loading");
@@ -62,7 +64,7 @@ export default function CustomerPushControls({
           setState("off");
           return;
         }
-        const r = await fetch(
+        const r = await fetchCustomer(
           `/api/client-booking/${token}/push/status?endpoint=${encodeURIComponent(sub.endpoint)}`
         );
         const d = await r.json();
@@ -87,7 +89,7 @@ export default function CustomerPushControls({
       const reg = await registration();
       if (!reg) throw new Error(t("Ta przeglądarka nie obsługuje powiadomień."));
 
-      const keyResponse = await fetch(`/api/client-booking/${token}/push/public-key`);
+      const keyResponse = await fetchCustomer(`/api/client-booking/${token}/push/public-key`);
       const keyData = await keyResponse.json();
       if (!keyResponse.ok || !keyData.publicKey) {
         throw new Error(keyData.error || t("Brak klucza powiadomień."));
@@ -101,7 +103,7 @@ export default function CustomerPushControls({
         });
       }
 
-      const response = await fetch(`/api/client-booking/${token}/push/subscribe`, {
+      const response = await fetchCustomer(`/api/client-booking/${token}/push/subscribe`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(sub)
@@ -124,7 +126,7 @@ export default function CustomerPushControls({
     try {
       const sub = await currentSubscription();
       if (sub) {
-        const response = await fetch(`/api/client-booking/${token}/push/unsubscribe`, {
+        const response = await fetchCustomer(`/api/client-booking/${token}/push/unsubscribe`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ endpoint: sub.endpoint })
@@ -146,7 +148,7 @@ export default function CustomerPushControls({
     setBusy(true);
     setMessage(t("Wysyłanie testu..."));
     try {
-      const response = await fetch(`/api/client-booking/${token}/push/test`, { method: "POST" });
+      const response = await fetchCustomer(`/api/client-booking/${token}/push/test`, { method: "POST" });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || t("Test nie został wysłany."));
       setMessage(data.sent ? t("✓ Test wysłany — sprawdź powiadomienie na telefonie.") : t("Brak aktywnej subskrypcji na tym urządzeniu."));

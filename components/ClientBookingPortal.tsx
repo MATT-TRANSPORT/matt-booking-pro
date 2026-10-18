@@ -1,4 +1,5 @@
 "use client";
+import { customerFetch } from "@/lib/customerFetch";
 import { customerText } from "@/lib/customerCopy";
 import { useCustomerLocale } from "@/lib/useCustomerLocale";
 
@@ -61,6 +62,7 @@ export default function ClientBookingPortal({
 }: {
   token: string;
 }) {
+ const fetchCustomer=(input:RequestInfo|URL,init?:RequestInit)=>customerFetch(locale,input,init);
   const [data, setData] = useState<any>(null);
   const locale = useCustomerLocale(data?.booking?.customer_locale);
   const portalCopy: Record<string,[string,string,string]> = {"Twoja rezerwacja":["Your booking","Ihre Buchung","Vaše rezervace"],"Szczegóły przejazdu":["Trip details","Fahrtdetails","Podrobnosti jízdy"],"Podsumowanie":["Summary","Zusammenfassung","Shrnutí"],"Wycena":["Quote","Angebot","Cenová nabídka"],"Decyzja":["Decision","Entscheidung","Rozhodnutí"],"Płatność":["Payment","Zahlung","Platba"],"Netto":["Net","Netto","Bez DPH"],"Brutto":["Gross","Brutto","Včetně DPH"],"Kwota":["Amount","Betrag","Částka"],"Status":["Status","Status","Stav"],"Pojazd":["Vehicle","Fahrzeug","Vozidlo"],"Kierowca":["Driver","Fahrer","Řidič"]};
@@ -77,7 +79,7 @@ export default function ClientBookingPortal({
     useState(false);
 
   useEffect(() => {
-    fetch(`/api/client-booking/${token}`)
+    fetchCustomer(`/api/client-booking/${token}`)
       .then((r) =>
         r.json().then((d) => ({
           ok: r.ok,
@@ -129,7 +131,7 @@ export default function ClientBookingPortal({
     setSaving(true);
     setMessage("");
 
-    const response = await fetch(
+    const response = await fetchCustomer(
       `/api/client-booking/${token}`,
       {
         method: "PATCH",
@@ -180,7 +182,7 @@ export default function ClientBookingPortal({
     setMessage("");
 
     try {
-      const response = await fetch(
+      const response = await fetchCustomer(
         `/api/client-booking/${token}/quote`,
         {
           method: "POST",
@@ -244,7 +246,7 @@ export default function ClientBookingPortal({
     setMessage("");
 
     try {
-      const response = await fetch(
+      const response = await fetchCustomer(
         `/api/client-booking/${token}`,
         { method: "DELETE" }
       );
@@ -1259,7 +1261,7 @@ export default function ClientBookingPortal({
                   ? b.payment_method ===
                     "employee_payment"
                     ? t("Płatność online firmy")
-                    : "Przelew firmowy"
+                    : t("🏢 Przelew firmowy").replace("🏢 ", "")
                   : b.payment_method ===
                       "online" ||
                     b.online_payment_requested

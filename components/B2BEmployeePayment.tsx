@@ -1,4 +1,5 @@
 "use client";
+import { customerFetch } from "@/lib/customerFetch";
 import { customerText } from "@/lib/customerCopy";
 import { useCustomerLocale } from "@/lib/useCustomerLocale";
 
@@ -6,6 +7,7 @@ import { useEffect, useState } from "react";
 import { paymentBookingStatusAllowed } from "@/lib/payment";
 
 export default function B2BEmployeePayment({ token }: { token: string }) {
+ const fetchCustomer=(input:RequestInfo|URL,init?:RequestInit)=>customerFetch(locale,input,init);
   const [booking, setBooking] = useState<any>(null);
   const locale = useCustomerLocale(booking?.customer_locale);
   const t = (key: string) => customerText(key.split(" / ")[0], locale);
@@ -28,7 +30,7 @@ export default function B2BEmployeePayment({ token }: { token: string }) {
 
   async function refresh() {
     try {
-      const response = await fetch(`/api/payments/company-employee/${token}`, {
+      const response = await fetchCustomer(`/api/payments/company-employee/${token}`, {
         cache: "no-store"
       });
       const data = await response.json();
@@ -51,7 +53,7 @@ export default function B2BEmployeePayment({ token }: { token: string }) {
     setMessage("");
 
     try {
-      const response = await fetch(`/api/payments/company-employee/${token}`, {
+      const response = await fetchCustomer(`/api/payments/company-employee/${token}`, {
         method: "POST"
       });
       const data = await response.json();

@@ -1,4 +1,8 @@
 "use client";
+import { customerFetch } from "@/lib/customerFetch";
+import { useCustomerLocale } from "@/lib/useCustomerLocale";
+import { companyText } from "@/lib/companyCopy";
+import { withCustomerLocale } from "@/lib/bookingLocale";
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -20,6 +24,10 @@ export default function CompanyBookingTemplates({
   recentBookings: any[];
   airports: Record<string, { label: string }>;
 }) {
+ const fetchCustomer=(input:RequestInfo|URL,init?:RequestInit)=>customerFetch(locale,input,init);
+  const locale=useCustomerLocale();
+  const t=(key:string)=>companyText(key,locale);
+  const href=(path:string)=>withCustomerLocale(path,locale);
   const router = useRouter();
   const [sourceBookingId, setSourceBookingId] = useState("");
   const [templateName, setTemplateName] = useState("");
@@ -37,50 +45,50 @@ export default function CompanyBookingTemplates({
   async function saveFromBooking() {
     if (!sourceBookingId || busy) return;
     setBusy(true);
-    setMessage("Zapisywanie szablonu...");
-    const r = await fetch("/api/company/templates", {
+    setMessage(t("Zapisywanie szablonu..."));
+    const r = await fetchCustomer("/api/company/templates", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "from_booking", bookingId: sourceBookingId, name: templateName })
+      body: JSON.stringify({ locale, action: "from_booking", bookingId: sourceBookingId, name: templateName })
     });
     const d = await r.json();
     setBusy(false);
-    if (!r.ok) { setMessage(d.error || "Nie udało się zapisać szablonu."); return; }
-    setMessage("✓ Szablon zapisany.");
+    if (!r.ok) { setMessage(d.error || t("Nie udało się zapisać szablonu.")); return; }
+    setMessage(t("✓ Szablon zapisany."));
     setSourceBookingId("");
     setTemplateName("");
     router.refresh();
   }
 
   async function removeTemplate(id: string) {
-    if (!window.confirm("Usunąć ten szablon?")) return;
+    if (!window.confirm(t("Usunąć ten szablon?"))) return;
     setBusy(true);
-    const r = await fetch("/api/company/templates", {
+    const r = await fetchCustomer("/api/company/templates", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "delete", id })
+      body: JSON.stringify({ locale, action: "delete", id })
     });
     const d = await r.json();
     setBusy(false);
-    if (!r.ok) { setMessage(d.error || "Nie udało się usunąć szablonu."); return; }
-    setMessage("✓ Szablon usunięty.");
+    if (!r.ok) { setMessage(d.error || t("Nie udało się usunąć szablonu.")); return; }
+    setMessage(t("✓ Szablon usunięty."));
     router.refresh();
   }
 
   async function createSeries() {
     if (!selected || !firstDate || !time || busy) {
-      setMessage("Wybierz szablon, datę i godzinę pierwszego kursu.");
+      setMessage(t("Wybierz szablon, datę i godzinę pierwszego kursu."));
       return;
     }
     const count = recurrence === "weekly" ? Math.max(1, Math.min(12, Number(occurrences || 1))) : 1;
     if (!employee) {
-      setMessage("Pracownik zapisany w szablonie nie jest już dostępny.");
+      setMessage(t("Pracownik zapisany w szablonie nie jest już dostępny."));
       return;
     }
-    if (count > 1 && !window.confirm(`Utworzyć ${count} rezerwacji co tydzień? Każda zostanie przeliczona wg aktualnych warunków B2B.`)) return;
+    if (count > 1 && !window.confirm(t("Utworzyć {count} rezerwacji co tydzień? Każda zostanie przeliczona wg aktualnych warunków B2B.").replace("{count}",String(count)))) return;
 
     setBusy(true);
-    setMessage(`Tworzenie ${count} ${count === 1 ? "rezerwacji" : "rezerwacji"}...`);
+    setMessage(t("Tworzenie {count} rezerwacji...").replace("{count}",String(count)));
     const created: any[] = [];
 
     for (let i = 0; i < count; i++) {
@@ -88,7 +96,7 @@ export default function CompanyBookingTemplates({
       const returnDate = selected.service_type === "roundtrip"
         ? addDays(travelDate, Number(selected.return_offset_days || 0))
         : null;
-      const payload = {
+      const payload = { locale,
         employeeId: selected.employee_id,
         address: selected.pickup_address,
         airport: selected.airport_key,
@@ -107,7 +115,7 @@ export default function CompanyBookingTemplates({
         additionalStopPrimary: Boolean(selected.additional_stop_primary),
         additionalStopReturn: Boolean(selected.additional_stop_return)
       };
-      const r = await fetch("/api/company/bookings", {
+      const r = await fetchCustomer("/api/company/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -115,7 +123,7 @@ export default function CompanyBookingTemplates({
       const d = await r.json();
       if (!r.ok) {
         setBusy(false);
-        setMessage(`Utworzono ${created.length}/${count}. Błąd dla ${travelDate}: ${d.error || "nie udało się zapisać"}`);
+        setMessage(t("Utworzono {created}/{count}. Błąd dla {date}: {error}").replace("{created}",String(created.length)).replace("{count}",String(count)).replace("{date}",travelDate).replace("{error}",t(d.error||"nie udało się zapisać")));
         router.refresh();
         return;
       }
@@ -123,7 +131,7 @@ export default function CompanyBookingTemplates({
     }
 
     setBusy(false);
-    setMessage(`✓ Utworzono ${created.length} ${created.length === 1 ? "rezerwację" : "rezerwacje"}.`);
+    setMessage(t("✓ Utworzono {count} rezerwacji.").replace("{count}",String(created.length)));
     router.refresh();
   }
 
@@ -131,66 +139,62 @@ export default function CompanyBookingTemplates({
     <>
       <section className="card" style={{ marginBottom: 18 }}>
         <span className="badge">B2B PRO</span>
-        <h2 style={{ marginTop: 8 }}>Zapisz jako szablon</h2>
-        <p className="muted">Wybierz istniejącą rezerwację. Trasa, pracownik, pojazd, płatność i dodatkowy przystanek zostaną zapamiętane.</p>
+        <h2 style={{ marginTop: 8 }}>{t("Zapisz jako szablon")}</h2>
+        <p className="muted">{t("Wybierz istniejącą rezerwację. Trasa, pracownik, pojazd, płatność i dodatkowy przystanek zostaną zapamiętane.")}</p>
         <div className="grid">
-          <label>Rezerwacja
-            <select value={sourceBookingId} onChange={(e) => setSourceBookingId(e.target.value)}>
-              <option value="">— wybierz —</option>
+          <label>{t("Rezerwacja")} <select value={sourceBookingId} onChange={(e) => setSourceBookingId(e.target.value)}>
+              <option value="">{t("— wybierz —")}</option>
               {recentBookings.map((b) => <option key={b.id} value={b.id}>{b.booking_number} · {b.customer_name} · {b.airport_label}</option>)}
             </select>
           </label>
-          <label>Nazwa szablonu (opcjonalnie)
-            <input value={templateName} onChange={(e) => setTemplateName(e.target.value)} placeholder="np. Zarząd → Pyrzowice" />
+          <label>{t("Nazwa szablonu (opcjonalnie)")} <input value={templateName} onChange={(e) => setTemplateName(e.target.value)} placeholder="np. Zarząd → Pyrzowice" />
           </label>
         </div>
-        <button className="btn" style={{ marginTop: 12 }} disabled={!sourceBookingId || busy} onClick={saveFromBooking}>ZAPISZ SZABLON</button>
+        <button className="btn" style={{ marginTop: 12 }} disabled={!sourceBookingId || busy} onClick={saveFromBooking}>{t("ZAPISZ SZABLON")}</button>
       </section>
 
       <section className="card">
         <div className="company-section-head">
           <div>
-            <span className="badge">CYKLICZNE REZERWACJE</span>
-            <h2 style={{ marginTop: 8 }}>Utwórz kursy z szablonu</h2>
-            <p className="muted">Jednorazowo albo co tydzień, maksymalnie 12 wystąpień. Każdy kurs jest ponownie wyceniany na backendzie.</p>
+            <span className="badge">{t("CYKLICZNE REZERWACJE")}</span>
+            <h2 style={{ marginTop: 8 }}>{t("Utwórz kursy z szablonu")}</h2>
+            <p className="muted">{t("Jednorazowo albo co tydzień, maksymalnie 12 wystąpień. Każdy kurs jest ponownie wyceniany na backendzie.")}</p>
           </div>
         </div>
 
-        {!templates.length ? <div className="empty-state"><strong>Brak szablonów.</strong><span>Utwórz pierwszy z istniejącej rezerwacji.</span></div> : <>
+        {!templates.length ? <div className="empty-state"><strong>{t("Brak szablonów.")}</strong><span>{t("Utwórz pierwszy z istniejącej rezerwacji.")}</span></div> : <>
           <div className="grid">
-            <label>Szablon
-              <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>
+            <label>{t("Szablon")} <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>
                 {templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
             </label>
-            <label>Data pierwszego kursu<input type="date" value={firstDate} onChange={(e) => setFirstDate(e.target.value)} /></label>
-            <label>{selected?.service_type === "from_airport" ? "Godzina przylotu" : "Godzina wyjazdu"}<input type="time" value={time} onChange={(e) => setTime(e.target.value)} /></label>
-            <label>Powtarzanie
-              <select value={recurrence} onChange={(e) => setRecurrence(e.target.value as any)}>
-                <option value="once">Jednorazowo</option>
-                <option value="weekly">Co tydzień</option>
+            <label>{t("Data pierwszego kursu")}<input type="date" value={firstDate} onChange={(e) => setFirstDate(e.target.value)} /></label>
+            <label>{selected?.service_type === "from_airport" ? t("Godzina przylotu") : t("Godzina wyjazdu")}<input type="time" value={time} onChange={(e) => setTime(e.target.value)} /></label>
+            <label>{t("Powtarzanie")} <select value={recurrence} onChange={(e) => setRecurrence(e.target.value as any)}>
+                <option value="once">{t("Jednorazowo")}</option>
+                <option value="weekly">{t("Co tydzień")}</option>
               </select>
             </label>
-            {recurrence === "weekly" && <label>Liczba kursów<input type="number" min={1} max={12} value={occurrences} onChange={(e) => setOccurrences(Number(e.target.value))} /></label>}
+            {recurrence === "weekly" && <label>{t("Liczba kursów")}<input type="number" min={1} max={12} value={occurrences} onChange={(e) => setOccurrences(Number(e.target.value))} /></label>}
           </div>
 
           {selected && <div style={{ marginTop: 14, padding: 14, border: "1px solid #343b49", borderRadius: 12 }}>
             <strong>{selected.name}</strong>
-            <div className="muted">{employee ? `${employee.first_name} ${employee.last_name}` : "Pracownik niedostępny"} · {selected.pickup_address} · {airports[selected.airport_key]?.label || selected.airport_key} · {selected.vehicle_type === "bus" ? "Bus" : "Samochód"}</div>
-            {selected.service_type === "roundtrip" && <div className="muted">Powrót: +{selected.return_offset_days || 0} dni · {selected.return_time || "—"}</div>}
+            <div className="muted">{employee ? `${employee.first_name} ${employee.last_name}` : t("Pracownik niedostępny")} · {selected.pickup_address} · {airports[selected.airport_key]?.label || selected.airport_key} · {selected.vehicle_type === "bus" ? t("Bus") : t("Samochód")}</div>
+            {selected.service_type === "roundtrip" && <div className="muted">{t("Powrót: +")}{selected.return_offset_days || 0}  {t("dni ·")} {selected.return_time || "—"}</div>}
           </div>}
 
-          <button className="btn" style={{ marginTop: 14 }} disabled={busy || !selected || !firstDate || !time} onClick={createSeries}>{busy ? "TWORZENIE..." : recurrence === "weekly" ? "UTWÓRZ SERIĘ" : "UTWÓRZ REZERWACJĘ"}</button>
+          <button className="btn" style={{ marginTop: 14 }} disabled={busy || !selected || !firstDate || !time} onClick={createSeries}>{busy ? "TWORZENIE..." : recurrence === "weekly" ? t("UTWÓRZ SERIĘ") : t("UTWÓRZ REZERWACJĘ")}</button>
         </>}
 
         {message && <div className="admin-save-message" style={{ marginTop: 14 }}>{message}</div>}
       </section>
 
       {templates.length > 0 && <section className="card" style={{ marginTop: 18 }}>
-        <h2>Zapisane szablony</h2>
+        <h2>{t("Zapisane szablony")}</h2>
         {templates.map((t) => <div className="row" key={t.id} style={{ alignItems: "center", gap: 12 }}>
           <span><strong>{t.name}</strong><br/><small className="muted">{t.pickup_address} → {airports[t.airport_key]?.label || t.airport_key}</small></span>
-          <button className="btn secondary company-small-btn" disabled={busy} onClick={() => removeTemplate(t.id)}>USUŃ</button>
+          <button className="btn secondary company-small-btn" disabled={busy} onClick={() => removeTemplate(t.id)}>{t("USUŃ")}</button>
         </div>)}
       </section>}
     </>

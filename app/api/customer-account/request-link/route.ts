@@ -1,3 +1,4 @@
+import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
 import { resolveCustomerLocale } from "@/lib/bookingLocale";
 import { customerText } from "@/lib/customerCopy";
 import { customerAccountEmail } from "@/lib/customerAccountEmail";
@@ -21,23 +22,26 @@ const GENERIC_MESSAGE =
   "Jeżeli ten adres e-mail jest powiązany z rezerwacjami MATT TRANSPORT, wysłaliśmy link do Moich przejazdów.";
 
 export async function POST(req: NextRequest) {
+  let responseLocale=requestCustomerLocale(req);
+  const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
   let body: any = {};
   const genericMessage = () => customerText(GENERIC_MESSAGE, body?.locale);
   try {
     body = await req.json();
+ responseLocale=requestCustomerLocale(req,body?.locale);
   } catch {
-    return NextResponse.json({ ok: true, message: genericMessage() });
+    return json({ ok: true, message: genericMessage() });
   }
 
   const email = normalizeCustomerEmail(body?.email);
   if (!validCustomerEmail(email)) {
-    return NextResponse.json({ ok: true, message: genericMessage() });
+    return json({ ok: true, message: genericMessage() });
   }
 
   const admin = createAdminClient();
   const hasBookings = await customerHasPrivateBookings(admin, email);
   if (!hasBookings) {
-    return NextResponse.json({ ok: true, message: genericMessage() });
+    return json({ ok: true, message: genericMessage() });
   }
 
   // Prosty throttling: maksymalnie jeden nowy link na minutę dla danego e-maila.
@@ -51,7 +55,7 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
 
   if (recent) {
-    return NextResponse.json({ ok: true, message: genericMessage() });
+    return json({ ok: true, message: genericMessage() });
   }
 
   const rawToken = newCustomerToken();
@@ -66,7 +70,7 @@ export async function POST(req: NextRequest) {
 
   if (tokenError) {
     console.error("Customer portal login token:", tokenError);
-    return NextResponse.json({ ok: true, message: genericMessage() });
+    return json({ ok: true, message: genericMessage() });
   }
 
   const loginUrl = `${customerBookingBaseUrl()}/moje-przejazdy/weryfikacja?token=${encodeURIComponent(rawToken)}&lang=${resolveCustomerLocale(body.locale)}`;
@@ -79,5 +83,5 @@ export async function POST(req: NextRequest) {
     console.error("Customer portal login e-mail:", result.error || "unknown error");
   }
 
-  return NextResponse.json({ ok: true, message: genericMessage() });
+  return json({ ok: true, message: genericMessage() });
 }

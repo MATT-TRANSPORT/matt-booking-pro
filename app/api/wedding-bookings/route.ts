@@ -1,3 +1,4 @@
+import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
 import { resolveCustomerLocale } from "@/lib/localizedBookingEmails";
 import { NextRequest,NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -5,7 +6,10 @@ import { sendMattEmail } from "@/lib/email";
 import { sendNewWeddingAdminPush } from "@/lib/adminNotifications";
 
 export async function POST(req:NextRequest){
+  let responseLocale=requestCustomerLocale(req);
+  const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
   const b=await req.json();
+ responseLocale=requestCustomerLocale(req,b?.locale);
   const locale=resolveCustomerLocale(b.locale);
   const copy={
     pl:{subject:"Transport weselny – otrzymaliśmy dane",title:"Dziękujemy za przesłanie danych",intro:"Otrzymaliśmy informacje potrzebne do przygotowania umowy dotyczącej transportu weselnego.",next:"Przygotujemy umowę i prześlemy ją na ten adres e-mail. W razie potrzeby skontaktujemy się telefonicznie."},
@@ -15,7 +19,7 @@ export async function POST(req:NextRequest){
   }[locale];
   const esc=(v:unknown)=>String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
   if(!b.customerName||!b.startDate||!b.startTime||!b.restaurantName||!b.restaurantAddress||!b.phone||!b.email)
-    return NextResponse.json({error:{pl:"Uzupełnij wymagane pola.",en:"Please complete the required fields.",de:"Bitte füllen Sie alle Pflichtfelder aus.",cs:"Vyplňte povinná pole."}[locale]},{status:400});
+    return json({error:{pl:"Uzupełnij wymagane pola.",en:"Please complete the required fields.",de:"Bitte füllen Sie alle Pflichtfelder aus.",cs:"Vyplňte povinná pole."}[locale]},{status:400});
 
   const s=createAdminClient();
   const {data,error}=await s.from("wedding_bookings").insert({
@@ -24,7 +28,7 @@ export async function POST(req:NextRequest){
     vehicles_count:Number(b.vehiclesCount||1),phone:b.phone,email:b.email,notes:b.notes||null,status:"pending"
   }).select("*").single();
 
-  if(error)return NextResponse.json({error:error.message},{status:500});
+  if(error)return json({error:error.message},{status:500});
 
   const vehicleTypes=Array.isArray(b.vehicleTypes)?b.vehicleTypes:[];
   const slots=Array.from({length:Number(b.vehiclesCount||1)},(_,i)=>({
@@ -69,7 +73,7 @@ export async function POST(req:NextRequest){
     console.error("Admin push po nowym weselu:",pushError);
   }
 
-  return NextResponse.json({
+  return json({
     ...data,
     admin_push_sent:Number(adminPushResult?.sent||0)
   });

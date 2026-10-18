@@ -1,4 +1,5 @@
 "use client";
+import { customerFetch } from "@/lib/customerFetch";
 import { customerText } from "@/lib/customerCopy";
 import { useCustomerLocale } from "@/lib/useCustomerLocale";
 
@@ -64,6 +65,7 @@ function paymentLabel(b: any) {
 }
 
 export default function CustomerTripsPortal() {
+ const fetchCustomer=(input:RequestInfo|URL,init?:RequestInit)=>customerFetch(locale,input,init);
   const locale = useCustomerLocale();
   const t = (key: string) => customerText(key, locale);
   const [loading, setLoading] = useState(true);
@@ -76,7 +78,7 @@ export default function CustomerTripsPortal() {
   async function load() {
     setLoading(true);
     try {
-      const response = await fetch("/api/customer-account/me", { cache: "no-store" });
+      const response = await fetchCustomer("/api/customer-account/me", { cache: "no-store" });
       if (response.status === 401) {
         setData(null);
       } else {
@@ -103,7 +105,7 @@ export default function CustomerTripsPortal() {
     setSending(true);
     setMessage("");
     try {
-      const response = await fetch("/api/customer-account/request-link", {
+      const response = await fetchCustomer("/api/customer-account/request-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, locale })
@@ -118,7 +120,7 @@ export default function CustomerTripsPortal() {
 
   async function logout() {
     setLoggingOut(true);
-    await fetch("/api/customer-account/logout", { method: "POST" }).catch(() => null);
+    await fetchCustomer("/api/customer-account/logout", { method: "POST" }).catch(() => null);
     setData(null);
     setLoggingOut(false);
     setMessage(t("Wylogowano z Moich przejazdów."));

@@ -1,3 +1,4 @@
+import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
 import { resolveCustomerLocale } from "@/lib/localizedBookingEmails";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -31,7 +32,10 @@ function vehicleLabel(value: string) {
 }
 
 export async function POST(req: NextRequest) {
+  let responseLocale=requestCustomerLocale(req);
+  const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
   const body = await req.json();
+ responseLocale=requestCustomerLocale(req,body?.locale);
   const locale = resolveCustomerLocale(body.locale);
   const copy = {
     pl:{subject:"Przyjęliśmy zapytanie o transport",title:"Zapytanie przyjęte",intro:"Dziękujemy. Przygotujemy indywidualną wycenę transportu.",open:"OTWÓRZ REZERWACJĘ",people:"os."},
@@ -55,20 +59,20 @@ export async function POST(req: NextRequest) {
   const notes = String(body.notes || "").trim().slice(0, 4000) || null;
 
   if (!origin || !destination || !travelDate || !travelTime || !customerName || !phone || !email) {
-    return NextResponse.json({ error: ({pl:"Uzupełnij punkt A, punkt B, termin i dane kontaktowe.",en:"Please enter both locations, date, time and contact details.",de:"Bitte geben Sie beide Orte, Termin und Kontaktdaten an.",cs:"Zadejte obě místa, termín a kontaktní údaje."}[locale]) }, { status: 400 });
+    return json({ error: ({pl:"Uzupełnij punkt A, punkt B, termin i dane kontaktowe.",en:"Please enter both locations, date, time and contact details.",de:"Bitte geben Sie beide Orte, Termin und Kontaktdaten an.",cs:"Zadejte obě místa, termín a kontaktní údaje."}[locale]) }, { status: 400 });
   }
   if (roundtrip && (!returnDate || !returnTime)) {
-    return NextResponse.json({ error: ({pl:"Podaj datę i godzinę powrotu.",en:"Please enter your return date and time.",de:"Bitte geben Sie Datum und Uhrzeit der Rückfahrt ein.",cs:"Zadejte datum a čas návratu."}[locale]) }, { status: 400 });
+    return json({ error: ({pl:"Podaj datę i godzinę powrotu.",en:"Please enter your return date and time.",de:"Bitte geben Sie Datum und Uhrzeit der Rückfahrt ein.",cs:"Zadejte datum a čas návratu."}[locale]) }, { status: 400 });
   }
 
   const when = new Date(`${travelDate}T${travelTime}`);
   if (!Number.isFinite(when.getTime()) || when.getTime() - Date.now() < 24 * 3600 * 1000) {
-    return NextResponse.json({ error: ({pl:"Rezerwacja online wymaga minimum 24 godzin wyprzedzenia. W pilnej sprawie zadzwoń: +48 691 242 691",en:"Online requests require at least 24 hours' notice. For urgent bookings call: +48 691 242 691",de:"Online-Anfragen erfordern mindestens 24 Stunden Vorlauf. Bei dringenden Buchungen: +48 691 242 691",cs:"Online poptávky vyžadují alespoň 24 hodin předem. Naléhavé objednávky: +48 691 242 691"}[locale]) }, { status: 400 });
+    return json({ error: ({pl:"Rezerwacja online wymaga minimum 24 godzin wyprzedzenia. W pilnej sprawie zadzwoń: +48 691 242 691",en:"Online requests require at least 24 hours' notice. For urgent bookings call: +48 691 242 691",de:"Online-Anfragen erfordern mindestens 24 Stunden Vorlauf. Bei dringenden Buchungen: +48 691 242 691",cs:"Online poptávky vyžadují alespoň 24 hodin předem. Naléhavé objednávky: +48 691 242 691"}[locale]) }, { status: 400 });
   }
   if (roundtrip) {
     const back = new Date(`${returnDate}T${returnTime}`);
     if (!Number.isFinite(back.getTime()) || back.getTime() <= when.getTime()) {
-      return NextResponse.json({ error: ({pl:"Termin powrotu musi być późniejszy niż wyjazd.",en:"Return must be after departure.",de:"Die Rückfahrt muss nach der Hinfahrt liegen.",cs:"Návrat musí být později než odjezd."}[locale]) }, { status: 400 });
+      return json({ error: ({pl:"Termin powrotu musi być późniejszy niż wyjazd.",en:"Return must be after departure.",de:"Die Rückfahrt muss nach der Hinfahrt liegen.",cs:"Návrat musí být později než odjezd."}[locale]) }, { status: 400 });
     }
   }
 
@@ -76,7 +80,7 @@ export async function POST(req: NextRequest) {
   try {
     route = await shortestDrivingRouteKm(origin, destination);
   } catch (error) {
-    return NextResponse.json({ error: ({pl:"Nie udało się obliczyć trasy.",en:"Could not calculate the route.",de:"Die Route konnte nicht berechnet werden.",cs:"Trasu se nepodařilo vypočítat."}[locale]) }, { status: 400 });
+    return json({ error: ({pl:"Nie udało się obliczyć trasy.",en:"Could not calculate the route.",de:"Die Route konnte nicht berechnet werden.",cs:"Trasu se nepodařilo vypočítat."}[locale]) }, { status: 400 });
   }
 
   const admin = createAdminClient();
@@ -119,7 +123,7 @@ export async function POST(req: NextRequest) {
   }).select("*").single();
 
   if (error || !data) {
-    return NextResponse.json({ error: ({pl:"Nie udało się zapisać zgłoszenia.",en:"Could not save your request.",de:"Die Anfrage konnte nicht gespeichert werden.",cs:"Poptávku se nepodařilo uložit."}[locale]) }, { status: 500 });
+    return json({ error: ({pl:"Nie udało się zapisać zgłoszenia.",en:"Could not save your request.",de:"Die Anfrage konnte nicht gespeichert werden.",cs:"Poptávku se nepodařilo uložit."}[locale]) }, { status: 500 });
   }
 
   await admin.from("booking_history").insert({
@@ -169,7 +173,7 @@ export async function POST(req: NextRequest) {
     console.error("General transport admin push:", pushError);
   }
 
-  return NextResponse.json({
+  return json({
     ...data,
     distance_km: route.distanceKm,
     customer_email_sent: customerEmailSent,

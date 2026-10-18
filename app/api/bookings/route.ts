@@ -1,3 +1,4 @@
+import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
 import { customerText } from "@/lib/customerCopy";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -47,8 +48,14 @@ function validFunnelSessionId(value: unknown) {
 }
 
 export async function POST(req: NextRequest) {
+  let responseLocale=requestCustomerLocale(req);
+  const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
   const body = await req.json();
+ responseLocale=requestCustomerLocale(req,body?.locale);
   const t = (key: string) => customerText(key, body.locale);
+  if (body.paymentMethod && !["cash", "online"].includes(body.paymentMethod)) {
+    return json({ error: "Dla rezerwacji indywidualnych wybierz gotówkę lub płatność online." }, { status: 400 });
+  }
   const supabase = createAdminClient();
 
   const required = [
@@ -64,7 +71,7 @@ export async function POST(req: NextRequest) {
 
   for (const key of required) {
     if (!body[key]) {
-      return NextResponse.json(
+      return json(
         { error: t("Uzupełnij wymagane pola.") },
         { status: 400 }
       );
@@ -74,7 +81,7 @@ export async function POST(req: NextRequest) {
   const airportPricing = await getAirportPricing(supabase, String(body.airport || ""));
 
   if (!airportPricing) {
-    return NextResponse.json(
+    return json(
       { error: t("Nieprawidłowe lub nieaktywne lotnisko.") },
       { status: 400 }
     );
@@ -84,7 +91,7 @@ export async function POST(req: NextRequest) {
     Number(body.passengers) > 3 &&
     body.vehicleType !== "bus"
   ) {
-    return NextResponse.json(
+    return json(
       { error: t("Dla więcej niż 3 pasażerów wybierz bus.") },
       { status: 400 }
     );
@@ -95,7 +102,7 @@ export async function POST(req: NextRequest) {
   );
 
   if (!Number.isFinite(when.getTime())) {
-    return NextResponse.json(
+    return json(
       { error: t("Podaj prawidłowy termin wyjazdu.") },
       { status: 400 }
     );
@@ -103,7 +110,7 @@ export async function POST(req: NextRequest) {
 
   if (body.serviceType === "roundtrip") {
     if (!body.returnDate || !body.returnTime) {
-      return NextResponse.json(
+      return json(
         { error: t("Dla przejazdu w obie strony podaj datę i godzinę powrotu.") },
         { status: 400 }
       );
@@ -111,7 +118,7 @@ export async function POST(req: NextRequest) {
 
     const back = new Date(`${body.returnDate}T${body.returnTime}`);
     if (!Number.isFinite(back.getTime()) || back.getTime() <= when.getTime()) {
-      return NextResponse.json(
+      return json(
         { error: t("Termin powrotu musi być późniejszy niż wyjazd.") },
         { status: 400 }
       );
@@ -119,7 +126,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (when.getTime() - Date.now() < 24 * 3600 * 1000) {
-    return NextResponse.json(
+    return json(
       {
         error:
           t("Rezerwacja online wymaga minimum 24 godzin wyprzedzenia. W pilnej sprawie zadzwoń: +48 691 242 691")
@@ -158,7 +165,7 @@ export async function POST(req: NextRequest) {
         airportAddress: airportPricing.route_address
       });
     } catch (error) {
-      return NextResponse.json(
+      return json(
         { error: error instanceof Error ? error.message : "Nie udało się obliczyć dodatkowego przystanku." },
         { status: 400 }
       );
@@ -200,7 +207,7 @@ export async function POST(req: NextRequest) {
   const notificationChannel = "email";
 
   const requestedPaymentMethod = String(body.paymentMethod || "");
-  const paymentMethod = ["cash", "bank_transfer", "online"].includes(requestedPaymentMethod)
+  const paymentMethod = ["cash", "online"].includes(requestedPaymentMethod)
     ? requestedPaymentMethod
     : body.onlinePaymentRequested
     ? "online"
@@ -258,7 +265,7 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) {
-    return NextResponse.json(
+    return json(
       { error: error.message },
       { status: 500 }
     );
@@ -393,7 +400,7 @@ export async function POST(req: NextRequest) {
     created_by: null
   });
 
-  return NextResponse.json({
+  return json({
     ...data,
     email_sent: customerEmailSent,
     admin_email_sent: adminEmailSent,

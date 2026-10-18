@@ -1,4 +1,5 @@
 "use client";
+import { customerFetch } from "@/lib/customerFetch";
 import { customerText } from "@/lib/customerCopy";
 import { useCustomerLocale } from "@/lib/useCustomerLocale";
 
@@ -15,6 +16,7 @@ export default function OnlinePaymentCard({
 }: {
   booking: any;
 }) {
+ const fetchCustomer=(input:RequestInfo|URL,init?:RequestInit)=>customerFetch(locale,input,init);
   const locale = useCustomerLocale(booking.customer_locale);
   const t=(key:string)=>locale==="pl"?key:paymentCopy[key]?.[locale==="en"?0:locale==="de"?1:2]??customerText(key,locale);
   const [status, setStatus] = useState(
@@ -62,7 +64,7 @@ export default function OnlinePaymentCard({
   async function refreshPaymentStatus() {
     for (let attempt = 0; attempt < 6; attempt += 1) {
       try {
-        const response = await fetch(
+        const response = await fetchCustomer(
           `/api/client-booking/${booking.customer_access_token}`,
           { cache: "no-store" }
         );
@@ -115,7 +117,7 @@ export default function OnlinePaymentCard({
     }
 
     try {
-      const response = await fetch(
+      const response = await fetchCustomer(
         `/api/payments/checkout/${booking.customer_access_token}`,
         { method: "POST" }
       );

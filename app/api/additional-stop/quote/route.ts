@@ -1,3 +1,4 @@
+import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
 import { NextRequest, NextResponse } from "next/server";
 import { calculateAdditionalStopDetour } from "@/lib/additionalStopServer";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -15,7 +16,10 @@ function money(value: number) {
 }
 
 export async function POST(req: NextRequest) {
+  let responseLocale=requestCustomerLocale(req);
+  const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
   const body = await req.json();
+ responseLocale=requestCustomerLocale(req,body?.locale);
   const stopAddress = String(body.additionalStopAddress || "").trim();
   const serviceType = String(body.serviceType || "to_airport");
   const primary = Boolean(
@@ -26,7 +30,7 @@ export async function POST(req: NextRequest) {
   );
 
   if (!stopAddress || (!primary && !returnLeg)) {
-    return NextResponse.json({
+    return json({
       stopAddress: null,
       primaryExtraKm: 0,
       returnExtraKm: 0,
@@ -40,7 +44,7 @@ export async function POST(req: NextRequest) {
   try {
     const airport = await getAirportPricing(createAdminClient(), String(body.airport || ""));
     if (!airport) {
-      return NextResponse.json({ error: "Nieprawidłowe lub nieaktywne lotnisko." }, { status: 400 });
+      return json({ error: "Nieprawidłowe lub nieaktywne lotnisko." }, { status: 400 });
     }
 
     const detour = await calculateAdditionalStopDetour({
@@ -58,14 +62,14 @@ export async function POST(req: NextRequest) {
       returnLeg: detour.returnLeg
     });
 
-    return NextResponse.json({
+    return json({
       ...detour,
       stopCount,
       stopFee: money(stopCount * ADDITIONAL_STOP_FEE_B2C),
       stopExtraPrice: money(detour.totalExtraKm * ADDITIONAL_STOP_B2C_KM_RATE)
     });
   } catch (error) {
-    return NextResponse.json(
+    return json(
       { error: error instanceof Error ? error.message : "Nie udało się obliczyć dodatkowego przystanku." },
       { status: 400 }
     );

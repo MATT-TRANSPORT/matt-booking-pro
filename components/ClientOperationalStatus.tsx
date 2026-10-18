@@ -1,4 +1,6 @@
 "use client";
+import { customerFetch } from "@/lib/customerFetch";
+import { customerFlightStatus } from "@/lib/customerFlightText";
 import { useCustomerLocale } from "@/lib/useCustomerLocale";
 
 import { useEffect, useState } from "react";
@@ -18,12 +20,13 @@ function one(value: any) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function shortDate(value: unknown) {
+function shortDate(value: unknown,locale:string) {
   if (!value) return "—";
-  try { return new Date(String(value)).toLocaleString("pl-PL"); } catch { return String(value); }
+  try { return new Date(String(value)).toLocaleString(locale); } catch { return String(value); }
 }
 
 export default function ClientOperationalStatus({ token }: { token: string }) {
+ const fetchCustomer=(input:RequestInfo|URL,init?:RequestInit)=>customerFetch(locale,input,init);
   const [data, setData] = useState<any>(null);
   const locale = useCustomerLocale(data?.booking?.customer_locale);
   const t = (pl: string, en: string, de: string, cs: string) => ({pl,en,de,cs}[locale as "pl"|"en"|"de"|"cs"] || pl);
@@ -33,20 +36,20 @@ export default function ClientOperationalStatus({ token }: { token: string }) {
     let active = true;
     async function load() {
       try {
-        const r = await fetch(`/api/client-booking/${token}/status`, { cache: "no-store" });
+        const r = await fetchCustomer(`/api/client-booking/${token}/status?lang=${locale}`, { cache: "no-store" });
         const d = await r.json();
         if (!active) return;
-        if (!r.ok) { setError(d.error || "Nie udało się pobrać statusu."); return; }
+        if (!r.ok) { setError(d.error || t("Nie udało się pobrać statusu.","Could not load trip status.","Der Fahrtstatus konnte nicht geladen werden.","Stav jízdy se nepodařilo načíst.")); return; }
         setData(d);
         setError("");
       } catch {
-        if (active) setError("Nie udało się odświeżyć statusu.");
+        if (active) setError(t("Nie udało się odświeżyć statusu.","Could not refresh trip status.","Der Fahrtstatus konnte nicht aktualisiert werden.","Stav jízdy se nepodařilo aktualizovat."));
       }
     }
     void load();
     const timer = window.setInterval(load, 60_000);
     return () => { active = false; window.clearInterval(timer); };
-  }, [token]);
+  }, [token,locale]);
 
   const booking = data?.booking;
   const driver = one(booking?.drivers);
@@ -99,8 +102,8 @@ export default function ClientOperationalStatus({ token }: { token: string }) {
     {!!data?.flights?.length && <div style={{ marginTop: 18 }}>
       <h3>{t("Monitor lotu","Flight monitor","Flugüberwachung","Sledování letu")}</h3>
       {data.flights.map((f: any) => <div className="row" key={`${f.leg}-${f.flight_number}`}>
-        <span><strong>{f.leg === "return" ? t("POWRÓT · ","RETURN · ","RÜCKFAHRT · ","NÁVRAT · ") : ""}{f.flight_number}</strong><br/><small className="muted">{t("Aktualizacja:","Updated:","Aktualisiert:","Aktualizováno:")} {shortDate(f.updated_at)}</small></span>
-        <span><strong>{String(f.status || "brak statusu").toUpperCase()}</strong><br/><small className="muted">ETA: {shortDate(f.estimated_arrival || f.scheduled_arrival)}</small></span>
+        <span><strong>{f.leg === "return" ? t("POWRÓT · ","RETURN · ","RÜCKFAHRT · ","NÁVRAT · ") : ""}{f.flight_number}</strong><br/><small className="muted">{t("Aktualizacja:","Updated:","Aktualisiert:","Aktualizováno:")} {shortDate(f.updated_at,locale)}</small></span>
+        <span><strong>{customerFlightStatus(f.status,locale).toUpperCase()}</strong><br/><small className="muted">ETA: {shortDate(f.estimated_arrival || f.scheduled_arrival,locale)}</small></span>
       </div>)}
     </div>}
 

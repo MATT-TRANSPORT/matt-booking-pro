@@ -1,3 +1,4 @@
+import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { googleReviewUrl } from "@/lib/reviews";
@@ -85,36 +86,43 @@ async function bookingByToken(token: string) {
   const admin = createAdminClient();
   const { data } = await admin
     .from("bookings")
-    .select("id,booking_number,customer_name,status,customer_access_token")
+    .select("id,booking_number,customer_name,status,customer_access_token,customer_locale")
     .eq("customer_access_token", token)
     .maybeSingle();
   return { admin, booking: data };
 }
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
+  let responseLocale=requestCustomerLocale(_req);
+  const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
   const { token } = await params;
   const { admin, booking } = await bookingByToken(token);
-  if (!booking) return NextResponse.json({ error: "Nie znaleziono rezerwacji." }, { status: 404 });
+ responseLocale=requestCustomerLocale(_req,booking?.customer_locale);
+  if (!booking) return json({ error: "Nie znaleziono rezerwacji." }, { status: 404 });
   if (booking.status !== "completed") {
-    return NextResponse.json({ error: "Ocenę można dodać po zakończeniu przejazdu." }, { status: 409 });
+    return json({ error: "Ocenę można dodać po zakończeniu przejazdu." }, { status: 409 });
   }
   const { data: review } = await admin
     .from("booking_reviews")
     .select("rating,feedback,google_clicked_at,created_at")
     .eq("booking_id", booking.id)
     .maybeSingle();
-  return NextResponse.json({ booking, review, google_url: review?.rating === 5 ? googleReviewUrl() : null });
+  return json({ booking, review, google_url: review?.rating === 5 ? googleReviewUrl() : null });
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
+  let responseLocale=requestCustomerLocale(req);
+  const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
   const { token } = await params;
   const { admin, booking } = await bookingByToken(token);
-  if (!booking) return NextResponse.json({ error: "Nie znaleziono rezerwacji." }, { status: 404 });
+ responseLocale=requestCustomerLocale(req,booking?.customer_locale);
+  if (!booking) return json({ error: "Nie znaleziono rezerwacji." }, { status: 404 });
   if (booking.status !== "completed") {
-    return NextResponse.json({ error: "Ocenę można dodać po zakończeniu przejazdu." }, { status: 409 });
+    return json({ error: "Ocenę można dodać po zakończeniu przejazdu." }, { status: 409 });
   }
 
   const body = await req.json();
+ responseLocale=requestCustomerLocale(req,body?.locale);
   if (body.action === "google_click") {
     const { data: review } = await admin
       .from("booking_reviews")
@@ -123,7 +131,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       .maybeSingle();
 
     if (!review || Number(review.rating) !== 5) {
-      return NextResponse.json({ error: "Brak oceny 5/5." }, { status: 409 });
+      return json({ error: "Brak oceny 5/5." }, { status: 409 });
     }
 
     const clickedAt = new Date().toISOString();
@@ -136,7 +144,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       .maybeSingle();
 
     if (clickError) {
-      return NextResponse.json({ error: clickError.message }, { status: 500 });
+      return json({ error: clickError.message }, { status: 500 });
     }
 
     // Powiadamiamy tylko przy pierwszym kliknięciu, żeby odświeżenie strony nie generowało kolejnych maili.
@@ -151,13 +159,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       ]).catch((err) => console.error("Google review click notification:", err));
     }
 
-    return NextResponse.json({ ok: true, google_url: googleReviewUrl() });
+    return json({ ok: true, google_url: googleReviewUrl() });
   }
 
   const rating = Number(body.rating);
   const feedback = String(body.feedback || "").trim().slice(0, 2000) || null;
   if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-    return NextResponse.json({ error: "Wybierz ocenę od 1 do 5." }, { status: 400 });
+    return json({ error: "Wybierz ocenę od 1 do 5." }, { status: 400 });
   }
 
   const { data, error } = await admin
@@ -171,7 +179,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     .select("rating,feedback,created_at,updated_at")
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return json({ error: error.message }, { status: 500 });
 
   await admin.from("booking_history").insert({
     booking_id: booking.id,
@@ -190,7 +198,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     }).catch((err) => console.error("Admin push review:", err));
   }
 
-  return NextResponse.json({
+  return json({
     review: data,
     google_url: rating === 5 ? googleReviewUrl() : null
   });

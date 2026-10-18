@@ -1,3 +1,4 @@
+import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
 import { resolveCustomerLocale } from "@/lib/bookingLocale";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -48,55 +49,61 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
+  let responseLocale=requestCustomerLocale(_req);
+  const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
   const { token } = await params;
   const { booking } = await getBooking(token);
+ responseLocale=requestCustomerLocale(_req,booking?.customer_locale);
   const error = validateB2BEmployeePayment(booking);
 
   if (error) {
-    return NextResponse.json({ error }, { status: booking ? 400 : 404 });
+    return json({ error }, { status: booking ? 400 : 404 });
   }
 
-  return NextResponse.json({ booking: safeSummary(booking) });
+  return json({ booking: safeSummary(booking) });
 }
 
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
+  let responseLocale=requestCustomerLocale(_req);
+  const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
   const { token } = await params;
   const { admin, booking } = await getBooking(token);
+ responseLocale=requestCustomerLocale(_req,booking?.customer_locale);
   const validationError = validateB2BEmployeePayment(booking);
 
   if (validationError) {
-    return NextResponse.json(
+    return json(
       { error: validationError },
       { status: booking ? 400 : 404 }
     );
   }
 
   if (booking.payment_status === "paid") {
-    return NextResponse.json(
+    return json(
       { error: "Ta rezerwacja jest już opłacona. / This booking has already been paid." },
       { status: 409 }
     );
   }
 
   if (booking.payment_status === "refunded") {
-    return NextResponse.json(
+    return json(
       { error: "Dla tej rezerwacji wykonano zwrot. Skontaktuj się z MATT TRANSPORT. / This booking has been refunded. Please contact MATT TRANSPORT." },
       { status: 409 }
     );
   }
 
   if (booking.payment_status === "review") {
-    return NextResponse.json(
+    return json(
       { error: "Płatność wymaga weryfikacji przez MATT TRANSPORT. / The payment requires verification by MATT TRANSPORT." },
       { status: 409 }
     );
   }
 
   if (!paymentCanStart(booking)) {
-    return NextResponse.json(
+    return json(
       { error: "Płatność będzie dostępna po potwierdzeniu rezerwacji. / Payment will be available after the booking is confirmed." },
       { status: 409 }
     );
@@ -106,7 +113,7 @@ export async function POST(
   const amount = Math.round(payableAmount * 100);
 
   if (!Number.isFinite(amount) || amount <= 0) {
-    return NextResponse.json(
+    return json(
       { error: "Nieprawidłowa kwota płatności. / Invalid payment amount." },
       { status: 400 }
     );
@@ -170,7 +177,7 @@ export async function POST(
       created_by: null
     });
 
-    return NextResponse.json({ ok: true, url: session.url });
+    return json({ ok: true, url: session.url });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Nie udało się uruchomić płatności.";
 
@@ -179,7 +186,7 @@ export async function POST(
       .update({ payment_last_error: message, updated_at: new Date().toISOString() })
       .eq("id", booking.id);
 
-    return NextResponse.json(
+    return json(
       { error: `${message} / Unable to start payment.` },
       { status: 500 }
     );

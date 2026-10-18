@@ -17,5 +17,5 @@ module.exports = defineConfig({
     metadata: {bookingLocale: locale, mobile: device === 'mobile'},
     use: {browserName: 'chromium', viewport: device === 'mobile' ? {width:390,height:844} : {width:1440,height:1000}}
   }))),
-  webServer: {env:{NEXT_PUBLIC_SUPABASE_URL:'http://127.0.0.1:9',NEXT_PUBLIC_SUPABASE_ANON_KEY:'matt-local-test-only'},command: 'npm run start -- --port 3100 --hostname 127.0.0.1', url:'http://127.0.0.1:3100/booking', timeout:90000}
+  webServer: {env:{NEXT_PUBLIC_SUPABASE_URL:'http://127.0.0.1:3201',SUPABASE_SERVICE_ROLE_KEY:'matt-local-test-only',NEXT_PUBLIC_SUPABASE_ANON_KEY:'matt-local-test-only'},command: 'node tests/start-browser-server.cjs', url:'http://127.0.0.1:3100/booking', timeout:90000}
 });

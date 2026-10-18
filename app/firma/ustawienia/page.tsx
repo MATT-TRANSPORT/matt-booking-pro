@@ -1,10 +1,12 @@
+import { companyLanguage, type CompanySearchParams } from "@/lib/companyLanguage";
 import CompanyNav from "@/components/CompanyNav";
 import CompanyTermsSummaryCard from "@/components/CompanyTermsSummaryCard";
 import CompanyAddressesManager from "@/components/CompanyAddressesManager";
 import { companyClient } from "@/lib/company";
 
-export default async function Page() {
-  const { s, company, membership } = await companyClient();
+export default async function Page({searchParams}:{searchParams:Promise<CompanySearchParams>}) {
+  const {locale,t,href}=await companyLanguage(searchParams);
+  const { s, company, membership } = await companyClient(locale);
   const today = new Date().toISOString().slice(0, 10);
 
   const [{ data: terms }, { data: addresses }] = await Promise.all([
@@ -28,22 +30,22 @@ export default async function Page() {
 
   return (
     <main className="container">
-      <h1>Dane firmy</h1>
+      <h1>{t("Dane firmy")}</h1>
       <CompanyNav />
       <div className="reservation-detail-grid">
         <div className="card">
-          <h2>Dane kontrahenta</h2>
+          <h2>{t("Dane kontrahenta")}</h2>
           <div className="detail-list">
-            <div><span>Nazwa</span><strong>{company.name}</strong></div>
+            <div><span>{t("Nazwa")}</span><strong>{company.name}</strong></div>
             <div><span>NIP</span><strong>{company.nip || "—"}</strong></div>
-            <div><span>E-mail</span><strong>{company.email || "—"}</strong></div>
-            <div><span>Telefon</span><strong>{company.phone || "—"}</strong></div>
-            <div><span>Kontakt</span><strong>{company.contact_person || "—"}</strong></div>
-            <div><span>Twoja rola</span><strong>{membership.role}</strong></div>
+            <div><span>{t("E-mail")}</span><strong>{company.email || "—"}</strong></div>
+            <div><span>{t("Telefon")}</span><strong>{company.phone || "—"}</strong></div>
+            <div><span>{t("Kontakt")}</span><strong>{company.contact_person || "—"}</strong></div>
+            <div><span>{t("Twoja rola")}</span><strong>{membership.role}</strong></div>
           </div>
         </div>
 
-        <CompanyTermsSummaryCard companyName={company.name} terms={terms} />
+        <CompanyTermsSummaryCard customerLocale={locale} companyName={company.name} terms={terms} />
       </div>
 
       <div style={{ marginTop: 18 }}>

@@ -1,10 +1,12 @@
 "use client";
+import { customerFetch } from "@/lib/customerFetch";
 import { useCustomerLocale } from "@/lib/useCustomerLocale";
 const weddingCopy: Record<string,[string,string,string]> = {"TRANSPORT WESELNY":["Wedding transport","Hochzeitstransport","Svatební doprava"],"Dziękujemy za przesłanie danych!":["Thank you for your details!","Vielen Dank für Ihre Angaben!","Děkujeme za zaslané údaje!"],"Co dalej?":["What happens next?","Wie geht es weiter?","Co bude dál?"],"Na podstawie przesłanych informacji przygotujemy umowę i prześlemy ją na podany adres e-mail.":["We will prepare an agreement and send it to your email address.","Wir erstellen den Vertrag und senden ihn an Ihre E-Mail-Adresse.","Připravíme smlouvu a zašleme ji na váš e-mail."],"Jeżeli będziemy potrzebowali dodatkowych informacji, skontaktujemy się telefonicznie.":["If we need more information, we will call you.","Falls wir weitere Informationen benötigen, rufen wir Sie an.","Pokud budeme potřebovat další informace, zavoláme vám."],"WRÓĆ DO REZERWACJI":["BACK TO BOOKING","ZURÜCK ZUR BUCHUNG","ZPĚT K REZERVACI"],"Dane do przygotowania umowy":["Details for your agreement","Angaben zur Vertragserstellung","Údaje pro přípravu smlouvy"],"Prześlij najważniejsze informacje. Po ich otrzymaniu przygotujemy umowę i prześlemy ją e-mailem.":["Send us the key details. We will prepare an agreement and email it to you.","Senden Sie uns die wichtigsten Angaben. Wir erstellen den Vertrag und senden ihn per E-Mail.","Zašlete nám základní údaje. Připravíme smlouvu a pošleme ji e-mailem."],"Imię i nazwisko *":["Full name *","Vor- und Nachname *","Jméno a příjmení *"],"Data rozpoczęcia rozwozów *":["Transport start date *","Beginn der Fahrten – Datum *","Datum zahájení rozvozu *"],"Godzina rozpoczęcia rozwozów *":["Transport start time *","Beginn der Fahrten – Uhrzeit *","Čas zahájení rozvozu *"],"Nazwa restauracji *":["Venue name *","Name der Gaststätte *","Název restaurace *"],"Adres restauracji *":["Venue address *","Adresse der Gaststätte *","Adresa restaurace *"],"Ilość pojazdów *":["Number of vehicles *","Anzahl der Fahrzeuge *","Počet vozidel *"],"Numer telefonu *":["Phone number *","Telefonnummer *","Telefonní číslo *"],"Adres e-mail *":["Email address *","E-Mail-Adresse *","E-mailová adresa *"],"Pojazdy":["Vehicles","Fahrzeuge","Vozidla"],"Pojazd ":["Vehicle ","Fahrzeug ","Vozidlo "],"Samochód osobowy":["Car","Pkw","Osobní automobil"],"Bus 9-osobowy":["9-seat minibus","9-Sitzer-Kleinbus","Minibus pro 9 osob"],"Dodatkowe informacje (opcjonalnie)":["Additional information (optional)","Weitere Angaben (optional)","Další informace (nepovinné)"],"WYSYŁANIE...":["SENDING...","WIRD GESENDET...","ODESÍLÁNÍ..."],"WYŚLIJ DANE DO UMOWY":["SEND AGREEMENT DETAILS","VERTRAGSDATEN SENDEN","ODESLAT ÚDAJE KE SMLOUVĚ"],"Uzupełnij wymagane pola.":["Please complete the required fields.","Bitte füllen Sie alle Pflichtfelder aus.","Vyplňte povinná pole."],"Nie udało się wysłać zgłoszenia.":["Unable to send your request.","Ihre Anfrage konnte nicht gesendet werden.","Požadavek se nepodařilo odeslat."],"Zgłoszenie ":["Request ","Anfrage ","Žádost "]," zostało zapisane.":[" has been saved."," wurde gespeichert."," byla uložena."]};
 
 import { useEffect, useState } from "react";
 
 export default function WeddingBookingForm(){
+ const fetchCustomer=(input:RequestInfo|URL,init?:RequestInit)=>customerFetch(locale,input,init);
   const locale = useCustomerLocale();
   const t=(key:string)=>locale==="pl"?key:weddingCopy[key]?.[locale==="en"?0:locale==="de"?1:2]??key;
   const [form,setForm]=useState({
@@ -18,7 +20,7 @@ export default function WeddingBookingForm(){
     if(form.restaurantAddress.trim().length<3){setRestaurantSuggestions([]);return;}
     const timer=setTimeout(async()=>{
       try{
-        const r=await fetch(`/api/places?q=${encodeURIComponent(form.restaurantAddress)}`);
+        const r=await fetchCustomer(`/api/places?q=${encodeURIComponent(form.restaurantAddress)}`);
         const d=await r.json();
         setRestaurantSuggestions(d.suggestions??[]);
       }catch{setRestaurantSuggestions([]);}
@@ -35,7 +37,7 @@ export default function WeddingBookingForm(){
       setMessage(t("Uzupełnij wymagane pola.")); return;
     }
     setSaving(true); setMessage("");
-    const res=await fetch("/api/wedding-bookings",{
+    const res=await fetchCustomer("/api/wedding-bookings",{
       method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...form,locale})
     });
     const data=await res.json();

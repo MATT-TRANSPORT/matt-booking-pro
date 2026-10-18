@@ -1,4 +1,7 @@
 "use client";
+import { customerFetch } from "@/lib/customerFetch";
+import { companyText } from "@/lib/companyCopy";
+import { withCustomerLocale } from "@/lib/bookingLocale";
 
 import { useEffect, useState } from "react";
 
@@ -83,7 +86,11 @@ function paymentBadge(booking: any, paymentStatus?: string): PaymentBadge {
   };
 }
 
-export default function DashboardPaymentBadge({ booking }: { booking: any }) {
+export default function DashboardPaymentBadge({customerLocale,  booking }: {customerLocale?:unknown;  booking: any }) {
+ const fetchCustomer=(input:RequestInfo|URL,init?:RequestInit)=>customerFetch(locale,input,init);
+ const locale=customerLocale??"pl";
+ const t=(key:string)=>companyText(key,locale);
+ const href=(path:string)=>withCustomerLocale(path,locale);
   const [status, setStatus] = useState(String(booking?.payment_status || "pending").toLowerCase());
 
   useEffect(() => {
@@ -102,7 +109,7 @@ export default function DashboardPaymentBadge({ booking }: { booking: any }) {
     (async () => {
       for (let i = 0; i < 6 && !cancelled; i += 1) {
         try {
-          const response = await fetch(
+          const response = await fetchCustomer(
             `/api/company/bookings/${booking.id}/payment-status`,
             { cache: "no-store" }
           );
@@ -128,10 +135,10 @@ export default function DashboardPaymentBadge({ booking }: { booking: any }) {
   return (
     <span
       className={`dashboard-payment-status ${badge.className}`}
-      title={badge.title}
-      aria-label={badge.title}
+      title={t(badge.title)}
+      aria-label={t(badge.title)}
     >
-      {badge.label}
+      {t(badge.label)}
     </span>
   );
 }

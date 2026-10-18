@@ -1,4 +1,5 @@
 "use client";
+import { customerFetch } from "@/lib/customerFetch";
 import { customerText } from "@/lib/customerCopy";
 import { useCustomerLocale } from "@/lib/useCustomerLocale";
 
@@ -43,6 +44,7 @@ export default function CompanyBookingForm({
   commercialTerms?: any | null;
   addresses?: any[];
 }) {
+ const fetchCustomer=(input:RequestInfo|URL,init?:RequestInit)=>customerFetch(locale,input,init);
   const locale = useCustomerLocale();
   const t = (key: string) => customerText(key, locale);
   const { airports } = useAirportPricing();
@@ -114,7 +116,7 @@ export default function CompanyBookingForm({
 
     const timer = setTimeout(async () => {
       try {
-        const response = await fetch(`/api/places?q=${encodeURIComponent(address)}`);
+        const response = await fetchCustomer(`/api/places?q=${encodeURIComponent(address)}`);
         const data = await response.json();
         setSuggestions(data.suggestions ?? []);
       } catch {
@@ -142,7 +144,7 @@ export default function CompanyBookingForm({
     }
     const timer = setTimeout(async () => {
       try {
-        const response = await fetch(`/api/places?q=${encodeURIComponent(additionalStopAddress)}`);
+        const response = await fetchCustomer(`/api/places?q=${encodeURIComponent(additionalStopAddress)}`);
         const data = await response.json();
         setAdditionalStopSuggestions(data.suggestions ?? []);
       } catch {
@@ -172,7 +174,7 @@ export default function CompanyBookingForm({
     setQuoteError("");
 
     try {
-      const response = await fetch("/api/company/quote", {
+      const response = await fetchCustomer("/api/company/quote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ locale,
@@ -239,7 +241,7 @@ export default function CompanyBookingForm({
     setSaving(true);
     setMessage(t("Zapisywanie rezerwacji i ponowne przeliczanie ceny na serwerze..."));
 
-    const response = await fetch("/api/company/bookings", {
+    const response = await fetchCustomer("/api/company/bookings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ locale,

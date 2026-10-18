@@ -19,7 +19,7 @@ test.beforeEach(async ({context,page}, info) => {
     const req = route.request(), url = new URL(req.url());
     if(url.hostname !== '127.0.0.1') return route.abort();
     if(!url.pathname.startsWith('/api/')) return route.continue();
-    if(req.method() !== 'GET') writes.push({path:url.pathname,body:req.postDataJSON()});
+    if(req.method() !== 'GET') writes.push({path:url.pathname,body:req.postDataJSON(),localeHeader:req.headers()['x-matt-locale']});
     let data = {};
     if(url.pathname === '/api/airports') data={airports:{pyrzowice:{label:'Katowice-Pyrzowice',car:290,bus:400},balice:{label:'Kraków Balice',car:390,bus:500}}};
     else if(url.pathname === '/api/places') data={suggestions:[]};
@@ -37,7 +37,7 @@ test.beforeEach(async ({context,page}, info) => {
   });
 });
 
-test('airport round trip keeps route, dates, vehicle, bank transfer and locale', async ({page}, info) => {
+test('airport round trip offers only cash and online payment and keeps route, dates and locale', async ({page}, info) => {
   const lang=info.project.metadata.bookingLocale, mobile=info.project.metadata.mobile,t=copy[lang];
   await page.goto(`/booking?service=airport&lang=${lang}`);
   await expect(page.locator('html')).toHaveAttribute('lang',lang);
@@ -55,13 +55,16 @@ test('airport round trip keeps route, dates, vehicle, bank transfer and locale',
   await page.getByLabel(t.name,{exact:true}).fill('Test User');
   await page.getByLabel(t.phone,{exact:true}).fill('+48123456789');
   await page.getByLabel(t.email,{exact:true}).fill('test@example.invalid');
-  await page.locator('input[type="radio"][value="bank_transfer"]').check();
+  await expect(page.locator('input[type="radio"]')).toHaveCount(2);
+  await expect(page.locator('[value="bank_transfer"]')).toHaveCount(0);
+  await page.locator('input[type="radio"][value="online"]').check();
   if(mobile) await page.getByRole('button',{name:t.summary,exact:true}).click();
   await expect(page.locator('body')).toContainText('800.00');
   await page.getByRole('button',{name:t.book,exact:true}).click();
   await expect(page.getByRole('heading',{name:t.success,exact:true})).toBeVisible();
   const write=info.writes.find(x=>x.path==='/api/bookings');
-  expect(write.body).toMatchObject({locale:lang,serviceType:'roundtrip',vehicleType:'bus',passengers:8,paymentMethod:'bank_transfer',travelDate:'2027-01-20',travelTime:'08:30',returnDate:'2027-01-27',returnTime:'14:55',distanceKm:20});
+  expect(write.localeHeader).toBe(lang);
+  expect(write.body).toMatchObject({locale:lang,serviceType:'roundtrip',vehicleType:'bus',passengers:8,paymentMethod:'online',travelDate:'2027-01-20',travelTime:'08:30',returnDate:'2027-01-27',returnTime:'14:55',distanceKm:20});
   await expect(page.locator('.success-actions a')).toHaveAttribute('href',`/booking?lang=${lang}`);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
 });
@@ -160,9 +163,10 @@ test('repeat airport round trip preserves locale in the new booking',async({page
  await page.locator('input[type="time"]').nth(0).fill('08:30');
  await page.locator('input[type="date"]').nth(1).fill('2027-01-27');
  await page.locator('input[type="time"]').nth(1).fill('14:55');
+ await expect(page.locator('option[value="bank_transfer"]')).toHaveCount(0);
  await page.locator('.customer-repeat-submit').click();
  await expect.poll(()=>info.writes.filter(x=>x.path==='/api/bookings').length).toBe(1);
- expect(info.writes.find(x=>x.path==='/api/bookings').body).toMatchObject({locale:lang,serviceType:'roundtrip',returnDate:'2027-01-27',passengers:8,paymentMethod:'bank_transfer'});
+ expect(info.writes.find(x=>x.path==='/api/bookings').body).toMatchObject({locale:lang,serviceType:'roundtrip',returnDate:'2027-01-27',passengers:8,paymentMethod:'cash'});
  await expect(page.locator('.customer-repeat-success a').first()).toHaveAttribute('href',`/rezerwacja/fixture-token?lang=${lang}`);
 });
 
@@ -179,4 +183,66 @@ test('language selection works when browser storage is unavailable',async({page}
  await expect(page.locator('html')).toHaveAttribute('lang','de');
  await expect(page.getByRole('button',{name:'🔁 Hin- und Rückfahrt',exact:false})).toBeVisible();
  await expect(page).toHaveURL(/lang=de/);
+});
+
+test('review form restores saved language without a query parameter',async({page},info)=>{
+ const lang=info.project.metadata.bookingLocale;
+ await page.route('**/api/review/fixture-token',route=>route.fulfill({json:{booking:{...booking(lang),status:'completed'},review:null,google_url:null}}));
+ await page.goto('/opinia/fixture-token');
+ await expect(page.getByRole('heading',{name:{pl:'Jak minęła podróż?',en:'How was your journey?',de:'Wie war Ihre Fahrt?',cs:'Jaká byla vaše cesta?'}[lang],exact:true})).toBeVisible();
+ await expect(page.locator('html')).toHaveAttribute('lang',lang);
+ expect(info.writes.filter(x=>x.path.startsWith('/api/review/'))).toEqual([]);
+});
+
+test('B2B login page displays the selected customer language',async({page},info)=>{
+ const lang=info.project.metadata.bookingLocale;
+ await page.goto('/firma/login?lang='+lang);
+ await expect(page.getByRole('heading',{name:{pl:'Panel klienta biznesowego',en:'Business customer portal',de:'Geschäftskundenportal',cs:'Portál firemního zákazníka'}[lang],exact:true})).toBeVisible();
+ await expect(page.locator('html')).toHaveAttribute('lang',lang);
+ expect(info.writes).toEqual([]);
+});
+
+test('authenticated company screens render the selected language and retain it in navigation',async({page,context},info)=>{
+ const lang=info.project.metadata.bookingLocale;
+ const user={id:'11111111-1111-4111-8111-111111111111',email:'test@example.invalid',aud:'authenticated',role:'authenticated',app_metadata:{},user_metadata:{}};
+ const encode=value=>Buffer.from(JSON.stringify(value)).toString('base64url');
+ const access_token=encode({alg:'HS256',typ:'JWT'})+'.'+encode({sub:user.id,aud:'authenticated',role:'authenticated',exp:4102444800,email:user.email})+'.test-signature';
+ const session={access_token,refresh_token:'test-only-refresh',expires_at:4102444800,expires_in:3600,token_type:'bearer',user};
+ await context.addCookies([{name:'sb-127-auth-token',value:'base64-'+encode(session),domain:'127.0.0.1',path:'/'}]);
+ const headings={
+  '/firma':['TEST COMPANY','TEST COMPANY','TEST COMPANY','TEST COMPANY'],
+  '/firma/rezerwacje':['Rezerwacje firmy','Company bookings','Firmenbuchungen','Firemní rezervace'],
+  '/firma/nowa-rezerwacja':['Nowa rezerwacja','New booking','Neue Buchung','Nová rezervace'],
+  '/firma/pracownicy':['Pracownicy','Employees','Mitarbeiter','Zaměstnanci'],
+  '/firma/szablony':['Szablony i rezerwacje cykliczne','Templates and recurring bookings','Vorlagen und regelmäßige Buchungen','Šablony a opakované rezervace'],
+  '/firma/kalendarz':['Kalendarz transportów','Journey calendar','Fahrtenkalender','Kalendář jízd'],
+  '/firma/cennik':['Cennik i warunki handlowe','Prices and commercial terms','Preise und Geschäftskonditionen','Ceník a obchodní podmínky'],
+  '/firma/faktury':['Rozliczenia','Billing','Abrechnung','Vyúčtování'],
+  '/firma/ustawienia':['Dane firmy','Company details','Firmendaten','Údaje firmy']
+ };
+ const index=['pl','en','de','cs'].indexOf(lang);
+ for(const [path,values] of Object.entries(headings)){
+  await page.goto(path+'?lang='+lang);
+  await expect(page.getByRole('heading',{name:values[index],exact:true}).first()).toBeVisible();
+  await expect(page.locator('html')).toHaveAttribute('lang',lang);
+  for(const link of await page.locator('.company-nav a').all()) await expect(link).toHaveAttribute('href',new RegExp(`lang=${lang}`));
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),path+' must fit the viewport').toBe(true);
+ }
+ await page.goto('/firma/rezerwacje/fixture-booking?lang='+lang);
+ await page.getByRole('button',{name:['POWTÓRZ REZERWACJĘ','REPEAT BOOKING','BUCHUNG WIEDERHOLEN','ZOPAKOVAT REZERVACI'][index],exact:true}).click();
+ const repeat=page.locator('.repeat-box');
+ await repeat.locator('input[type="date"]').nth(0).fill('2027-02-20');
+ await repeat.locator('input[type="time"]').nth(0).fill('08:30');
+ const submit=repeat.getByRole('button',{name:['UTWÓRZ NOWY KURS','CREATE NEW JOURNEY','NEUE FAHRT ERSTELLEN','VYTVOŘIT NOVOU JÍZDU'][index],exact:true});
+ await submit.click();
+ expect(info.writes).toEqual([]);
+ await repeat.locator('input[type="date"]').nth(1).fill('2027-02-27');
+ await repeat.locator('input[type="time"]').nth(1).fill('14:55');
+ let submitted;
+ await page.route('**/api/company/bookings/fixture-booking',route=>{submitted=route.request().postDataJSON();return route.fulfill({json:{id:'fixture-booking'}})});
+ await Promise.all([page.waitForEvent('load'),submit.click()]);
+ await expect(page.locator('html')).toHaveAttribute('lang',lang);
+ await expect.poll(()=>submitted).toMatchObject({action:'repeat',locale:lang,travelDate:'2027-02-20',travelTime:'08:30',returnDate:'2027-02-27',returnTime:'14:55'});
+ await expect(page).toHaveURL(new RegExp('/firma/rezerwacje/fixture-booking\\?lang='+lang));
+
 });

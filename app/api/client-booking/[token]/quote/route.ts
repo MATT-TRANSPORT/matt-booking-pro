@@ -1,3 +1,4 @@
+import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
 import { localizedQuoteEmail } from "@/lib/quoteEmails";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -39,8 +40,11 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
+  let responseLocale=requestCustomerLocale(req);
+  const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
   const { token } = await params;
   const body = await req.json();
+ responseLocale=requestCustomerLocale(req,body?.locale);
   const action = String(body.action || "");
   const admin = createAdminClient();
 
@@ -49,9 +53,10 @@ export async function POST(
     .select("*")
     .eq("customer_access_token", token)
     .maybeSingle();
+ responseLocale=requestCustomerLocale(req,booking?.customer_locale);
 
   if (!booking) {
-    return NextResponse.json(
+    return json(
       { error: "Rezerwacja nie istnieje lub link wygasł." },
       { status: 404 }
     );
@@ -62,7 +67,7 @@ export async function POST(
     booking.booking_source === "public_general";
 
   if (!general || !booking.quote_required) {
-    return NextResponse.json(
+    return json(
       { error: "Ta rezerwacja nie wymaga indywidualnej wyceny." },
       { status: 409 }
     );
@@ -70,25 +75,25 @@ export async function POST(
 
   if (String(booking.quote_status) !== "priced") {
     if (booking.quote_status === "accepted") {
-      return NextResponse.json(
+      return json(
         { error: "Ta wycena została już zaakceptowana." },
         { status: 409 }
       );
     }
     if (booking.quote_status === "rejected") {
-      return NextResponse.json(
+      return json(
         { error: "Z tej wyceny już zrezygnowano." },
         { status: 409 }
       );
     }
-    return NextResponse.json(
+    return json(
       { error: "Wycena nie jest jeszcze gotowa do decyzji." },
       { status: 409 }
     );
   }
 
   if (!booking.quote_expires_at) {
-    return NextResponse.json(
+    return json(
       {
         error:
           "Ta wycena pochodzi ze starszej wersji systemu. Poproś MATT TRANSPORT o ponowne wysłanie aktualnej wyceny."
@@ -99,7 +104,7 @@ export async function POST(
 
   const expiresAt = new Date(booking.quote_expires_at).getTime();
   if (!Number.isFinite(expiresAt) || Date.now() > expiresAt) {
-    return NextResponse.json(
+    return json(
       {
         error:
           "Termin ważności wyceny minął. Skontaktuj się z MATT TRANSPORT, aby otrzymać aktualną cenę."
@@ -131,7 +136,7 @@ export async function POST(
       .single();
 
     if (error || !updated) {
-      return NextResponse.json(
+      return json(
         { error: error?.message || "Nie udało się zaakceptować wyceny." },
         { status: 500 }
       );
@@ -180,7 +185,7 @@ export async function POST(
       })
     ]);
 
-    return NextResponse.json({
+    return json({
       ok: true,
       action: "accepted",
       booking: updated
@@ -209,7 +214,7 @@ export async function POST(
       .single();
 
     if (error || !updated) {
-      return NextResponse.json(
+      return json(
         { error: error?.message || "Nie udało się zapisać rezygnacji." },
         { status: 500 }
       );
@@ -266,14 +271,14 @@ export async function POST(
       })
     ]);
 
-    return NextResponse.json({
+    return json({
       ok: true,
       action: "rejected",
       booking: updated
     });
   }
 
-  return NextResponse.json(
+  return json(
     { error: "Nieznana decyzja dotycząca wyceny." },
     { status: 400 }
   );

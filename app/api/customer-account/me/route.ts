@@ -1,3 +1,4 @@
+import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -8,12 +9,14 @@ import {
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  let responseLocale=requestCustomerLocale(req);
+  const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
   const rawSession = req.cookies.get(CUSTOMER_SESSION_COOKIE)?.value || "";
   const admin = createAdminClient();
   const session = await customerSessionByRawToken(admin, rawSession);
 
   if (!session) {
-    return NextResponse.json(
+    return json(
       { authenticated: false },
       { status: 401, headers: { "Cache-Control": "no-store" } }
     );
@@ -44,7 +47,7 @@ export async function GET(req: NextRequest) {
 
   if (bookingsResult.error || weddingsResult.error) {
     console.error("Customer trips query:", bookingsResult.error || weddingsResult.error);
-    return NextResponse.json(
+    return json(
       { error: "Nie udało się pobrać przejazdów." },
       { status: 500, headers: { "Cache-Control": "no-store" } }
     );
@@ -56,7 +59,7 @@ export async function GET(req: NextRequest) {
     .update({ last_seen_at: new Date().toISOString() })
     .eq("id", session.id);
 
-  return NextResponse.json(
+  return json(
     {
       authenticated: true,
       email: session.email,

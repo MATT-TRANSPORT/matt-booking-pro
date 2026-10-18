@@ -1,10 +1,11 @@
+import { withCustomerLocale } from "@/lib/bookingLocale";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-export async function companyClient() {
+export async function companyClient(locale:unknown="pl") {
   const s = await createClient();
   const { data: { user } } = await s.auth.getUser();
-  if (!user) redirect("/firma/login");
+  if (!user) redirect(withCustomerLocale("/firma/login",locale));
 
   const { data: membership } = await s
     .from("company_users")
@@ -15,7 +16,7 @@ export async function companyClient() {
     .limit(1)
     .maybeSingle();
 
-  if (!membership) redirect("/firma/brak-dostepu");
+  if (!membership) redirect(withCustomerLocale("/firma/brak-dostepu",locale));
 
   const company = Array.isArray(membership.companies)
     ? membership.companies[0]

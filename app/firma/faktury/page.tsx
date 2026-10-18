@@ -1,3 +1,4 @@
+import { companyLanguage, type CompanySearchParams } from "@/lib/companyLanguage";
 import CompanyNav from "@/components/CompanyNav";
 import { companyClient } from "@/lib/company";
 import { companyBookingMoney, companyCurrentMonthRange } from "@/lib/companyPortal";
@@ -25,8 +26,9 @@ const DOC_LABELS: Record<string, string> = {
   other: "Inny dokument"
 };
 
-export default async function Page() {
-  const { s, company } = await companyClient();
+export default async function Page({searchParams}:{searchParams:Promise<CompanySearchParams>}) {
+  const {locale,t,href}=await companyLanguage(searchParams);
+  const { s, company } = await companyClient(locale);
   const month = companyCurrentMonthRange();
 
   const [{ data: settlements }, { data: documents }, { data: monthRows }] = await Promise.all([
@@ -64,38 +66,37 @@ export default async function Page() {
 
   return (
     <main className="container">
-      <h1>Rozliczenia</h1>
+      <h1>{t("Rozliczenia")}</h1>
       <CompanyNav />
 
       <div className="card company-settlement-summary">
         <div className="company-section-head">
           <div>
-            <span className="badge">BIEŻĄCY MIESIĄC</span>
-            <h2>Podsumowanie transportów i kosztów</h2>
-            <p className="muted">Podsumowanie obejmuje wyłącznie nieanulowane transporty z bieżącego miesiąca.</p>
+            <span className="badge">{t("BIEŻĄCY MIESIĄC")}</span>
+            <h2>{t("Podsumowanie transportów i kosztów")}</h2>
+            <p className="muted">{t("Podsumowanie obejmuje wyłącznie nieanulowane transporty z bieżącego miesiąca.")}</p>
           </div>
         </div>
         <div className="stats company-stats-pro company-settlement-stats">
-          <div className="stat"><strong>{monthSummary.count}</strong><span>Transporty</span></div>
-          <div className="stat"><strong>{monthSummary.net.toFixed(2)} zł</strong><span>Netto</span></div>
+          <div className="stat"><strong>{monthSummary.count}</strong><span>{t("Transporty")}</span></div>
+          <div className="stat"><strong>{monthSummary.net.toFixed(2)} zł</strong><span>{t("Netto")}</span></div>
           <div className="stat"><strong>{monthSummary.vat.toFixed(2)} zł</strong><span>VAT</span></div>
-          <div className="stat"><strong>{monthSummary.gross.toFixed(2)} zł</strong><span>Brutto</span></div>
+          <div className="stat"><strong>{monthSummary.gross.toFixed(2)} zł</strong><span>{t("Brutto")}</span></div>
         </div>
       </div>
 
       <div className="card" style={{ marginTop: 18 }}>
         <span className="badge">B2B PRO</span>
-        <h2>Dokumenty przy rezerwacjach</h2>
+        <h2>{t("Dokumenty przy rezerwacjach")}</h2>
         <p className="muted">
-          Tutaj widzisz faktury, korekty i inne dokumenty przypisane bezpośrednio do pojedynczych przejazdów.
-        </p>
+           {t("Tutaj widzisz faktury, korekty i inne dokumenty przypisane bezpośrednio do pojedynczych przejazdów.")} </p>
         {!documents?.length ? (
-          <p className="muted">Brak dokumentów przypisanych do rezerwacji.</p>
+          <p className="muted">{t("Brak dokumentów przypisanych do rezerwacji.")}</p>
         ) : (
           <div className="company-bookings-table">
             <table className="table">
               <thead>
-                <tr><th>Rezerwacja</th><th>Data kursu</th><th>Pasażer</th><th>Typ</th><th>Numer</th><th>Plik</th></tr>
+                <tr><th>{t("Rezerwacja")}</th><th>{t("Data kursu")}</th><th>{t("Pasażer")}</th><th>{t("Typ")}</th><th>{t("Numer")}</th><th>{t("Plik")}</th></tr>
               </thead>
               <tbody>
                 {documents.map((doc: any) => {
@@ -105,12 +106,11 @@ export default async function Page() {
                       <td>{b?.booking_number || "—"}</td>
                       <td>{b?.travel_date || "—"}</td>
                       <td>{b?.customer_name || "—"}</td>
-                      <td>{DOC_LABELS[doc.document_type] || "Dokument"}</td>
+                      <td>{t(DOC_LABELS[doc.document_type] || t("Dokument"))}</td>
                       <td>{doc.document_number || "—"}</td>
                       <td>
                         <a className="btn secondary company-small-btn" href={`/api/booking-documents/${doc.id}/download`} target="_blank" rel="noreferrer">
-                          OTWÓRZ
-                        </a>
+                           {t("OTWÓRZ")} </a>
                       </td>
                     </tr>
                   );
@@ -122,14 +122,13 @@ export default async function Page() {
       </div>
 
       <div className="card" style={{ marginTop: 18 }}>
-        <h2>Miesięczne rozliczenia</h2>
+        <h2>{t("Miesięczne rozliczenia")}</h2>
         <p className="muted">
-          Faktury są wystawiane poza MATT Booking PRO. Tutaj pozostają dokumenty przypisane do zbiorczych rozliczeń miesięcznych.
-        </p>
+           {t("Faktury są wystawiane poza MATT Booking PRO. Tutaj pozostają dokumenty przypisane do zbiorczych rozliczeń miesięcznych.")} </p>
 
         <table className="table">
           <thead>
-            <tr><th>Miesiąc</th><th>Kwota</th><th>Numer faktury</th><th>Status</th><th>Dokument</th></tr>
+            <tr><th>{t("Miesiąc")}</th><th>{t("Kwota")}</th><th>{t("Numer faktury")}</th><th>{t("Status")}</th><th>{t("Dokument")}</th></tr>
           </thead>
           <tbody>
             {(settlements ?? []).map((x: any) => (
@@ -137,10 +136,10 @@ export default async function Page() {
                 <td>{String(x.period_month).slice(0, 7)}</td>
                 <td>{Number(x.amount).toFixed(2)} zł</td>
                 <td>{x.invoice_number || "—"}</td>
-                <td>{settlementStatusPl(x.status)}</td>
+                <td>{t(settlementStatusPl(x.status))}</td>
                 <td>
                   {x.invoice_file_path ? (
-                    <a className="btn secondary company-small-btn" href={`/api/company/settlements/${x.id}/download`}>POBIERZ</a>
+                    <a className="btn secondary company-small-btn" href={`/api/company/settlements/${x.id}/download`}>{t("POBIERZ")}</a>
                   ) : "—"}
                 </td>
               </tr>

@@ -1,3 +1,4 @@
+import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -24,24 +25,28 @@ function daysBetween(from?: string | null, to?: string | null) {
 }
 
 export async function POST(req: NextRequest) {
+  let responseLocale=requestCustomerLocale(req);
+  const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
   const ctx = await access();
   if (ctx.error) return ctx.error;
   const { user, membership, admin } = ctx;
   const body = await req.json();
+ responseLocale=requestCustomerLocale(req,body?.locale);
   const action = String(body.action || "create");
 
   if (action === "delete") {
     const { error } = await admin.from("company_booking_templates")
       .update({ active: false, updated_at: new Date().toISOString() })
       .eq("id", body.id).eq("company_id", membership.company_id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ ok: true });
+    if (error) return json({ error: error.message }, { status: 500 });
+    return json({ ok: true });
   }
 
   if (action === "from_booking") {
     const { data: booking } = await admin.from("bookings").select("*")
       .eq("id", body.bookingId).eq("company_id", membership.company_id).maybeSingle();
-    if (!booking) return NextResponse.json({ error: "Nie znaleziono rezerwacji firmy." }, { status: 404 });
+ responseLocale=requestCustomerLocale(req,booking?.customer_locale);
+    if (!booking) return json({ error: "Nie znaleziono rezerwacji firmy." }, { status: 404 });
     const name = String(body.name || `${booking.customer_name} · ${booking.airport_label}`).trim().slice(0, 120);
     const { data, error } = await admin.from("company_booking_templates").insert({
       company_id: membership.company_id,
@@ -63,8 +68,8 @@ export async function POST(req: NextRequest) {
       additional_stop_return: Boolean(booking.additional_stop_return),
       created_by: user.id
     }).select("*").single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json(data);
+    if (error) return json({ error: error.message }, { status: 500 });
+    return json(data);
   }
 
   const payload = {
@@ -89,21 +94,21 @@ export async function POST(req: NextRequest) {
     updated_at: new Date().toISOString()
   };
   if (!payload.name || !payload.pickup_address || !payload.airport_key || !payload.employee_id) {
-    return NextResponse.json({ error: "Uzupełnij nazwę, pracownika, adres i lotnisko." }, { status: 400 });
+    return json({ error: "Uzupełnij nazwę, pracownika, adres i lotnisko." }, { status: 400 });
   }
   if (payload.service_type === "roundtrip" && !payload.return_time) {
-    return NextResponse.json({ error: "Dla kursu w obie strony podaj godzinę powrotu." }, { status: 400 });
+    return json({ error: "Dla kursu w obie strony podaj godzinę powrotu." }, { status: 400 });
   }
 
   if (action === "update") {
     const { data, error } = await admin.from("company_booking_templates").update(payload)
       .eq("id", body.id).eq("company_id", membership.company_id).select("*").single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json(data);
+    if (error) return json({ error: error.message }, { status: 500 });
+    return json(data);
   }
 
   const { data, error } = await admin.from("company_booking_templates")
     .insert({ ...payload, created_by: user.id }).select("*").single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+  if (error) return json({ error: error.message }, { status: 500 });
+  return json(data);
 }

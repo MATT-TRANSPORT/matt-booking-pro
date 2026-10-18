@@ -33,7 +33,7 @@ export default function GeneralQuoteAdminCard({
       : ""
   );
   const [paymentMethod, setPaymentMethod] = useState(
-    ["cash", "bank_transfer", "online"].includes(
+    ["cash", "online"].includes(
       String(booking.payment_method)
     )
       ? String(booking.payment_method)
@@ -226,9 +226,6 @@ export default function GeneralQuoteAdminCard({
           >
             <option value="cash">
               Gotówka u kierowcy
-            </option>
-            <option value="bank_transfer">
-              Przelew tradycyjny
             </option>
             <option value="online">
               Płatność online

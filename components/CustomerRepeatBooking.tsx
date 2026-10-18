@@ -1,4 +1,5 @@
 "use client";
+import { customerFetch } from "@/lib/customerFetch";
 import { customerText } from "@/lib/customerCopy";
 import { useCustomerLocale } from "@/lib/useCustomerLocale";
 
@@ -16,6 +17,7 @@ function routeText(template: any) {
 }
 
 export default function CustomerRepeatBooking({ expectedKind }: { expectedKind: RepeatKind }) {
+ const fetchCustomer=(input:RequestInfo|URL,init?:RequestInit)=>customerFetch(locale,input,init);
   const t = (key: string) => customerText(key, locale);
   const [template, setTemplate] = useState<any>(null);
   const locale = useCustomerLocale(template?.locale);
@@ -26,7 +28,7 @@ export default function CustomerRepeatBooking({ expectedKind }: { expectedKind: 
   const [returnTime, setReturnTime] = useState("");
   const [flightNumber, setFlightNumber] = useState("");
   const [returnFlightNumber, setReturnFlightNumber] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"cash"|"bank_transfer"|"online">("cash");
+  const [paymentMethod, setPaymentMethod] = useState<"cash"|"online">("cash");
   const [restaurantName, setRestaurantName] = useState("");
   const [restaurantAddress, setRestaurantAddress] = useState("");
   const [vehiclesCount, setVehiclesCount] = useState(1);
@@ -42,7 +44,7 @@ export default function CustomerRepeatBooking({ expectedKind }: { expectedKind: 
         setMessage(t("Nie znaleziono danych poprzedniej rezerwacji. Wróć do „Moich przejazdów” i wybierz „Zamów ponownie”."));
       } else {
         setTemplate(parsed);
-        if (["cash", "bank_transfer", "online"].includes(parsed.paymentMethod)) {
+        if (["cash", "online"].includes(parsed.paymentMethod)) {
           setPaymentMethod(parsed.paymentMethod);
         }
         if (expectedKind === "wedding") {
@@ -86,7 +88,7 @@ export default function CustomerRepeatBooking({ expectedKind }: { expectedKind: 
       if (template.kind === "airport") {
         // Cena B2C zależy od dystansu do adresu. Przy powtórzeniu liczymy go ponownie,
         // zamiast ufać wartości przechowywanej w przeglądarce.
-        const routeResponse = await fetch("/api/route", {
+        const routeResponse = await fetchCustomer("/api/route", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ locale, address: template.address })
@@ -96,7 +98,7 @@ export default function CustomerRepeatBooking({ expectedKind }: { expectedKind: 
           throw new Error(routeData.error || t("Nie udało się ponownie obliczyć trasy."));
         }
 
-        response = await fetch("/api/bookings", {
+        response = await fetchCustomer("/api/bookings", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ locale,
@@ -126,7 +128,7 @@ export default function CustomerRepeatBooking({ expectedKind }: { expectedKind: 
           })
         });
       } else if (template.kind === "general") {
-        response = await fetch("/api/general-bookings", {
+        response = await fetchCustomer("/api/general-bookings", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ locale,
@@ -148,7 +150,7 @@ export default function CustomerRepeatBooking({ expectedKind }: { expectedKind: 
           })
         });
       } else {
-        response = await fetch("/api/wedding-bookings", {
+        response = await fetchCustomer("/api/wedding-bookings", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ locale,
@@ -221,7 +223,7 @@ export default function CustomerRepeatBooking({ expectedKind }: { expectedKind: 
 
     {template.kind === "airport" && <div className="customer-repeat-payment">
       <h2>{t("Płatność")}</h2>
-      <label>{t("Sposób płatności")}<select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value as any)}><option value="cash">{t("Gotówka u kierowcy")}</option><option value="bank_transfer">{t("Przelew tradycyjny")}</option><option value="online">{t("Płatność online po potwierdzeniu")}</option></select></label>
+      <label>{t("Sposób płatności")}<select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value as any)}><option value="cash">{t("Gotówka u kierowcy")}</option><option value="online">{t("Płatność online po potwierdzeniu")}</option></select></label>
     </div>}
 
     <div className="customer-repeat-summary">

@@ -1,4 +1,8 @@
 "use client";
+import { customerFetch } from "@/lib/customerFetch";
+import { useCustomerLocale } from "@/lib/useCustomerLocale";
+import { companyText } from "@/lib/companyCopy";
+import { withCustomerLocale } from "@/lib/bookingLocale";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -9,6 +13,10 @@ function txt(value:any){
 }
 
 export default function CompanyEmployees({employees}:{employees:any[]}) {
+ const fetchCustomer=(input:RequestInfo|URL,init?:RequestInit)=>customerFetch(locale,input,init);
+  const locale=useCustomerLocale();
+  const t=(key:string)=>companyText(key,locale);
+  const href=(path:string)=>withCustomerLocale(path,locale);
   const safeEmployees = Array.isArray(employees)
     ? employees.filter(Boolean)
     : [];
@@ -18,30 +26,30 @@ export default function CompanyEmployees({employees}:{employees:any[]}) {
   const [saving,setSaving]=useState(false);
 
   async function add(){
-    if(!form.firstName||!form.lastName){setMessage("Podaj imię i nazwisko.");return}
+    if(!form.firstName||!form.lastName){setMessage(t("Podaj imię i nazwisko."));return}
     setSaving(true);
-    const r=await fetch("/api/company/employees",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"create",...form})});
+    const r=await fetchCustomer("/api/company/employees",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ locale,action:"create",...form})});
     const d=await r.json();
-    if(!r.ok){setMessage(d.error??"Błąd zapisu.");setSaving(false);return}
+    if(!r.ok){setMessage(d.error??t("Błąd zapisu."));setSaving(false);return}
     setForm({firstName:"",lastName:"",phone:"",email:"",defaultAddress:"",department:""});
-    setMessage("✓ Pracownik dodany.");setSaving(false);router.refresh();
+    setMessage(t("✓ Pracownik dodany."));setSaving(false);router.refresh();
   }
 
   async function toggle(id:string,active:boolean){
-    const r=await fetch("/api/company/employees",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"toggle",id,active:!active})});
-    const d=await r.json(); if(!r.ok){setMessage(d.error??"Błąd.");return} router.refresh();
+    const r=await fetchCustomer("/api/company/employees",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({ locale,action:"toggle",id,active:!active})});
+    const d=await r.json(); if(!r.ok){setMessage(d.error??t("Błąd."));return} router.refresh();
   }
 
   return <>
-    <div className="card"><h2>Dodaj pracownika</h2><div className="grid">
-      <label>Imię<input value={form.firstName} onChange={e=>setForm({...form,firstName:e.target.value})}/></label>
-      <label>Nazwisko<input value={form.lastName} onChange={e=>setForm({...form,lastName:e.target.value})}/></label>
-      <label>Telefon<input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/></label>
-      <label>E-mail<input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></label>
-      <label>Domyślny adres<input value={form.defaultAddress} onChange={e=>setForm({...form,defaultAddress:e.target.value})}/></label>
-      <label>Dział<input value={form.department} onChange={e=>setForm({...form,department:e.target.value})}/></label>
-    </div><button className="btn" style={{marginTop:16}} disabled={saving} onClick={add}>{saving?"ZAPISYWANIE...":"DODAJ PRACOWNIKA"}</button>{message&&<div className="admin-save-message">{message}</div>}</div>
-    <div className="card" style={{marginTop:18}}><h2>Pracownicy</h2><table className="table"><thead><tr><th>Pracownik</th><th>Kontakt</th><th>Dział</th><th>Adres</th><th>Status</th></tr></thead>
-    <tbody>{safeEmployees.map(x=><tr key={x.id}><td><strong>{txt(x.first_name)} {txt(x.last_name)}</strong></td><td>{txt(x.phone)||"—"}<br/><span className="muted">{txt(x.email)||"—"}</span></td><td>{txt(x.department)||"—"}</td><td>{txt(x.default_address)||"—"}</td><td><button className="btn secondary company-small-btn" onClick={()=>toggle(x.id,x.active)}>{x.active?"Aktywny":"Nieaktywny"}</button></td></tr>)}</tbody></table></div>
+    <div className="card"><h2>{t("Dodaj pracownika")}</h2><div className="grid">
+      <label>{t("Imię")}<input value={form.firstName} onChange={e=>setForm({...form,firstName:e.target.value})}/></label>
+      <label>{t("Nazwisko")}<input value={form.lastName} onChange={e=>setForm({...form,lastName:e.target.value})}/></label>
+      <label>{t("Telefon")}<input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/></label>
+      <label>{t("E-mail")}<input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></label>
+      <label>{t("Domyślny adres")}<input value={form.defaultAddress} onChange={e=>setForm({...form,defaultAddress:e.target.value})}/></label>
+      <label>{t("Dział")}<input value={form.department} onChange={e=>setForm({...form,department:e.target.value})}/></label>
+    </div><button className="btn" style={{marginTop:16}} disabled={saving} onClick={add}>{saving?t("ZAPISYWANIE..."):t("DODAJ PRACOWNIKA")}</button>{message&&<div className="admin-save-message">{message}</div>}</div>
+    <div className="card" style={{marginTop:18}}><h2>{t("Pracownicy")}</h2><table className="table"><thead><tr><th>{t("Pracownik")}</th><th>{t("Kontakt")}</th><th>{t("Dział")}</th><th>{t("Adres")}</th><th>{t("Status")}</th></tr></thead>
+    <tbody>{safeEmployees.map(x=><tr key={x.id}><td><strong>{txt(x.first_name)} {txt(x.last_name)}</strong></td><td>{txt(x.phone)||"—"}<br/><span className="muted">{txt(x.email)||"—"}</span></td><td>{txt(x.department)||"—"}</td><td>{txt(x.default_address)||"—"}</td><td><button className="btn secondary company-small-btn" onClick={()=>toggle(x.id,x.active)}>{x.active?t("Aktywny"):t("Nieaktywny")}</button></td></tr>)}</tbody></table></div>
   </>;
 }
