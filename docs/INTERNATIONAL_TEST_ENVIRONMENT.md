@@ -5,7 +5,7 @@
 - Organizacja wybrana przez użytkownika: **MATT TRANSPORT**.
 - Osobny projekt Supabase: `matt-booking-pro-test-pr48`, ref `ozeqdorryajfioxpufzb`, Frankfurt. Wycena utworzenia: **0 USD/miesiąc**. Nie zmieniono planu na Pro.
 - Projekt produkcyjny `bgmdyqulytluactkwnbn` nie jest bazą testową. Nie kopiowano danych klientów.
-- Odtworzono schemat z repozytorium, dodano dwie brakujące tabele push i założono wyłącznie fikcyjne konta oraz trzy rezerwacje oznaczone `E2E-TEST-*`.
+- Odtworzono schemat z repozytorium, dodano dwie brakujące tabele push i założono wyłącznie fikcyjne konta oraz trzy rezerwacje oznaczone `E2E-TEST-*`. Publiczny katalog lotnisk i cen zsynchronizowano z aktywnym katalogiem produkcyjnym; nie kopiowano rezerwacji, pracowników ani danych klientów.
 - W obu projektach Vercel skonfigurowano siedem zmiennych tylko dla Preview gałęzi `feature/international-booking-languages`: publiczny URL/anon testowego Supabase, `MATT_TEST_MODE=1`, ref testowego projektu i adresy podglądów Booking/Panel/App. Nie zmieniono zmiennych Production.
 
 ## Zabezpieczenia kodu
@@ -15,7 +15,7 @@
 - W test mode e-mail, push klienta/admina/kierowcy oraz synchronizacja Calendar są pomijane przed jakimkolwiek wywołaniem dostawcy. Wynik nie udaje wysłania wiadomości.
 - Interfejs pokazuje wyraźny komunikat testowy PL/EN/DE/CS. Linki testowych wiadomości i płatności prowadzą do Preview.
 - Migracja `restrict_booking_access` usuwa stare reguły odczytu wszystkich rezerwacji przez dowolne zalogowane konto. Firma widzi własne rezerwacje, kierowca przypisane kursy, pracownik MATT odpowiedni zakres operacyjny. Prywatne funkcje uprawnień sprawdzają wyłącznie tożsamość wywołującego i mają ustalony search_path; nie są publicznymi endpointami RPC.
-- Nowe migracje zastosowano dotychczas **wyłącznie do projektu testowego**. Przed migracją produkcji trzeba porównać aktualne polityki produkcyjne, wykonać cały scenariusz aplikacji i dopiero wtedy przeprowadzić kontrolowane wydanie.
+- Nowe migracje zastosowano dotychczas **wyłącznie do projektu testowego**. Metadane aktualnych polityk produkcyjnych porównano wyłącznie do odczytu i odpowiadają regułom zastępowanym przez migrację. Przed jej zastosowaniem trzeba wykonać cały scenariusz aplikacji i dopiero wtedy przeprowadzić kontrolowane wydanie.
 
 ## Rzeczywiste testy Auth / RLS
 

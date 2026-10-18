@@ -9,7 +9,9 @@ const {chromium,expect}=require('@playwright/test');
  const results=[];
  try{
   for(const mobile of [false,true]){
-   const context=await browser.newContext({viewport:mobile?{width:390,height:844}:{width:1440,height:1000},serviceWorkers:'block'});
+   // Only for a managed test proxy with a CA absent from Chromium's trust store.
+   // This opt-in checks application UI, not the deployment's certificate chain.
+   const context=await browser.newContext({viewport:mobile?{width:390,height:844}:{width:1440,height:1000},serviceWorkers:'block',ignoreHTTPSErrors:process.env.MATT_PREVIEW_PROXY_CERT_BYPASS==='1'});
    await context.route('**/*',route=>{
     const request=route.request(),url=new URL(request.url());
     if(url.origin!==origin||!['GET','HEAD'].includes(request.method()))return route.abort();
