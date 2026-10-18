@@ -23,6 +23,7 @@ require.extensions['.ts'] = function(module,filename){
 };
 const {resolveCustomerLocale,withCustomerLocale}=require('../lib/bookingLocale.ts');
 const {customerCopy}=require('../lib/customerCopy.ts');
+const {calculateQuote}=require('../lib/pricing.ts');
 const {customerUpdateText,quickSmsUrl,quickWhatsAppUrl}=require('../lib/customerNotifications.ts');
 const {localizedReceivedEmail}=require('../lib/localizedBookingEmails.ts');
 const {assignedEmail,adminNewBookingEmail}=require('../lib/emailTemplates.ts');
@@ -32,6 +33,12 @@ const {POST:checkout}=require('../app/api/payments/checkout/[token]/route.ts');
 const {POST:companyCheckout}=require('../app/api/payments/company-employee/[token]/route.ts');
 const base={id:'test-only',booking_number:'TEST-ONLY',customer_name:'<script>test</script>',customer_access_token:'test-token',pickup_address:'Radlin, Mariacka 9',airport_label:'Katowice-Pyrzowice',service_type:'roundtrip',travel_date:'2027-01-20',travel_time:'08:30',return_date:'2027-01-27',return_time:'14:55',passengers:8,vehicle_type:'bus',total_price:800,status:'confirmed',payment_status:'pending',payment_method:'online'};
 const kinds=['received','confirmed','assigned','reminder_24h','reminder_120','review_request','in_progress','arrived','completed','cancelled','flight_delay','flight_cancelled','flight_diverted'];
+
+test('fallback fare keeps current round-trip airport prices before the live catalog arrives',()=>{
+  const quote=airport=>calculateQuote({airport,serviceType:'roundtrip',vehicleType:airport==='balice'?'car':'bus',distanceKm:18.8,invoiceRequired:false});
+  assert.equal(quote('balice').totalPrice,780);
+  assert.equal(quote('pyrzowice').totalPrice,800);
+});
 
 test('legacy, invalid and unsupported locales fall back to Polish',()=>{
   for(const value of [null,undefined,'','cz','fr','EN',42,{},'<script>'])assert.equal(resolveCustomerLocale(value),'pl');

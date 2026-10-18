@@ -526,7 +526,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
         {additionalStopEnabled&&additionalStopAddress&&<div className="row"><span>{t("Dodatkowy przystanek")}</span><strong style={{textAlign:"right",maxWidth:"60%"}}>{additionalStopAddress}</strong></div>}
         {quote.stopFee>0&&<div className="row"><span>{t("Opłata za przystanek")}</span><strong>{quote.stopFee.toFixed(2)} zł</strong></div>}
         {quote.stopExtraKm>0&&<div className="row"><span>{t("Objazd poza trasą")}</span><strong>{quote.stopExtraKm.toFixed(1)} km · {quote.stopExtra.toFixed(2)} zł</strong></div>}
-        <div className="row"><span>VAT</span><strong>{quote.vat.toFixed(2)} zł</strong></div>
+        <div className="row"><span>{t("VAT")}</span><strong>{quote.vat.toFixed(2)} zł</strong></div>
         <div className="row"><span>{t("Płatność")}</span><strong>{paymentMethodText}</strong></div>
         <div className="row total"><span>{t("Razem")}</span><strong>{quote.total.toFixed(2)} zł</strong></div>
         <button className="btn" style={{width:"100%",marginTop:16}} disabled={saving||routeBusy} onClick={submit}>{saving?t("ZAPISYWANIE..."):routeBusy?t("OBLICZANIE TRASY..."):t("ZAREZERWUJ")}</button>
