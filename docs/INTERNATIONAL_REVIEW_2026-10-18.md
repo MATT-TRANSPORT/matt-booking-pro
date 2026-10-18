@@ -25,9 +25,10 @@
 | Playwright Chromium | 104/104 PASS, 36,6 s | PL/EN/DE/CS × desktop 1440×1000 i mobile 390×844; lokalne atrapy API oraz protokołu Supabase |
 | Rzeczywisty Supabase Auth/REST/RLS | 7/7 PASS | dwie firmy, driver, staff, anon; rozdzielenie danych, historia i blokady zapisu; wyłącznie izolowany projekt testowy |
 | Vercel Booking | BUILD PASS | kod `8f23c85` |
-| Vercel Panel | BUILD PASS | kod `8f23c85` |
+| Vercel Panel — wcześniejsze wdrożenia | KOREKTA wcześniejszego PASS | Zielony status obejmował pusty build (96 ms), bez kompilacji Next.js. Ujawniono to w logach 18.10 wieczorem. |
+| Vercel Panel — naprawiony build | PASS, 1m 9s | Preview `E7W3DHgaBuKEpxTzgngaMT3oFzmf`, kod `3a97fbd`; rzeczywista kompilacja Next.js, API lotnisk zwraca katalog 8 lotnisk. |
 | Odczyt UI podglądu Booking | 2/2 PASS | DE, desktop/mobile: HTTP 200, język, komunikat testowy, brak przelewu, brak błędów JS i przekroczenia szerokości; bez wysyłania formularza |
-| API cennika podglądu | BLOCKED / HTTP 500 | jednoznaczny błąd `Brak SUPABASE_SERVICE_ROLE_KEY` |
+| API cennika podglądu Booking | PASS — odczyt | W zalogowanej zdalnej przeglądarce API zwróciło katalog 8 lotnisk. Poprzedni błąd brakującego klucza już nie występuje. |
 
 Odczyt podglądu wykonano przez uwierzytelniony token Vercel ograniczony do jego origin. Lokalny zarządzany proxy ma CA nieobecne w Chromium; dla tego odczytu UI jawnie pominięto sprawdzanie łańcucha TLS. Nie jest to test certyfikatu domeny. Skrypt blokuje żądania zapisujące i zewnętrzne domeny.
 
@@ -36,16 +37,17 @@ Nie utworzono prawdziwych rezerwacji, nie pobrano płatności i nie wysłano wia
 ## Podglądy i kompilacje
 
 - [Booking — podgląd testowy](https://matt-booking-pro-git-feature-internationa-67b25c-matt-transport.vercel.app)
+- [Panel — naprawione wdrożenie Preview](https://vercel.com/matt-transport/matt-booking-pro1/E7W3DHgaBuKEpxTzgngaMT3oFzmf)
 - [Panel — podgląd testowy](https://matt-booking-pro1-git-feature-internation-bf0d83-matt-transport.vercel.app)
 - [Booking — zweryfikowana kompilacja 8f23c85](https://vercel.com/matt-transport/matt-booking-pro/6NzTrJ2moGbTDGhF1Zv5auzLHM5v)
-- [Panel — zweryfikowana kompilacja 8f23c85](https://vercel.com/matt-transport/matt-booking-pro1/DKSAoNWwXaWHZkCaxMwFsNQHqrPA)
+- [Panel — wcześniejszy pusty build 8f23c85 (korekta wyniku)](https://vercel.com/matt-transport/matt-booking-pro1/DKSAoNWwXaWHZkCaxMwFsNQHqrPA)
 - [Aktualne statusy PR](https://github.com/MATT-TRANSPORT/matt-booking-pro/pull/48/checks)
 
-Publiczne zmienne nowej bazy i test mode są ustawione w Preview obu projektów, tylko dla tej gałęzi. Nie zmieniono konfiguracji Production. Poprzedni błąd middleware został usunięty; pełny przepływ zatrzymuje teraz brak prywatnego klucza backendu.
+Publiczne zmienne nowej bazy i test mode są ustawione w Preview obu projektów, tylko dla tej gałęzi. Nie publikowano nowej wersji Production. Wieczorem potwierdzono w panelu Vercel obecność Secret `SUPABASE_SERVICE_ROLE_KEY` i `STRIPE_SECRET_KEY` w obu projektach, przypisanych do Preview tej gałęzi; nie odczytywano ich wartości. W projekcie `matt-booking-pro1` wykryto pusty Build Command i ustawiono jawnie `npm run build`; zmiana dotyczy przyszłych kompilacji projektu, istniejące wdrożenie produkcyjne pozostaje bez zmian. Nowa kompilacja Preview `E7W3DHgaBuKEpxTzgngaMT3oFzmf` zakończyła się statusem Ready po 1m 9s; API lotnisk sprawdzono w zalogowanej zdalnej przeglądarce i zwróciło dane. Nie wyłączono ochrony wdrożeń i nie utworzono nowych sekretów automatyzacji. Odczyt formularza aplikacji w tej przeglądarce został ograniczony przez ochronę pól uwierzytelniania; pełne E2E nadal nie zostało wykonane.
 
 ## Co blokuje produkcję
 
-1. Prywatny klucz **nowej bazy testowej** `SUPABASE_SERVICE_ROLE_KEY` w Preview obu projektów. Integracja Supabase udostępnia klucze publiczne, nie backendowy sekret.
+1. Potwierdzenie poprawności wartości i rzeczywistego działania obu konfiguracji Preview. Klucze są obecne w obu projektach, a Booking odczytuje katalog lotnisk; nie dowodzi to jeszcze poprawności Stripe ani pełnego przepływu zapisu.
 2. Klucz Stripe test oraz sekret testowego webhooka, poprawny dostęp webhooka przez Deployment Protection i pełna płatność testowa z aktualizacją statusu oraz idempotencją.
 3. Pełny zapis B2C/B2B/Wedding/Transport pozostały z podglądu, oba odcinki, portal, powtórzenia i walidacja przez rzeczywistą bazę. Obecne testy Auth/RLS i UI nie zastępują tego scenariusza.
 4. Kontrolowane dostarczanie e-mail/SMS/push oraz Safari/iOS. Test mode celowo nie wysyła wiadomości.
