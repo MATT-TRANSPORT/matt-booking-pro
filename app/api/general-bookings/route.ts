@@ -1,5 +1,6 @@
+import { bookingDateTime } from "@/lib/bookingDateTime";
 import { bookingOrigin } from "@/lib/bookingOrigin";
-import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
+import { customerJson, requestCustomerLocale, readCustomerBody } from "@/lib/customerErrors";
 import { resolveCustomerLocale } from "@/lib/localizedBookingEmails";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -29,8 +30,10 @@ function vehicleLabel(value: string) {
 export async function POST(req: NextRequest) {
   let responseLocale=requestCustomerLocale(req);
   const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
-  const body = await req.json();
- responseLocale=requestCustomerLocale(req,body?.locale);
+  const parsed = await readCustomerBody(req);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.body;
+  responseLocale = parsed.locale;
   const locale = resolveCustomerLocale(body.locale);
   const copy = {
     pl:{subject:"Przyjęliśmy zapytanie o transport",title:"Zapytanie przyjęte",intro:"Dziękujemy. Przygotujemy indywidualną wycenę transportu.",open:"OTWÓRZ REZERWACJĘ",people:"os."},
@@ -60,17 +63,20 @@ export async function POST(req: NextRequest) {
     return json({ error: ({pl:"Podaj datę i godzinę powrotu.",en:"Please enter your return date and time.",de:"Bitte geben Sie Datum und Uhrzeit der Rückfahrt ein.",cs:"Zadejte datum a čas návratu."}[locale]) }, { status: 400 });
   }
 
-  const when = new Date(`${travelDate}T${travelTime}`);
-  if (!Number.isFinite(when.getTime()) || when.getTime() - Date.now() < 24 * 3600 * 1000) {
+  const when = bookingDateTime(travelDate, travelTime);
+  if (!when || when.getTime() - Date.now() < 24 * 3600 * 1000) {
     return json({ error: ({pl:"Rezerwacja online wymaga minimum 24 godzin wyprzedzenia. W pilnej sprawie zadzwoń: +48 691 242 691",en:"Online requests require at least 24 hours' notice. For urgent bookings call: +48 691 242 691",de:"Online-Anfragen erfordern mindestens 24 Stunden Vorlauf. Bei dringenden Buchungen: +48 691 242 691",cs:"Online poptávky vyžadují alespoň 24 hodin předem. Naléhavé objednávky: +48 691 242 691"}[locale]) }, { status: 400 });
   }
   if (roundtrip) {
-    const back = new Date(`${returnDate}T${returnTime}`);
-    if (!Number.isFinite(back.getTime()) || back.getTime() <= when.getTime()) {
+    const back = bookingDateTime(returnDate, returnTime);
+    if (!back || back.getTime() <= when.getTime()) {
       return json({ error: ({pl:"Termin powrotu musi być późniejszy niż wyjazd.",en:"Return must be after departure.",de:"Die Rückfahrt muss nach der Hinfahrt liegen.",cs:"Návrat musí být později než odjezd."}[locale]) }, { status: 400 });
     }
   }
 
+  if (body.passengers !== undefined && (!Number.isInteger(Number(body.passengers)) || Number(body.passengers) < 1 || Number(body.passengers) > 30)) {
+    return json({ error: "Nieprawidłowe dane formularza." }, { status: 400 });
+  }
   let route;
   try {
     route = await shortestDrivingRouteKm(origin, destination);

@@ -70,3 +70,10 @@ Przed wdrożeniem nowego webhooka zastosować `supabase/migrations/2026101818400
 Webhook: 17/17 podpisanych testów lokalnych. Dodatkowo `tests/stripe-payment-transaction.sql` przeszedł w izolowanym PostgreSQL; wszystkie zapisy danych wycofano. Migracje `20261018184000_stripe_webhook_claims.sql` i `20261018184521_stripe_payment_audit_transaction.sql` są zastosowane wyłącznie w TEST i muszą poprzedzać nowe wdrożenie webhooka na produkcji. Druga funkcja jest `SECURITY INVOKER`, bez EXECUTE dla PUBLIC/anon/authenticated, z EXECUTE dla service_role.
 
 Nie potwierdzono jeszcze niezawodności dostarczenia powiadomień po awarii procesu. Nie ma pełnego outboxa. Obie kompilacje Vercel `c8b6e86` przeszły; zmiana transakcji wymaga kolejnych buildów. Produkcja bez zmian.
+
+
+### Testy API i zgodności ze schematem
+
+`npm run test:bookings:api` sprawdza rzeczywiste handlery B2C/B2B/Wedding/General z lokalnymi atrapami bazy, tras i wysyłki. Eksport 16 payloadów: ustawić `MATT_BOOKING_CONTRACT_FILE` na ścieżkę poza repo i uruchomić ten test. `node tests/booking-contract-sql.cjs <ścieżka>` generuje rollback-only SQL do wykonania WYŁĄCZNIE w projekcie `ozeqdorryajfioxpufzb`. Sprawdzono rzeczywiste constraints, customer_locale, return_date, kwoty i sloty weselne. Nie jest to E2E HTTP Preview.
+
+Rozszerzono `test:international:rls` o odrzucenie RPC `settle_customer_stripe_payment` przez klientów REST anon/company/driver/staff. Żaden test nie wymaga wyłączania RLS ani przyznawania praw klientom.

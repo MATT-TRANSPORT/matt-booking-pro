@@ -27,3 +27,15 @@ export function customerJson(locale:unknown,payload:any,init?:ResponseInit) {
  }
  return NextResponse.json(payload,init);
 }
+
+/** Reject malformed request bodies before opening a privileged database client. */
+export async function readCustomerBody(req: any) {
+ let body: unknown;
+ try { body = await req.json(); } catch { body = null; }
+ if (!body || typeof body !== "object" || Array.isArray(body)) {
+  return { ok: false as const, response: customerJson(requestCustomerLocale(req),
+   { error: "Nieprawidłowe dane formularza." }, { status: 400 }) };
+ }
+ const locale = requestCustomerLocale(req, (body as Record<string, unknown>).locale);
+ return { ok: true as const, body: { ...body, locale } as Record<string, any>, locale };
+}

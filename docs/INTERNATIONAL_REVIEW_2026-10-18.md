@@ -21,16 +21,26 @@ Dalsza regresja odtworzyła brak atomowości: awaria historii po zapisie `paid` 
 
 Brak utrwalonej kolejki ponowień powiadomień pozostaje ograniczeniem: awaria procesu po zatwierdzeniu płatności może przerwać wysłanie potwierdzenia. Testy transakcji nie dowodzą niezawodnego dostarczenia e-mail/push ani pełnej atomowości innych rodzajów płatności.
 
+## Dalsze testy API i kontraktów danych — 18.10 wieczorem
+
+- Dodano 85 bezpośrednich testów rzeczywistych handlerów API z lokalnymi atrapami zależności. Początkowy zestaw 69 testów wykazał 44 niepowodzenia w trzech grupach: błędne JSON/non-object kończyły się wyjątkiem, język z nagłówka/linku ginął przy zapisie oraz brakowało walidacji terminów B2B. Testy liczby pasażerów i pojazdów weselnych odtworzyły kolejne braki walidacji.
+- Wszystkie cztery handlery B2C/B2B/Wedding/Transport pozostały używają wspólnego odczytu obiektu JSON i jednego rozstrzygniętego języka. Nieprawidłowe żądania zwracają 400 w PL/EN/DE/CS. B2B sprawdza terminy przed utworzeniem pracownika/rezerwacji; pasażerowie muszą stanowić całkowitą liczbę w zakresie formularza, pojazdy weselne 1–20. Wspólny parser dat odrzuca m.in. 31 lutego i godzinę 99:00.
+- Dane 16 poprawnych żądań (4 typy × 4 języki) z tych handlerów poddano rzeczywistym INSERT w izolowanym PostgreSQL, sprawdzając constraints, język, powrót i kwoty oraz sloty pojazdów weselnych. Cała transakcja została wycofana. Generator powtarzalnego sprawdzenia: `tests/booking-contract-sql.cjs`, wejście eksportowane przez `MATT_BOOKING_CONTRACT_FILE` w testach API. To **nie** jest test HTTP podglądu ani rzeczywistego PostgREST z kluczem serwerowym.
+- Zdalna przeglądarka ponownie odmówiła obserwacji formularza ochroną danych uwierzytelniających, również po otwarciu nowego dokumentu zgodnie z instrukcją narzędzia. Nie ponawiano logowania ani nie wyłączono ochrony.
+- Dodano test rzeczywistego REST potwierdzający brak prawa wywołania funkcji rozliczenia Stripe przez anon, firmy, kierowcę i staff. Test Auth/REST/RLS: 8/8 PASS; lokalny Next.js build i TypeScript: PASS. Końcowe wyniki obu buildów Vercel po tej zmianie są publikowane w opisie PR.
+
 ## Zweryfikowane wyniki
 
 | Kontrola | Wynik | Zakres i granice |
 |---|---|---|
 | TypeScript | PASS | aktualny kod |
 | Lokalny Next.js build | PASS | konfiguracja lokalnego serwera testowego, bez danych produkcyjnych |
+| Handlery API rezerwacji | 85/85 PASS | rzeczywiste POST, lokalne atrapy zależności; język w body/nagłówku/URL, błędny JSON, terminy B2B, daty kalendarzowe, liczby pasażerów/pojazdów |
+| Kontrakty zapisu w PostgreSQL | 16/16 PASS | 4 typy × 4 języki; rzeczywiste INSERT wygenerowanych danych i rollback; bez HTTP Preview |
 | Testy logiki | 68/68 PASS | języki, linki, wiadomości, walidacja, Checkout i zabezpieczenia test mode |
-| Playwright Chromium | 104/104 PASS, 56,9 s | PL/EN/DE/CS × desktop 1440×1000 i mobile 390×844; lokalne atrapy API oraz protokołu Supabase |
+| Playwright Chromium | 104/104 PASS, 53,5 s | PL/EN/DE/CS × desktop 1440×1000 i mobile 390×844; lokalne atrapy API oraz protokołu Supabase |
 | Podpisany webhook Stripe (lokalnie) | 17/17 PASS | Rzeczywista weryfikacja podpisu SDK, atrapa PostgREST; ponowienia, współbieżność, błędy bazy, waluta, tryb test/live i spóźnione zdarzenia. Bez połączenia do Stripe. |
-| Rzeczywisty Supabase Auth/REST/RLS | 7/7 PASS | dwie firmy, driver, staff, anon; rozdzielenie danych, historia i blokady zapisu; wyłącznie izolowany projekt testowy |
+| Rzeczywisty Supabase Auth/REST/RLS | 8/8 PASS | dwie firmy, driver, staff, anon; rozdzielenie danych, historia i blokady zapisu; wyłącznie izolowany projekt testowy |
 | Vercel Booking | BUILD PASS | kod `c8b6e86`, wdrożenie `9bf956GaWqSNCB3AEZgHiX97v96p` |
 | Vercel Panel — wcześniejsze wdrożenia | KOREKTA wcześniejszego PASS | Zielony status obejmował pusty build (96 ms), bez kompilacji Next.js. Ujawniono to w logach 18.10 wieczorem. |
 | Vercel Panel — naprawiony build | BUILD PASS | kod `c8b6e86`, wdrożenie `Gg29aXS3Uth9VMA53q8JZhdkmed8`. Poprzednią naprawę potwierdzał rzeczywisty build Next.js `E7W3DHgaBuKEpxTzgngaMT3oFzmf` (1m 9s), API 8 lotnisk. |

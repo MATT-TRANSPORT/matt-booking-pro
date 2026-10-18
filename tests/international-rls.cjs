@@ -49,3 +49,13 @@ test('booking history follows the same company boundary',async()=>{
   const {data,error}=await clients[role].from('booking_history').select('event').eq('event','E2E TEST ONLY');assert.equal(error,null);assert.equal(data.length,1);assert.equal(data[0].event,'E2E TEST ONLY');
  }
 });
+test('anonymous, company, driver and staff REST clients cannot execute server-only Stripe settlement',async()=>{
+ for(const client of [anon,...Object.values(clients)]){
+  const {error}=await client.rpc('settle_customer_stripe_payment',{
+   p_booking_id:'1acca7ba-1a33-45fc-b24f-2db775edbcf4',
+   p_checkout_session_id:'cs_test_forbidden',p_payment_intent_id:'pi_test_forbidden',
+   p_amount_cents:80000,p_currency:'pln',p_expected_status:'pending'
+  });
+  assert.equal(error?.code,'42501','Client must never have settlement privileges');
+ }
+});

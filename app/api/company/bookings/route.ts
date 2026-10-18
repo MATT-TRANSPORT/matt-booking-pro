@@ -1,4 +1,5 @@
-import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
+import { bookingDateTime } from "@/lib/bookingDateTime";
+import { customerJson, requestCustomerLocale, readCustomerBody } from "@/lib/customerErrors";
 import { resolveCustomerLocale } from "@/lib/bookingLocale";
 import { localizedReceivedEmail } from "@/lib/localizedBookingEmails";
 import { NextRequest, NextResponse } from "next/server";
@@ -32,8 +33,29 @@ export async function POST(req: NextRequest) {
     return json({ error: "Brak przypisanej firmy." }, { status: 403 });
   }
 
-  const body = await req.json();
- responseLocale=requestCustomerLocale(req,body?.locale);
+  const parsed = await readCustomerBody(req);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.body;
+  responseLocale = parsed.locale;
+  if (!body.address || !body.airport || !body.travelDate || !body.travelTime) {
+    return json({ error: "Uzupełnij wymagane pola." }, { status: 400 });
+  }
+  const departure = bookingDateTime(body.travelDate, body.travelTime);
+  if (!departure) {
+    return json({ error: "Podaj prawidłowy termin wyjazdu." }, { status: 400 });
+  }
+  if (body.serviceType === "roundtrip") {
+    if (!body.returnDate || !body.returnTime) {
+      return json({ error: "Dla przejazdu w obie strony podaj datę i godzinę powrotu." }, { status: 400 });
+    }
+    const back = bookingDateTime(body.returnDate, body.returnTime);
+    if (!back || back.getTime() <= departure.getTime()) {
+      return json({ error: "Termin powrotu musi być późniejszy niż wyjazd." }, { status: 400 });
+    }
+  }
+  if (body.passengers !== undefined && (!Number.isInteger(Number(body.passengers)) || Number(body.passengers) < 1 || Number(body.passengers) > 8)) {
+    return json({ error: "Nieprawidłowe dane formularza." }, { status: 400 });
+  }
   const admin = createAdminClient();
 
   let employee: any = null;

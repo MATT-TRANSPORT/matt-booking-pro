@@ -1,4 +1,5 @@
-import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
+import { bookingDateTime } from "@/lib/bookingDateTime";
+import { customerJson, requestCustomerLocale, readCustomerBody } from "@/lib/customerErrors";
 import { customerText } from "@/lib/customerCopy";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -50,11 +51,16 @@ function validFunnelSessionId(value: unknown) {
 export async function POST(req: NextRequest) {
   let responseLocale=requestCustomerLocale(req);
   const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
-  const body = await req.json();
- responseLocale=requestCustomerLocale(req,body?.locale);
+  const parsed = await readCustomerBody(req);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.body;
+  responseLocale = parsed.locale;
   const t = (key: string) => customerText(key, body.locale);
   if (body.paymentMethod && !["cash", "online"].includes(body.paymentMethod)) {
     return json({ error: "Dla rezerwacji indywidualnych wybierz gotówkę lub płatność online." }, { status: 400 });
+  }
+  if (!Number.isInteger(Number(body.passengers)) || Number(body.passengers) < 1 || Number(body.passengers) > 8) {
+    return json({ error: "Nieprawidłowe dane formularza." }, { status: 400 });
   }
   const supabase = createAdminClient();
 
@@ -97,11 +103,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const when = new Date(
-    `${body.travelDate}T${body.travelTime}`
-  );
+  const when = bookingDateTime(body.travelDate, body.travelTime);
 
-  if (!Number.isFinite(when.getTime())) {
+  if (!when) {
     return json(
       { error: t("Podaj prawidłowy termin wyjazdu.") },
       { status: 400 }
@@ -116,8 +120,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const back = new Date(`${body.returnDate}T${body.returnTime}`);
-    if (!Number.isFinite(back.getTime()) || back.getTime() <= when.getTime()) {
+    const back = bookingDateTime(body.returnDate, body.returnTime);
+    if (!back || back.getTime() <= when.getTime()) {
       return json(
         { error: t("Termin powrotu musi być późniejszy niż wyjazd.") },
         { status: 400 }

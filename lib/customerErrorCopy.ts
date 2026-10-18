@@ -1,4 +1,5 @@
 export const customerErrorCopy:Record<string,[string,string,string]> = {
+ "Nieprawidłowe dane formularza.": ["Invalid form data.", "Ungültige Formulardaten.", "Neplatné údaje formuláře."],
   "Podaj punkt A i punkt B.": [
     "Enter pickup and destination locations.",
     "Geben Sie Abhol- und Zielort an.",

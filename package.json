@@ -9,7 +9,8 @@
     "test:international": "node --test tests/international.test.cjs",
     "test:international:browser": "playwright test",
     "test:international:rls": "node --test tests/international-rls.cjs",
-    "test:payments:webhook": "node --test tests/stripe-webhook.test.cjs"
+    "test:payments:webhook": "node --test tests/stripe-webhook.test.cjs",
+    "test:bookings:api": "node --test tests/customer-booking-api.test.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
