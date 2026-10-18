@@ -36,11 +36,11 @@ MATT_E2E_USERS_FILE=/bezpieczna/sciezka/users.json \
 NODE_USE_ENV_PROXY=1 npm run test:international:rls
 ```
 
-## Brakujące prywatne ustawienia
+## Prywatne ustawienia — status wieczorem 18.10.2026
 
 Publiczny klucz anon nie zastępuje klucza serwera. Integracja Supabase udostępnia publiczne klucze; nie udostępnia service_role nowego projektu ani kluczy Stripe.
 
-W obu projektach Vercel (`matt-booking-pro`, `matt-booking-pro1`), w **Preview tylko dla gałęzi `feature/international-booking-languages`**, trzeba ustawić jako Secret:
+W obu projektach Vercel (`matt-booking-pro`, `matt-booking-pro1`) potwierdzono obecność Secret `SUPABASE_SERVICE_ROLE_KEY` i `STRIPE_SECRET_KEY` w **Preview dla gałęzi `feature/international-booking-languages`**. Wartości nie odczytywano; API katalogu lotnisk działa w obu projektach. Osobny testowy webhook i autentyczna płatność pozostają do skonfigurowania i sprawdzenia. Docelowe ustawienia:
 
 | Nazwa | Źródło |
 |---|---|
@@ -57,3 +57,9 @@ Wysyłka powiadomień jest celowo wyłączona w tym środowisku. Rzeczywiste dos
 ## Wydanie
 
 PR pozostaje roboczy do zaliczenia pełnego przepływu z usługami. Zielony build, poprawny Auth/RLS i testy lokalne nie zastępują płatności Stripe test z webhookiem ani smoke testu produkcji. Produkcji nie opublikowano.
+
+## Regresje webhooka Stripe
+
+`npm run test:payments:webhook` uruchamia 16 testów z prawdziwymi podpisami generowanymi przez SDK Stripe i lokalną atrapą PostgREST. Nie łączy się z dostawcami ani nie używa rzeczywistych kluczy. Testy obejmują duplikaty i równoczesne zdarzenia, błędy zapisu i retry, odzyskanie przejęcia po przerwanym procesie, walutę PLN, rozdzielenie test/live oraz spóźnione sukcesy/błędy po rozliczeniu lub zwrocie.
+
+Przed wdrożeniem nowego webhooka zastosować `supabase/migrations/20261018184000_stripe_webhook_claims.sql`. Dodaje wyłącznie `processing_started_at` w dzienniku zdarzeń. W bazie testowej już zastosowano i zweryfikowano. Proces ma limit 300 s, a ponowne przejęcie przerwanego zadania jest możliwe po 10 minutach; aktywny duplikat otrzymuje 503, aby Stripe ponowił dostarczenie. To nie zastępuje testu autentycznego dostarczenia przez Stripe ani testów awarii dostawców wiadomości.
