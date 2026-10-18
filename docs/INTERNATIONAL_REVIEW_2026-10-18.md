@@ -19,7 +19,7 @@
 
 Dalsza regresja odtworzyła brak atomowości: awaria historii po zapisie `paid` pozostawiała brakujący audyt. Migracja `20261018184521_stripe_payment_audit_transaction.sql` łączy zapis stanu i historii w transakcję `SECURITY INVOKER`, dostępną wyłącznie dla `service_role`. Zastosowana tylko w bazie testowej; wymagana przed wdrożeniem webhooka. Test SQL `tests/stripe-payment-transaction.sql` potwierdził uprawnienia, walutę, kwotę, zapis, rollback, odrzucenie nieaktualnego przejścia i ochronę zwrotu, po czym wycofał wszystkie zmiany danych.
 
-Brak utrwalonej kolejki ponowień powiadomień pozostaje ograniczeniem: awaria procesu po zatwierdzeniu płatności może przerwać wysłanie potwierdzenia. Testy transakcji nie dowodzą niezawodnego dostarczenia e-mail/push ani pełnej atomowości innych rodzajów płatności.
+Dalsza poprawka opisana niżej dodaje trwałą kolejkę dla potwierdzeń klienckiego Stripe Checkout B2C/B2B. Nie obejmuje wszystkich innych powiadomień, płatności panelowych/terminalowych ani zwrotów; rzeczywiste dostarczenie nadal wymaga testów dostawców.
 
 ## Dalsze testy API i kontraktów danych — 18.10 wieczorem
 
@@ -28,6 +28,18 @@ Brak utrwalonej kolejki ponowień powiadomień pozostaje ograniczeniem: awaria p
 - Dane 16 poprawnych żądań (4 typy × 4 języki) z tych handlerów poddano rzeczywistym INSERT w izolowanym PostgreSQL, sprawdzając constraints, język, powrót i kwoty oraz sloty pojazdów weselnych. Cała transakcja została wycofana. Generator powtarzalnego sprawdzenia: `tests/booking-contract-sql.cjs`, wejście eksportowane przez `MATT_BOOKING_CONTRACT_FILE` w testach API. To **nie** jest test HTTP podglądu ani rzeczywistego PostgREST z kluczem serwerowym.
 - Zdalna przeglądarka ponownie odmówiła obserwacji formularza ochroną danych uwierzytelniających, również po otwarciu nowego dokumentu zgodnie z instrukcją narzędzia. Nie ponawiano logowania ani nie wyłączono ochrony.
 - Dodano test rzeczywistego REST potwierdzający brak prawa wywołania funkcji rozliczenia Stripe przez anon, firmy, kierowcę i staff. Test Auth/REST/RLS: 8/8 PASS; lokalny Next.js build i TypeScript: PASS. Końcowe wyniki obu buildów Vercel po tej zmianie są publikowane w opisie PR.
+
+## Trwałe potwierdzenia Checkout — 18.10, późny wieczór
+
+- Migracje `20261018202019_payment_notification_outbox.sql` i `20261018202900_payment_outbox_rollout_guard.sql` zastosowano **wyłącznie w TEST**. Nowy wersjonowany RPC rozlicza płatność/historię i atomowo tworzy zadania e-mail klienta/firmy oraz push administratora. Trigger jest wyłączony dla starej ścieżki wysyłającej inline, co chroni przed podwójnymi potwierdzeniami podczas etapowanego wdrażania obu projektów. Obie migracje muszą poprzedzać nowe wdrożenie.
+- Kolejkę i funkcje przejmowania może czytać/uruchamiać wyłącznie `service_role`; payload zawiera zapisany język i stan rezerwacji. Dla B2B odbiorcą jest administrator firmy. Przejęcie zadań używa `FOR UPDATE SKIP LOCKED`, blokady na 10 minut i tokenu odcinającego stary proces; pojedynczy worker ma limit 300 sekund.
+- Pełne body Resend zostaje zapisane przed pierwszą próbą i jest ponawiane z tym samym kluczem. Żądanie ma timeout 15 sekund. Błędy przejściowe dostają opóźnione ponowienie; błędy trwałe, wyczerpanie 10 prób lub niepewne dostarczenie po 23 godzinach trafiają do `needs_attention`, zamiast ryzykować nową kopię po wygaśnięciu klucza u dostawcy. To nie jest gwarancja dostarczenia do skrzynki odbiorczej.
+- Push ma semantykę co najmniej jednej próby dostarczenia, stabilny tag i wyłączone ponowne alarmowanie. Częściowe błędy mogą ponowić żądanie do działających subskrypcji; nie deklarujemy dokładnie jednego dostarczenia Web Push. Brak subskrypcji to `skipped`, nie fałszywy sukces.
+- Worker działa po webhooku i w obu istniejących cron handlerach. Produkcyjne metadane harmonogramu sprawdzono wyłącznie do odczytu: `matt-customer-notifications-15m` jest aktywny, `*/15 * * * *`, wywołuje `/api/cron/operations-plus`. Nie uruchamiano produkcyjnego zadania testowo i nie modyfikowano produkcji.
+- 18/18 testów worker/Resend/crona i tekstu e-maila z atrapą HTTP oraz 18/18 podpisanych testów webhooka: PASS. Test prawdziwego PostgreSQL potwierdził kolejkę w tej samej transakcji, rollback, przejęcia i odcięcie starego tokenu, brak kolejkowania ze starej ścieżki oraz odbiorcę B2B. Rekordy wycofano. Test mode blokuje dostawców i przejmowanie kolejki przed wywołaniami.
+- Naprawiono konwersję HTML do tekstu: podwójne escapowanie regexów usuwało małe litery „t” i gubiło adresy linków. Test potwierdza czytelny tekst i pełny link do portalu.
+- Rozszerzony Auth/REST/RLS: 9/9 PASS, także brak dostępu klientów/staff do payloadów i funkcji kolejki. Lokalna kompilacja i TypeScript: PASS.
+- Kontrola bezpieczeństwa Supabase nie wykazała nowych ERROR. Pozostały wcześniejsze WARN dotyczące legacy funkcji weselnej, pg_net i ochrony haseł oraz INFO dla prywatnych tabel RLS obsługiwanych serwerowo.
 
 ## Zweryfikowane wyniki
 
@@ -39,8 +51,9 @@ Brak utrwalonej kolejki ponowień powiadomień pozostaje ograniczeniem: awaria p
 | Kontrakty zapisu w PostgreSQL | 16/16 PASS | 4 typy × 4 języki; rzeczywiste INSERT wygenerowanych danych i rollback; bez HTTP Preview |
 | Testy logiki | 68/68 PASS | języki, linki, wiadomości, walidacja, Checkout i zabezpieczenia test mode |
 | Playwright Chromium | 104/104 PASS, 53,5 s | PL/EN/DE/CS × desktop 1440×1000 i mobile 390×844; lokalne atrapy API oraz protokołu Supabase |
-| Podpisany webhook Stripe (lokalnie) | 17/17 PASS | Rzeczywista weryfikacja podpisu SDK, atrapa PostgREST; ponowienia, współbieżność, błędy bazy, waluta, tryb test/live i spóźnione zdarzenia. Bez połączenia do Stripe. |
-| Rzeczywisty Supabase Auth/REST/RLS | 8/8 PASS | dwie firmy, driver, staff, anon; rozdzielenie danych, historia i blokady zapisu; wyłącznie izolowany projekt testowy |
+| Kolejka potwierdzeń Checkout | 18/18 PASS | symulowane HTTP Resend, awarie/ponowienia/współbieżność i tryb testowy; bez wysłania e-maila |
+| Podpisany webhook Stripe (lokalnie) | 18/18 PASS | Rzeczywista weryfikacja podpisu SDK, atrapa PostgREST; ponowienia, współbieżność, błędy bazy, waluta, tryb test/live i spóźnione zdarzenia. Bez połączenia do Stripe. |
+| Rzeczywisty Supabase Auth/REST/RLS | 9/9 PASS | dwie firmy, driver, staff, anon; rozdzielenie danych, historia i blokady zapisu; wyłącznie izolowany projekt testowy |
 | Vercel Booking | BUILD PASS | kod `c8b6e86`, wdrożenie `9bf956GaWqSNCB3AEZgHiX97v96p` |
 | Vercel Panel — wcześniejsze wdrożenia | KOREKTA wcześniejszego PASS | Zielony status obejmował pusty build (96 ms), bez kompilacji Next.js. Ujawniono to w logach 18.10 wieczorem. |
 | Vercel Panel — naprawiony build | BUILD PASS | kod `c8b6e86`, wdrożenie `Gg29aXS3Uth9VMA53q8JZhdkmed8`. Poprzednią naprawę potwierdzał rzeczywisty build Next.js `E7W3DHgaBuKEpxTzgngaMT3oFzmf` (1m 9s), API 8 lotnisk. |

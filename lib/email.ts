@@ -1,6 +1,7 @@
 import { isTestEnvironment } from "@/lib/testEnvironment";
 import { emailTrustNotice } from "@/lib/emailTrustNotice";
-type MailPayload = {
+export type MailResult = { sent: boolean; skipped: boolean; retryable?: boolean; id?: string | null; error?: string };
+export type MailPayload = {
   locale?: unknown;
   to: string | string[];
   subject: string;
@@ -10,7 +11,7 @@ type MailPayload = {
 
 function htmlToText(html: string) {
   return html
-    .replace(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\\s\\S]*?)<\/a>/gi, "$2 ($1)")
+    .replace(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, "$2 ($1)")
     .replace(/<br\s*\/?>(?=\s*)/gi, "\n")
     .replace(/<\/p>|<\/div>|<\/h[1-6]>/gi, "\n")
     .replace(/<[^>]+>/g, "")
@@ -20,9 +21,9 @@ function htmlToText(html: string) {
     .replace(/&gt;/gi, ">")
     .replace(/&quot;/gi, '"')
     .replace(/&#039;/gi, "'")
-    .replace(/\\n\\s*\\n\\s*\\n+/g, "\n\n")
-    .replace(/[ \\t]+/g, " ")
-    .replace(/ *\\n */g, "\n")
+    .replace(/\n\s*\n\s*\n+/g, "\n\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/ *\n */g, "\n")
     .trim();
 }
 
@@ -45,7 +46,8 @@ function normalizeRecipients(
 
 async function postResend(
   apiKey: string,
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
+  idempotencyKey?: string
 ) {
   try {
     const response = await fetch(
@@ -54,10 +56,12 @@ async function postResend(
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {})
         },
         body: JSON.stringify(body),
-        cache: "no-store"
+        cache: "no-store",
+        signal: AbortSignal.timeout(15000)
       }
     );
 
@@ -83,39 +87,19 @@ async function postResend(
   }
 }
 
-export async function sendMattEmail(
-  payload: MailPayload
-) {
-  if (isTestEnvironment()) return { sent: false, skipped: true, error: "Test environment: email delivery disabled" };
-  const apiKey = process.env.RESEND_API_KEY;
-
-  if (!apiKey) {
-    return {
-      sent: false,
-      skipped: true,
-      error: "Brak RESEND_API_KEY"
-    };
-  }
-
+/** Freeze the exact provider request before sending an outbox item. */
+export function prepareMattEmail(payload: MailPayload): Record<string, unknown> {
   const recipients =
     normalizeRecipients(payload.to);
 
   if (!recipients.length) {
-    return {
-      sent: false,
-      skipped: true,
-      error: "Brak adresu e-mail odbiorcy."
-    };
+    throw new Error("Brak adresu e-mail odbiorcy.");
   }
 
   const from = MATT_EMAIL_FROM;
 
   if (!payload.html && !payload.text) {
-    return {
-      sent: false,
-      skipped: true,
-      error: "Brak treści wiadomości."
-    };
+    throw new Error("Brak treści wiadomości.");
   }
 
   const messageBody: Record<string, unknown> = {
@@ -138,25 +122,24 @@ export async function sendMattEmail(
     messageBody.text = htmlToText(payload.html) + notice.text;
   }
 
-  const result = await postResend(
-    apiKey,
-    messageBody
-  );
+  return messageBody;
+}
 
-  if (!result.ok) {
-    return {
-      sent: false,
-      skipped: false,
-      error:
-        result.data?.message ??
-        result.data?.error?.message ??
-        `Błąd wysyłki e-mail (${result.status})`
-    };
+export async function sendPreparedMattEmail(body: Record<string, unknown>, idempotencyKey?: string): Promise<MailResult> {
+  if (isTestEnvironment()) return { sent: false, skipped: true, retryable: true, error: "Test environment: email delivery disabled" };
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return { sent: false, skipped: true, retryable: true, error: "Brak RESEND_API_KEY" };
+  const result = await postResend(apiKey, body, idempotencyKey);
+  if (!result.ok || typeof result.data?.id !== "string") {
+    return { sent: false, skipped: false,
+      retryable: result.status === 0 || result.status === 408 || result.status === 409 || result.status === 429 || result.status >= 500 || result.ok,
+      error: result.data?.message ?? result.data?.error?.message ?? `Błąd wysyłki e-mail (${result.status})` };
   }
+  return { sent: true, skipped: false, retryable: false, id: result.data.id };
+}
 
-  return {
-    sent: true,
-    skipped: false,
-    id: result.data?.id ?? null
-  };
+export async function sendMattEmail(payload: MailPayload): Promise<MailResult> {
+  if (isTestEnvironment()) return { sent: false, skipped: true, error: "Test environment: email delivery disabled" };
+  try { return await sendPreparedMattEmail(prepareMattEmail(payload)); }
+  catch (error) { return { sent: false, skipped: true, error: error instanceof Error ? error.message : "Błąd przygotowania e-mail." }; }
 }

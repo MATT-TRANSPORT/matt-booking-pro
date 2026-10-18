@@ -165,13 +165,15 @@ export async function sendAdminPush(
     body,
     url = "/panel",
     tag = "matt-admin",
-    userId = null
+    userId = null,
+    renotify = true
   }: {
     title: string;
     body: string;
     url?: string;
     tag?: string;
     userId?: string | null;
+    renotify?: boolean;
   }
 ) {
   if (isTestEnvironment()) return { sent: 0, failed: 0, skipped: true };
@@ -209,7 +211,7 @@ export async function sendAdminPush(
     body,
     url,
     tag,
-    renotify: true
+    renotify
   });
 
   for (const sub of subscriptions) {

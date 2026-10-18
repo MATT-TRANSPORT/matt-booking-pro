@@ -71,7 +71,8 @@ export async function sendPaymentReceivedAdminPush(
   booking: any,
   amountCents: number,
   surchargeCents = 0,
-  surchargeReason: string | null = null
+  surchargeReason: string | null = null,
+  eventKey?: string
 ) {
   if (!booking?.id) return null;
   const number = compact(booking.booking_number || booking.id, 24);
@@ -85,6 +86,7 @@ export async function sendPaymentReceivedAdminPush(
     title: "💳 PŁATNOŚĆ OTRZYMANA",
     body: `${number} · ${customer} · ${amount} zł${surchargeText}`,
     url: `/panel/rezerwacje/${booking.id}`,
-    tag: `admin-payment-${booking.id}-${Date.now()}`
+    tag: `admin-payment-${booking.id}-${eventKey || Date.now()}`,
+    renotify: !eventKey
   });
 }

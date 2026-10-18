@@ -10,7 +10,8 @@
     "test:international:browser": "playwright test",
     "test:international:rls": "node --test tests/international-rls.cjs",
     "test:payments:webhook": "node --test tests/stripe-webhook.test.cjs",
-    "test:bookings:api": "node --test tests/customer-booking-api.test.cjs"
+    "test:bookings:api": "node --test tests/customer-booking-api.test.cjs",
+    "test:payments:outbox": "node --test tests/payment-outbox.test.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",

@@ -11,7 +11,7 @@ const secret='whsec_local_fixture';
 const root=path.resolve(__dirname,'..');
 let db,failWrites,accesses,mail,rpcQueue=Promise.resolve();
 function reset(){
- db={bookings:[{id:'booking-test',booking_number:'TEST-ONLY',status:'confirmed',payment_status:'pending',total_price:800,email:'test@example.invalid',customer_locale:'de'}],payment_webhook_events:[],booking_history:[],admin_stripe_payments:[],driver_card_payments:[]};
+ db={bookings:[{id:'booking-test',booking_number:'TEST-ONLY',status:'confirmed',payment_status:'pending',total_price:800,email:'test@example.invalid',customer_locale:'de'}],payment_webhook_events:[],booking_history:[],admin_stripe_payments:[],driver_card_payments:[],payment_notification_outbox:[]};
  failWrites=null;accesses=0;mail=[];
  process.env.VERCEL_ENV='preview';process.env.MATT_TEST_MODE='1';process.env.STRIPE_SECRET_KEY='sk_test_local_fixture';
 }
@@ -37,13 +37,13 @@ function query(table){
  };return q;
 }
 const admin={from:query,rpc(name,input){
- assert.equal(name,'settle_customer_stripe_payment');
+ assert.equal(name,'settle_customer_stripe_payment_with_outbox');
  const q={throwOnError(){return q},then(resolve,reject){const operation=rpcQueue.then(()=>{
   const booking=db.bookings.find(b=>b.id===input.p_booking_id);
   if(!booking||booking.payment_status!==input.p_expected_status)return {data:false,error:null};
   const before=structuredClone(db);
   return query('bookings').update({payment_status:'paid',payment_checkout_session_id:input.p_checkout_session_id,payment_intent_id:input.p_payment_intent_id,payment_amount_cents:input.p_amount_cents,payment_currency:input.p_currency}).eq('id',booking.id).throwOnError()
-   .then(async()=>{if(input.p_expected_status!=='paid')await query('booking_history').insert({booking_id:booking.id,event:'Payment audit'}).throwOnError();return {data:true,error:null}})
+   .then(async()=>{if(input.p_expected_status!=='paid'){await query('booking_history').insert({booking_id:booking.id,event:'Payment audit'}).throwOnError();await query('payment_notification_outbox').insert({kind:'customer_email',booking_id:booking.id}).throwOnError();}return {data:true,error:null}})
    .catch(error=>{db=before;throw error});
  });rpcQueue=operation.catch(()=>{});return operation.then(resolve,reject)}};return q;
 }};
@@ -64,7 +64,7 @@ function event(overrides={}){return {id:'evt_test_fixture',object:'event',livemo
 function request(e,signature){const body=JSON.stringify(e);return {text:async()=>body,headers:new Headers({'stripe-signature':signature??stripe.webhooks.generateTestHeaderString({payload:body,secret})})};}
 test('valid signed payment is saved once, including a serial retry',async()=>{
  reset();assert.equal((await POST(request(event()))).status,200);assert.equal(db.bookings[0].payment_status,'paid');
- const history=db.booking_history.length;assert.equal((await POST(request(event()))).status,200);assert.equal(db.booking_history.length,history);assert.equal(mail.length,1);
+ const history=db.booking_history.length;assert.equal((await POST(request(event()))).status,200);assert.equal(db.booking_history.length,history);assert.equal(db.payment_notification_outbox.length,1);
 });
 test('invalid signature causes no database access',async()=>{reset();assert.equal((await POST(request(event(),'invalid'))).status,400);assert.equal(accesses,0)});
 test('live events cannot write to the test environment',async()=>{reset();assert.equal((await POST(request(event({livemode:true})))).status,400);assert.equal(accesses,0)});
@@ -74,7 +74,7 @@ test('database failure is retryable and never acknowledged as paid',async()=>{
 });
 test('concurrent deliveries do not repeat payment side effects',async()=>{
  reset();const results=await Promise.all([POST(request(event())),POST(request(event()))]);
- assert.ok(results.every(r=>[200,503].includes(r.status)));assert.equal(db.booking_history.length,1);assert.equal(mail.length,1);
+ assert.ok(results.every(r=>[200,503].includes(r.status)));assert.equal(db.booking_history.length,1);assert.equal(db.payment_notification_outbox.length,1);
 });
 test('currency mismatch is held for review instead of paid',async()=>{
  reset();const e=event();e.data.object.currency='eur';assert.equal((await POST(request(e))).status,200);assert.equal(db.bookings[0].payment_status,'review');
@@ -96,18 +96,18 @@ test('an unavailable event journal prevents all booking writes',async()=>{
  reset();failWrites='payment_webhook_events';assert.equal((await POST(request(event()))).status,500);assert.equal(db.bookings[0].payment_status,'pending');assert.equal(mail.length,0);
 });
 test('different success event IDs for an already paid checkout do not repeat customer receipt',async()=>{
- reset();await POST(request(event()));await POST(request(event({id:'evt_test_async',type:'checkout.session.async_payment_succeeded'})));assert.equal(mail.length,1);assert.equal(db.booking_history.length,1);
+ reset();await POST(request(event()));await POST(request(event({id:'evt_test_async',type:'checkout.session.async_payment_succeeded'})));assert.equal(db.payment_notification_outbox.length,1);assert.equal(db.booking_history.length,1);
 });
 test('concurrent different event IDs for one checkout cause one payment transition',async()=>{
  reset();const e=event({id:'evt_test_second',type:'checkout.session.async_payment_succeeded'});
  const results=await Promise.all([POST(request(event())),POST(request(e))]);
- assert.ok(results.every(r=>[200,500].includes(r.status)));assert.equal(db.booking_history.length,1);assert.equal(mail.length,1);
- assert.equal((await POST(request(e))).status,200);assert.equal(mail.length,1);
+ assert.ok(results.every(r=>[200,500].includes(r.status)));assert.equal(db.booking_history.length,1);assert.equal(db.payment_notification_outbox.length,1);
+ assert.equal((await POST(request(e))).status,200);assert.equal(db.payment_notification_outbox.length,1);
 });
 test('replaying a settled checkout after a price change does not undo payment',async()=>{
  reset();await POST(request(event()));db.bookings[0].total_price=900;
  await POST(request(event({id:'evt_test_late',type:'checkout.session.async_payment_succeeded'})));
- assert.equal(db.bookings[0].payment_status,'paid');assert.equal(mail.length,1);assert.equal(db.booking_history.length,1);
+ assert.equal(db.bookings[0].payment_status,'paid');assert.equal(db.payment_notification_outbox.length,1);assert.equal(db.booking_history.length,1);
 });
 test('test events are rejected by a production live-key webhook',async()=>{
  reset();process.env.MATT_TEST_MODE='0';process.env.VERCEL_ENV='production';process.env.STRIPE_SECRET_KEY='sk_live_local_fixture';
@@ -133,5 +133,11 @@ test('history failure cannot leave a paid booking without its audit record',asyn
  assert.equal((await POST(request(event()))).status,500);
  assert.equal(db.bookings[0].payment_status,'pending');assert.equal(db.booking_history.length,0);assert.equal(mail.length,0);
  failWrites=null;assert.equal((await POST(request(event()))).status,200);
- assert.equal(db.bookings[0].payment_status,'paid');assert.equal(db.booking_history.length,1);assert.equal(mail.length,1);
+ assert.equal(db.bookings[0].payment_status,'paid');assert.equal(db.booking_history.length,1);assert.equal(db.payment_notification_outbox.length,1);
+});
+
+test('an outbox insert failure rolls back paid status and audit',async()=>{
+ reset();failWrites='payment_notification_outbox';assert.equal((await POST(request(event()))).status,500);
+ assert.equal(db.bookings[0].payment_status,'pending');assert.equal(db.booking_history.length,0);
+ failWrites=null;assert.equal((await POST(request(event()))).status,200);assert.equal(db.payment_notification_outbox.length,1);
 });

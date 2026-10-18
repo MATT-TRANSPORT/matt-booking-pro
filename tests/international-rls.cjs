@@ -59,3 +59,11 @@ test('anonymous, company, driver and staff REST clients cannot execute server-on
   assert.equal(error?.code,'42501','Client must never have settlement privileges');
  }
 });
+
+test('REST clients cannot read private outbox payloads or invoke its claim/settlement functions',async()=>{
+ for(const client of [anon,clients.company_a,clients.staff]){
+  const {error}=await client.from('payment_notification_outbox').select('id');assert.equal(error?.code,'42501');
+  const claim=await client.rpc('claim_payment_notifications',{p_booking_id:null,p_limit:3});assert.equal(claim.error?.code,'42501');
+  const settle=await client.rpc('settle_customer_stripe_payment_with_outbox',{p_booking_id:'1acca7ba-1a33-45fc-b24f-2db775edbcf4',p_checkout_session_id:'cs_test_forbidden',p_payment_intent_id:'pi_test_forbidden',p_amount_cents:80000,p_currency:'pln',p_expected_status:'pending'});assert.equal(settle.error?.code,'42501');
+ }
+});

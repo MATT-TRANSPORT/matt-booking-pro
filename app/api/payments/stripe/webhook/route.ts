@@ -1,3 +1,4 @@
+import { runPaymentNotificationOutbox } from "@/lib/paymentNotificationOutbox";
 import {
   NextRequest,
   NextResponse
@@ -328,11 +329,9 @@ async function markPaid(
     return;
   }
 
-  const wasPaid = booking.payment_status === "paid";
-
   // State and audit must commit together. A failed history insert rolls back
   // payment status, so Stripe can safely retry instead of losing the receipt.
-  const { data: updatedBooking } = await admin.rpc("settle_customer_stripe_payment", {
+  const { data: updatedBooking } = await admin.rpc("settle_customer_stripe_payment_with_outbox", {
     p_booking_id: booking.id,
     p_checkout_session_id: session.id,
     p_payment_intent_id: paymentIntentId,
@@ -342,26 +341,6 @@ async function markPaid(
   }).throwOnError();
 
   if (!updatedBooking) throw new Error("Stan płatności zmienił się podczas przetwarzania. Ponów zdarzenie.");
-
-  if (!wasPaid) {
-    const recipient =
-      await recipientForBooking(admin, booking);
-
-    if (recipient) {
-      const template = paymentReceivedEmail({
-        ...booking,
-        payment_status: "paid"
-      });
-
-      await sendMattEmail({
-        to: recipient,
-        subject: template.subject,
-        html: template.html
-      }).catch(() => null);
-    }
-
-    await sendPaymentReceivedAdminPush(admin, booking, paidAmount);
-  }
 
   await syncCalendarAfterPayment(admin, booking.id);
 }
@@ -792,6 +771,10 @@ export async function POST(req: NextRequest) {
       })
       .eq("provider_event_id", event.id).throwOnError();
 
+    if (bookingId) {
+      try { await runPaymentNotificationOutbox(admin, bookingId); }
+      catch { console.error("Outbox płatności: ponowienie przejmie cron."); }
+    }
     return NextResponse.json({ ok: true });
   } catch (error) {
     const message =
