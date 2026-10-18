@@ -41,6 +41,15 @@ Dalsza poprawka opisana niżej dodaje trwałą kolejkę dla potwierdzeń klienck
 - Rozszerzony Auth/REST/RLS: 9/9 PASS, także brak dostępu klientów/staff do payloadów i funkcji kolejki. Lokalna kompilacja i TypeScript: PASS.
 - Kontrola bezpieczeństwa Supabase nie wykazała nowych ERROR. Pozostały wcześniejsze WARN dotyczące legacy funkcji weselnej, pg_net i ochrony haseł oraz INFO dla prywatnych tabel RLS obsługiwanych serwerowo.
 
+## Rzeczywiste API Resend — bezpieczne adresy testowe
+
+- Resend potwierdził domeny `notify.matt-transport.pl` i `matt-transport.pl` jako verified, sending enabled, eu-west-1.
+- Rzeczywiste funkcje aplikacji `paymentReceivedEmail` → `prepareMattEmail` → `sendPreparedMattEmail` wykonały 8 wysyłek: kontekst B2C/B2B × PL/EN/DE/CS. Odbiorcami były wyłącznie oficjalne syntetyczne adresy `delivered+…@resend.dev`; dane i token rezerwacji były fikcyjne. Nie utworzono żadnych rezerwacji ani płatności.
+- API przyjęło 8 wiadomości. Niezależny odczyt przez połączenie Resend potwierdził dla wszystkich 8 status `delivered`, właściwy adres testowy, język HTML i język linku. Jest to **symulowane dostarczenie Resend**, nie test rzeczywistej skrzynki Gmail/Outlook, antyspamu ani HTTP Preview.
+- Ponowienie tej samej wiadomości z identycznym body i kluczem zwróciło ten sam identyfikator Resend. Łącznie 9 żądań send, 8 unikalnych wiadomości testowych. Etykieta próby: `pr48-9769c5f-20261018`.
+- Powtarzalny skrypt `tests/controlled-resend-smoke.cjs` wymaga jawnego opt-in; odbiorców nie można przekazać jako argumentu i są sprawdzani względem domeny testowej. Uruchamia tylko lokalny mailer, nie bazę/Stripe. W tym odrębnym procesie lokalnym wyłącza blokadę wysyłki wyłącznie na czas tych syntetycznych odbiorców. Zdalny Preview nadal blokuje wysyłkę.
+- Oba buildy Vercel dla kodu aplikacji `9769c5f`: PASS ([Booking](https://vercel.com/matt-transport/matt-booking-pro/8hAXkWPpRCDUDANF4ADDrEreteSt), [Panel](https://vercel.com/matt-transport/matt-booking-pro1/9EJd3rts2yBvjJFkr7h8R8J68JbN)). Aktualizacje raportu i testów mają wyniki CI w opisie PR.
+
 ## Zweryfikowane wyniki
 
 | Kontrola | Wynik | Zakres i granice |
@@ -51,6 +60,7 @@ Dalsza poprawka opisana niżej dodaje trwałą kolejkę dla potwierdzeń klienck
 | Kontrakty zapisu w PostgreSQL | 16/16 PASS | 4 typy × 4 języki; rzeczywiste INSERT wygenerowanych danych i rollback; bez HTTP Preview |
 | Testy logiki | 68/68 PASS | języki, linki, wiadomości, walidacja, Checkout i zabezpieczenia test mode |
 | Playwright Chromium | 104/104 PASS, 53,5 s | PL/EN/DE/CS × desktop 1440×1000 i mobile 390×844; lokalne atrapy API oraz protokołu Supabase |
+| Rzeczywisty Resend API | 8/8 PASS + retry PASS | wyłącznie adresy testowe dostawcy, symulowane delivered; bez testu rzeczywistej skrzynki/antyspamu |
 | Kolejka potwierdzeń Checkout | 18/18 PASS | symulowane HTTP Resend, awarie/ponowienia/współbieżność i tryb testowy; bez wysłania e-maila |
 | Podpisany webhook Stripe (lokalnie) | 18/18 PASS | Rzeczywista weryfikacja podpisu SDK, atrapa PostgREST; ponowienia, współbieżność, błędy bazy, waluta, tryb test/live i spóźnione zdarzenia. Bez połączenia do Stripe. |
 | Rzeczywisty Supabase Auth/REST/RLS | 9/9 PASS | dwie firmy, driver, staff, anon; rozdzielenie danych, historia i blokady zapisu; wyłącznie izolowany projekt testowy |

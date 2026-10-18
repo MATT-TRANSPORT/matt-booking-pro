@@ -88,3 +88,10 @@ Przed nowym webhookiem wymagane są migracje `20261018202019_payment_notificatio
 Worker wykonuje maksymalnie 3 zadania na wywołanie, po webhooku i przy istniejącym cron Operations+ co 15 minut. W TEST worker celowo niczego nie przejmuje i nie wysyła. `sent` oznacza przyjęcie przez API dostawcy, nie potwierdzenie doręczenia do skrzynki. `needs_attention` wymaga kontroli dostarczenia i konfiguracji przed ręcznym ponowieniem; nie wolno automatycznie kasować tego stanu ani nadawać nowego klucza po niepewnym dostarczeniu. Push nie zapewnia exactly-once. Pełne API dostawców i powiadomienia inne niż kliencki Checkout pozostają do weryfikacji.
 
 Auth/REST/RLS po rozszerzeniu: 9/9 PASS. Konwersja plain text zachowuje małe litery i URL portalu; sprawdzona w testach outboxa. Wyniki bieżących kompilacji Preview są aktualizowane w PR #48.
+
+
+### Bezpieczny test rzeczywistego Resend
+
+`tests/controlled-resend-smoke.cjs` jest testem integracyjnym opt-in, poza procesem Preview. Wymaga lokalnie skonfigurowanego RESEND_API_KEY, `MATT_ALLOW_RESEND_TEST_SEND=1` oraz krótkiej unikalnej etykiety `MATT_RESEND_TEST_RUN`. Opcjonalny `MATT_RESEND_TEST_RESULT_FILE` powinien wskazywać ścieżkę poza repozytorium. Skrypt wysyła wyłącznie do adresów `delivered+etykieta@resend.dev`, nigdy do danych klientów, i nie korzysta z bazy ani Stripe. Powtórzenie próby z nową treścią wymaga nowej etykiety, aby nie naruszyć niezmienności klucza Resend.
+
+Próba `pr48-9769c5f-20261018`: 8/8 przyjęte przez API i 8/8 symulowane delivered potwierdzone odczytem Resend, prawidłowy język i link, jeden replay z tym samym ID. Nie dowodzi to doręczenia do rzeczywistych skrzynek ani działania Preview HTTP. Dokumentacja adresów testowych: https://resend.com/docs/dashboard/emails/send-test-emails .
