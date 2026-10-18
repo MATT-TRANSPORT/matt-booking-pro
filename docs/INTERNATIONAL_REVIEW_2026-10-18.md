@@ -29,6 +29,8 @@ Kontynuowana gałąź: `feature/international-booking-languages`, istniejący [P
 |---|---|---|
 | TypeScript `tsc --noEmit` | PASS | aktualny kod aplikacji |
 | Next.js build | PASS | Next.js 15.5.28; testowe lokalne ustawienia Supabase, bez kluczy produkcyjnych |
+| Vercel — oba projekty | BUILD PASS | kod commitu `e239262119cdede14e0f00a4c8b20dfa72fc2fd5`; sukces kompilacji nie oznacza poprawnego uruchomienia |
+| Vercel Booking — odczyt podglądu | FAIL / HTTP 500 | `MIDDLEWARE_INVOCATION_FAILED`; log middleware potwierdził brak URL i klucza Supabase |
 | Testy logiki | 61/61 PASS | języki, powiadomienia, e-maile, wyceny, linki, oba rodzaje Checkout i blokada ponownej zapłaty |
 | Testy przeglądarkowe Chromium | 104/104 PASS | PL/EN/DE/CS × desktop 1440×1000 i mobile 390×844 |
 | Kontrola błędów JS i szerokości | PASS | każdy ze 104 scenariuszy |
@@ -57,15 +59,17 @@ W środowisku tej sesji standardowy plik Chromium nie dawał się pobrać. Testy
 
 - [Booking — podgląd gałęzi](https://matt-booking-pro-git-feature-internationa-67b25c-matt-transport.vercel.app)
 - [Panel — podgląd gałęzi](https://matt-booking-pro1-git-feature-internation-bf0d83-matt-transport.vercel.app)
+- [Booking — zweryfikowana kompilacja](https://vercel.com/matt-transport/matt-booking-pro/3zim3mVyKyVaxQpc8XuNWCvwtzS7)
+- [Panel — zweryfikowana kompilacja](https://vercel.com/matt-transport/matt-booking-pro1/AvzBsMCGi2FJn4ay5iFz3y1757nb)
 - [Wyniki wdrożeń i aktualny commit PR](https://github.com/MATT-TRANSPORT/matt-booking-pro/pull/48/checks)
 
 To adresy podglądów istniejącej gałęzi, nie nowe wdrożenie produkcyjne. Aktualny stan obu kompilacji zdalnych jest publikowany przez integrację Vercel w PR. Zielone statusy starego commitu nie potwierdzają nowej wersji.
 
-Dostęp Vercel CLI został przywrócony. Potwierdzono oba projekty w zespole `matt-transport`, wspólny katalog główny i Node.js 24. Zmienne Secret dla Stripe i powiadomień obejmują Preview i Production. Próba odczytu konfiguracji Preview przez `env run` nie udostępniła kluczy Stripe ani Supabase; nie potwierdzono izolowanego trybu Stripe test ani testowej bazy. Nie wykonywano próbnych płatności na niezweryfikowanym środowisku ani nie zmieniano konfiguracji produkcyjnej.
+Dostęp Vercel CLI został przywrócony. Potwierdzono oba projekty w zespole `matt-transport`, wspólny katalog główny i Node.js 24. Zmienne Secret dla Stripe i powiadomień obejmują Preview i Production. Metadane `env ls preview` projektu Booking nie zawierają `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` ani `SUPABASE_SERVICE_ROLE_KEY`. Po uwierzytelnionym odczycie `/booking?lang=en` podgląd zwrócił HTTP 500 `MIDDLEWARE_INVOCATION_FAILED`; log tego żądania potwierdził: „Your project's URL and Key are required to create a Supabase client!”. To potwierdzony błąd konfiguracji środowiska Preview. Nie podłączono podglądu do produkcyjnej bazy jako obejścia. Nie potwierdzono izolowanego trybu Stripe test ani testowej bazy. Nie wykonywano próbnych płatności na niezweryfikowanym środowisku ani nie zmieniano konfiguracji produkcyjnej.
 
 ## Braki blokujące zakończenie i produkcję
 
-1. Pełne E2E przez izolowany testowy Supabase z kontem firmy, autoryzacją, zapisem, wyceną i webhookiem Stripe test mode. Lokalne atrapy nie weryfikują RLS, rzeczywistych sesji, dostawców ani webhooków. Brak potwierdzonej testowej konfiguracji blokuje bezpieczne wykonanie tego etapu.
+1. Uzupełnienie konfiguracji Supabase w Preview obu projektów. Następnie pełne E2E przez izolowany testowy Supabase z kontem firmy, autoryzacją, zapisem, wyceną i webhookiem Stripe test mode. Lokalne atrapy nie weryfikują RLS, rzeczywistych sesji, dostawców ani webhooków. Brak potwierdzonej testowej konfiguracji blokuje bezpieczne wykonanie tego etapu.
 2. Rzeczywiste dostarczenie e-mail/SMS/push na kontrolowane konta testowe oraz testy Safari/iOS i silników innych niż Chromium.
 3. Końcowy audyt kompletności treści całego produktu na realnym podglądzie obu projektów. Zielona kompilacja i lokalne testy nie potwierdzają pełnego przepływu z usługami zewnętrznymi.
 4. Dopiero po zamknięciu tych braków: wydanie stabilnej wersji, smoke test produkcji i kontrola logów.
