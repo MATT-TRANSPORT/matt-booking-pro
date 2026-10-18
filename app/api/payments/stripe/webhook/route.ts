@@ -330,38 +330,20 @@ async function markPaid(
 
   const wasPaid = booking.payment_status === "paid";
 
-  const { data: updatedBooking } = await admin
-    .from("bookings")
-    .update({
-      payment_provider: "stripe",
-      payment_checkout_session_id: session.id,
-      payment_intent_id: paymentIntentId,
-      payment_amount_cents: paidAmount,
-      payment_currency:
-        String(session.currency || "pln").toLowerCase(),
-      payment_status: "paid",
-      payment_paid_at:
-        booking.payment_paid_at ||
-        new Date().toISOString(),
-      payment_refunded_at: null,
-      payment_last_error: null,
-      payment_review_reason: null,
-      updated_at: new Date().toISOString()
-    })
-    .eq("id", booking.id)
-    .eq("payment_status", booking.payment_status)
-    .select("id").maybeSingle().throwOnError();
+  // State and audit must commit together. A failed history insert rolls back
+  // payment status, so Stripe can safely retry instead of losing the receipt.
+  const { data: updatedBooking } = await admin.rpc("settle_customer_stripe_payment", {
+    p_booking_id: booking.id,
+    p_checkout_session_id: session.id,
+    p_payment_intent_id: paymentIntentId,
+    p_amount_cents: paidAmount,
+    p_currency: String(session.currency || "").toLowerCase(),
+    p_expected_status: booking.payment_status
+  }).throwOnError();
 
   if (!updatedBooking) throw new Error("Stan płatności zmienił się podczas przetwarzania. Ponów zdarzenie.");
 
   if (!wasPaid) {
-    await admin.from("booking_history").insert({
-      booking_id: booking.id,
-      event:
-        `✓ Płatność online Stripe zaksięgowana: ${(paidAmount / 100).toFixed(2)} zł`,
-      created_by: null
-    }).throwOnError();
-
     const recipient =
       await recipientForBooking(admin, booking);
 

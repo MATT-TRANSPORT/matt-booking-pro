@@ -17,6 +17,10 @@
 
 - Wieczorne testy webhooka odtworzyły 5 usterek przed poprawkami (2/7 PASS). Dodano atomowe przejmowanie zdarzenia na kluczu głównym i warunkowe przejście stanu rezerwacji, kontrolę wszystkich błędów PostgREST, zgodność test/live oraz waluty PLN i ochronę zwróconych/rozliczonych płatności przed spóźnionymi zdarzeniami. Nowa migracja `20261018184000_stripe_webhook_claims.sql` jest zastosowana tylko w bazie testowej; musi poprzedzać publikację nowego webhooka na produkcji.
 
+Dalsza regresja odtworzyła brak atomowości: awaria historii po zapisie `paid` pozostawiała brakujący audyt. Migracja `20261018184521_stripe_payment_audit_transaction.sql` łączy zapis stanu i historii w transakcję `SECURITY INVOKER`, dostępną wyłącznie dla `service_role`. Zastosowana tylko w bazie testowej; wymagana przed wdrożeniem webhooka. Test SQL `tests/stripe-payment-transaction.sql` potwierdził uprawnienia, walutę, kwotę, zapis, rollback, odrzucenie nieaktualnego przejścia i ochronę zwrotu, po czym wycofał wszystkie zmiany danych.
+
+Brak utrwalonej kolejki ponowień powiadomień pozostaje ograniczeniem: awaria procesu po zatwierdzeniu płatności może przerwać wysłanie potwierdzenia. Testy transakcji nie dowodzą niezawodnego dostarczenia e-mail/push ani pełnej atomowości innych rodzajów płatności.
+
 ## Zweryfikowane wyniki
 
 | Kontrola | Wynik | Zakres i granice |
@@ -25,17 +29,19 @@
 | Lokalny Next.js build | PASS | konfiguracja lokalnego serwera testowego, bez danych produkcyjnych |
 | Testy logiki | 68/68 PASS | języki, linki, wiadomości, walidacja, Checkout i zabezpieczenia test mode |
 | Playwright Chromium | 104/104 PASS, 56,9 s | PL/EN/DE/CS × desktop 1440×1000 i mobile 390×844; lokalne atrapy API oraz protokołu Supabase |
-| Podpisany webhook Stripe (lokalnie) | 16/16 PASS | Rzeczywista weryfikacja podpisu SDK, atrapa PostgREST; ponowienia, współbieżność, błędy bazy, waluta, tryb test/live i spóźnione zdarzenia. Bez połączenia do Stripe. |
+| Podpisany webhook Stripe (lokalnie) | 17/17 PASS | Rzeczywista weryfikacja podpisu SDK, atrapa PostgREST; ponowienia, współbieżność, błędy bazy, waluta, tryb test/live i spóźnione zdarzenia. Bez połączenia do Stripe. |
 | Rzeczywisty Supabase Auth/REST/RLS | 7/7 PASS | dwie firmy, driver, staff, anon; rozdzielenie danych, historia i blokady zapisu; wyłącznie izolowany projekt testowy |
-| Vercel Booking | BUILD PASS | kod `8f23c85` |
+| Vercel Booking | BUILD PASS | kod `c8b6e86`, wdrożenie `9bf956GaWqSNCB3AEZgHiX97v96p` |
 | Vercel Panel — wcześniejsze wdrożenia | KOREKTA wcześniejszego PASS | Zielony status obejmował pusty build (96 ms), bez kompilacji Next.js. Ujawniono to w logach 18.10 wieczorem. |
-| Vercel Panel — naprawiony build | PASS, 1m 9s | Preview `E7W3DHgaBuKEpxTzgngaMT3oFzmf`, kod `3a97fbd`; rzeczywista kompilacja Next.js, API lotnisk zwraca katalog 8 lotnisk. |
+| Vercel Panel — naprawiony build | BUILD PASS | kod `c8b6e86`, wdrożenie `Gg29aXS3Uth9VMA53q8JZhdkmed8`. Poprzednią naprawę potwierdzał rzeczywisty build Next.js `E7W3DHgaBuKEpxTzgngaMT3oFzmf` (1m 9s), API 8 lotnisk. |
 | Odczyt UI podglądu Booking | 2/2 PASS | DE, desktop/mobile: HTTP 200, język, komunikat testowy, brak przelewu, brak błędów JS i przekroczenia szerokości; bez wysyłania formularza |
 | API cennika podglądu Booking | PASS — odczyt | W zalogowanej zdalnej przeglądarce API zwróciło katalog 8 lotnisk. Poprzedni błąd brakującego klucza już nie występuje. |
 
 Poranny odczyt podglądu wykonano przez uwierzytelniony token Vercel ograniczony do jego origin. Wieczorne odczyty API i formularza wykonano w zalogowanej zdalnej przeglądarce. Lokalny zarządzany proxy ma CA nieobecne w Chromium; dla tego odczytu UI jawnie pominięto sprawdzanie łańcucha TLS. Nie jest to test certyfikatu domeny. Skrypt blokuje żądania zapisujące i zewnętrzne domeny.
 
 Nie utworzono prawdziwych rezerwacji, nie pobrano płatności i nie wysłano wiadomości do klientów. Testowe rekordy i zmiana notatki przez staff istnieją tylko w nowym projekcie testowym. Lokalne testy Checkout używają atrap Stripe — nie dowodzą autentycznej płatności ani webhooka.
+
+Obie kompilacje `c8b6e86` uzyskały status success. Końcowa zmiana transakcji wymaga nowych kompilacji Preview; bieżące wyniki są także aktualizowane w opisie PR #48.
 
 ## Podglądy i kompilacje
 

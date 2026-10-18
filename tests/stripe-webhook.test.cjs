@@ -9,7 +9,7 @@ const Stripe=require('stripe');
 const stripe=new Stripe('sk_test_local_fixture');
 const secret='whsec_local_fixture';
 const root=path.resolve(__dirname,'..');
-let db,failWrites,accesses,mail;
+let db,failWrites,accesses,mail,rpcQueue=Promise.resolve();
 function reset(){
  db={bookings:[{id:'booking-test',booking_number:'TEST-ONLY',status:'confirmed',payment_status:'pending',total_price:800,email:'test@example.invalid',customer_locale:'de'}],payment_webhook_events:[],booking_history:[],admin_stripe_payments:[],driver_card_payments:[]};
  failWrites=null;accesses=0;mail=[];
@@ -36,7 +36,17 @@ function query(table){
   }).then(result=>{if(throwErrors&&result.error)throw Object.assign(new Error(result.error.message),result.error);return result}).then(resolve,reject)}
  };return q;
 }
-const admin={from:query};
+const admin={from:query,rpc(name,input){
+ assert.equal(name,'settle_customer_stripe_payment');
+ const q={throwOnError(){return q},then(resolve,reject){const operation=rpcQueue.then(()=>{
+  const booking=db.bookings.find(b=>b.id===input.p_booking_id);
+  if(!booking||booking.payment_status!==input.p_expected_status)return {data:false,error:null};
+  const before=structuredClone(db);
+  return query('bookings').update({payment_status:'paid',payment_checkout_session_id:input.p_checkout_session_id,payment_intent_id:input.p_payment_intent_id,payment_amount_cents:input.p_amount_cents,payment_currency:input.p_currency}).eq('id',booking.id).throwOnError()
+   .then(async()=>{if(input.p_expected_status!=='paid')await query('booking_history').insert({booking_id:booking.id,event:'Payment audit'}).throwOnError();return {data:true,error:null}})
+   .catch(error=>{db=before;throw error});
+ });rpcQueue=operation.catch(()=>{});return operation.then(resolve,reject)}};return q;
+}};
 const originalLoad=Module._load;
 Module._load=function(id,parent,isMain){
  if(id==='@/lib/supabase/admin')return {createAdminClient:()=>admin};
@@ -116,4 +126,12 @@ test('late administrative or terminal failure cannot undo a settled payment',asy
   const e=event({type:'payment_intent.payment_failed'});e.data.object={id:'pi_test_fixture',metadata:terminal?{source:'matt_driver_terminal',driver_card_payment_id:'payment-test'}:{source:'matt_admin_payment',admin_stripe_payment_id:'payment-test'}};
   assert.equal((await POST(request(e))).status,200);assert.equal(db[table][0].status,status);
  }
+});
+
+test('history failure cannot leave a paid booking without its audit record',async()=>{
+ reset();failWrites='booking_history';
+ assert.equal((await POST(request(event()))).status,500);
+ assert.equal(db.bookings[0].payment_status,'pending');assert.equal(db.booking_history.length,0);assert.equal(mail.length,0);
+ failWrites=null;assert.equal((await POST(request(event()))).status,200);
+ assert.equal(db.bookings[0].payment_status,'paid');assert.equal(db.booking_history.length,1);assert.equal(mail.length,1);
 });

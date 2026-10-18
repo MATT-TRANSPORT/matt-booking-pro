@@ -63,3 +63,10 @@ PR pozostaje roboczy do zaliczenia pełnego przepływu z usługami. Zielony buil
 `npm run test:payments:webhook` uruchamia 16 testów z prawdziwymi podpisami generowanymi przez SDK Stripe i lokalną atrapą PostgREST. Nie łączy się z dostawcami ani nie używa rzeczywistych kluczy. Testy obejmują duplikaty i równoczesne zdarzenia, błędy zapisu i retry, odzyskanie przejęcia po przerwanym procesie, walutę PLN, rozdzielenie test/live oraz spóźnione sukcesy/błędy po rozliczeniu lub zwrocie.
 
 Przed wdrożeniem nowego webhooka zastosować `supabase/migrations/20261018184000_stripe_webhook_claims.sql`. Dodaje wyłącznie `processing_started_at` w dzienniku zdarzeń. W bazie testowej już zastosowano i zweryfikowano. Proces ma limit 300 s, a ponowne przejęcie przerwanego zadania jest możliwe po 10 minutach; aktywny duplikat otrzymuje 503, aby Stripe ponowił dostarczenie. To nie zastępuje testu autentycznego dostarczenia przez Stripe ani testów awarii dostawców wiadomości.
+
+
+### Dalsza kontrola płatności 18.10 wieczorem
+
+Webhook: 17/17 podpisanych testów lokalnych. Dodatkowo `tests/stripe-payment-transaction.sql` przeszedł w izolowanym PostgreSQL; wszystkie zapisy danych wycofano. Migracje `20261018184000_stripe_webhook_claims.sql` i `20261018184521_stripe_payment_audit_transaction.sql` są zastosowane wyłącznie w TEST i muszą poprzedzać nowe wdrożenie webhooka na produkcji. Druga funkcja jest `SECURITY INVOKER`, bez EXECUTE dla PUBLIC/anon/authenticated, z EXECUTE dla service_role.
+
+Nie potwierdzono jeszcze niezawodności dostarczenia powiadomień po awarii procesu. Nie ma pełnego outboxa. Obie kompilacje Vercel `c8b6e86` przeszły; zmiana transakcji wymaga kolejnych buildów. Produkcja bez zmian.
