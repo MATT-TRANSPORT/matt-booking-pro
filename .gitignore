@@ -8,3 +8,5 @@ node_modules
 tsconfig.tsbuildinfo
 test-results/
 playwright-report/
+supabase/.temp/
+.env.test.local

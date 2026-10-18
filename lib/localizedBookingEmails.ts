@@ -1,3 +1,4 @@
+import { bookingOrigin } from "@/lib/bookingOrigin";
 import { resolveCustomerLocale, type BookingLocale } from "@/lib/bookingLocale";
 export { resolveCustomerLocale } from "@/lib/bookingLocale";
 
@@ -25,7 +26,7 @@ export function localizedReceivedEmail(b: LocalizedBookingEmailInput) {
   const locale = resolveCustomerLocale(b.locale);
   const t = copy[locale];
   const bookingUrl = b.customer_access_token
-    ? "https://booking.matt-transport.pl/rezerwacja/" + encodeURIComponent(b.customer_access_token) + "?lang=" + locale
+    ? bookingOrigin()+"/rezerwacja/" + encodeURIComponent(b.customer_access_token) + "?lang=" + locale
     : null;
   const text = [
     t.receivedTitle,

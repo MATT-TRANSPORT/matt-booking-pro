@@ -1,3 +1,4 @@
+import { assertTestDatabase } from "@/lib/testEnvironment";
 import { createClient } from "@supabase/supabase-js";
 
 export function createAdminClient() {
@@ -11,6 +12,8 @@ export function createAdminClient() {
   if (!serviceRoleKey) {
     throw new Error("Brak SUPABASE_SERVICE_ROLE_KEY");
   }
+
+  assertTestDatabase(url);
 
   return createClient(url, serviceRoleKey, {
     auth: {

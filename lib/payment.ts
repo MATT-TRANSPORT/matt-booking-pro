@@ -1,3 +1,5 @@
+import { bookingOrigin } from "@/lib/bookingOrigin";
+import { isTestEnvironment } from "@/lib/testEnvironment";
 import { withCustomerLocale } from "@/lib/bookingLocale";
 export const PAYMENT_STATUS_LABELS: Record<string, string> = {
   pending: "Oczekuje na płatność",
@@ -55,6 +57,7 @@ export function paymentCanStart(booking: any) {
 }
 
 export function appBaseUrl() {
+  if (isTestEnvironment()) return bookingOrigin();
   return (
     process.env.NEXT_PUBLIC_APP_URL ||
     "https://panel.matt-transport.pl"

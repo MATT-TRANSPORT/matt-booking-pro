@@ -1,3 +1,4 @@
+import { isTestEnvironment } from "@/lib/testEnvironment";
 import { emailTrustNotice } from "@/lib/emailTrustNotice";
 type MailPayload = {
   locale?: unknown;
@@ -85,6 +86,7 @@ async function postResend(
 export async function sendMattEmail(
   payload: MailPayload
 ) {
+  if (isTestEnvironment()) return { sent: false, skipped: true, error: "Test environment: email delivery disabled" };
   const apiKey = process.env.RESEND_API_KEY;
 
   if (!apiKey) {

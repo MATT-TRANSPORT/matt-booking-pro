@@ -1,3 +1,4 @@
+import { isTestEnvironment } from "@/lib/testEnvironment";
 import webpush from "web-push";
 
 function configureWebPush() {
@@ -47,6 +48,7 @@ export async function sendDriverPush(
     force?: boolean;
   }
 ) {
+  if (isTestEnvironment()) return { sent: 0, failed: 0, skipped: true };
   if (!driverId) {
     return {
       sent: 0,
@@ -172,6 +174,7 @@ export async function sendAdminPush(
     userId?: string | null;
   }
 ) {
+  if (isTestEnvironment()) return { sent: 0, failed: 0, skipped: true };
   let query = admin
     .from("admin_push_subscriptions")
     .select("*")

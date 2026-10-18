@@ -1,3 +1,5 @@
+import { bookingOrigin } from "@/lib/bookingOrigin";
+import { isTestEnvironment } from "@/lib/testEnvironment";
 import { resolveCustomerLocale, withCustomerLocale } from "@/lib/bookingLocale";
 import { localizedCustomerUpdate } from "@/lib/localizedCustomerUpdates";
 import webpush from "web-push";
@@ -43,17 +45,7 @@ export type CustomerNotificationResult = {
   failed_count?: number;
 };
 
-function customerPortalBaseUrl() {
-  const configured = String(process.env.NEXT_PUBLIC_BOOKING_URL || "").trim();
-
-  if (configured && !configured.includes("vercel.app")) {
-    return configured.replace(/\/$/, "");
-  }
-
-  // Wiadomości klienta zawsze pokazują markową domenę MATT,
-  // nawet jeśli główna aplikacja jest technicznie hostowana w Vercel.
-  return "https://booking.matt-transport.pl";
-}
+function customerPortalBaseUrl() { return bookingOrigin(); }
 
 function configureWebPush() {
   const subject =
@@ -297,6 +289,7 @@ export async function sendBookingNotification(
   bookingInput: any,
   options: NotifyOptions
 ): Promise<CustomerNotificationResult> {
+  if (isTestEnvironment()) return { sent: false, skipped: true, reason: "test_environment" };
   if (!bookingInput || bookingInput.company_id) {
     return { sent: false, skipped: true, reason: "b2b_or_missing" };
   }

@@ -166,3 +166,52 @@ for(const locale of ['pl','en','de','cs'])test(`${locale}: company repeat requir
   assert.equal(response.status,400);assert.equal((await response.json()).error,customerErrorText('Powrót musi nastąpić po wyjeździe.',locale));assert.deepEqual(dbWrites,[]);
  }
 });
+const {isTestEnvironment,assertTestDatabase,assertSafeStripeKey}=require('../lib/testEnvironment.ts');
+const {bookingOrigin}=require('../lib/bookingOrigin.ts');
+async function withTestConfig(overrides,run){
+ const previous=Object.fromEntries(Object.keys(overrides).map(key=>[key,process.env[key]]));
+ for(const [key,value]of Object.entries(overrides))value===undefined?delete process.env[key]:process.env[key]=value;
+ try{return await run();}finally{for(const [key,value]of Object.entries(previous))value===undefined?delete process.env[key]:process.env[key]=value;}
+}
+const testConfig={MATT_TEST_MODE:'1',VERCEL_ENV:'preview',MATT_TEST_SUPABASE_PROJECT_REF:'isolated-test',NEXT_PUBLIC_SUPABASE_URL:'https://isolated-test.supabase.co',NEXT_PUBLIC_BOOKING_URL:'https://isolated-booking.vercel.app',NEXT_PUBLIC_PANEL_URL:'https://isolated-panel.vercel.app'};
+test('test mode refuses production and a different database before any connection',async()=>{
+ await withTestConfig({...testConfig,VERCEL_ENV:'production'},()=>assert.throws(()=>isTestEnvironment(),/must not/));
+ await withTestConfig(testConfig,()=>{
+  assert.equal(isTestEnvironment(),true);assert.doesNotThrow(()=>assertTestDatabase('https://isolated-test.supabase.co'));
+  for(const url of ['https://production.supabase.co','https://isolated-test.supabase.co.attacker.invalid'])assert.throws(()=>assertTestDatabase(url),/isolated Supabase/);
+ });
+ await withTestConfig({...testConfig,MATT_TEST_SUPABASE_PROJECT_REF:undefined},()=>assert.throws(()=>assertTestDatabase('https://isolated-test.supabase.co'),/isolated Supabase/));
+});
+test('Preview rejects Stripe live keys even when test mode was not set',async()=>{
+ await withTestConfig({VERCEL_ENV:'preview',MATT_TEST_MODE:undefined},()=>{
+  for(const key of ['sk_live_example','rk_live_example','invalid'])assert.throws(()=>assertSafeStripeKey(key),/test-mode/);
+  for(const key of ['sk_test_example','rk_test_example'])assert.doesNotThrow(()=>assertSafeStripeKey(key));
+ });
+ await withTestConfig({VERCEL_ENV:'production',MATT_TEST_MODE:undefined},()=>assert.doesNotThrow(()=>assertSafeStripeKey('sk_live_example')));
+});
+test('test mode stops email, customer/admin/driver push and calendar before network or database access',async()=>{
+ const {sendMattEmail}=require('../lib/email.ts'),{sendBookingNotification}=require('../lib/customerNotifications.ts');
+ const {sendAdminPush,sendDriverPush}=require('../lib/pushServer.ts'),{syncBookingCalendar}=require('../lib/googleCalendar.ts');
+ const {getStripe}=require('../lib/stripeServer.ts');
+ const untouched=new Proxy({},{get(){throw new Error('Unexpected database access')}}),originalFetch=global.fetch;
+ global.fetch=()=>{throw new Error('Unexpected network access')};
+ try{await withTestConfig({...testConfig,STRIPE_SECRET_KEY:'sk_live_example'},async()=>{
+  assert.equal((await sendMattEmail({to:'test@example.invalid',subject:'test',text:'test'})).sent,false);
+  assert.equal((await sendBookingNotification(untouched,base,{kind:'received',eventKey:'test'})).reason,'test_environment');
+  assert.equal((await sendAdminPush(untouched,{title:'test',body:'test'})).skipped,true);
+  assert.equal((await sendDriverPush(untouched,'test-driver',{title:'test',body:'test',eventKey:'test'})).skipped,true);
+  assert.equal((await syncBookingCalendar(untouched,base)).synced,false);
+  assert.throws(()=>getStripe(),/test-mode/);
+ });}finally{global.fetch=originalFetch;}
+});
+for(const locale of ['pl','en','de','cs'])test(`${locale}: test email and payment links stay on the isolated preview`,async()=>{
+ await withTestConfig(testConfig,()=>{
+  assert.equal(bookingOrigin(),'https://isolated-booking.vercel.app');
+  const value={...base,customer_locale:locale};
+  for(const mail of [localizedReceivedEmail({...value,locale}),assignedEmail(value),localizedQuoteEmail('offered',value),b2bEmployeeConfirmedEmail({...value,company_id:'test-company',payment_method:'employee_payment'})]){
+   assert.ok(mail.html.includes('https://isolated-booking.vercel.app/'));assert.ok(mail.html.includes('lang='+locale));
+  }
+  assert.ok(stablePaymentUrl(value).startsWith('https://isolated-booking.vercel.app/'));
+ });
+ await withTestConfig({...testConfig,NEXT_PUBLIC_BOOKING_URL:'https://booking.matt-transport.pl'},()=>assert.throws(()=>bookingOrigin(),/isolated Vercel/));
+});

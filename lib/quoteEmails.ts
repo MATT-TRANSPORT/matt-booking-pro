@@ -1,3 +1,4 @@
+import { bookingOrigin } from "@/lib/bookingOrigin";
 import { resolveCustomerLocale } from "@/lib/bookingLocale";
 import { customerText } from "@/lib/customerCopy";
 
@@ -16,7 +17,7 @@ export function localizedQuoteEmail(kind: QuoteKind, booking: any) {
   const info = kind === "offered" ? t.offerInfo : kind === "accepted" ? t.acceptInfo : t.rejectInfo;
   const label = (key: string) => customerText(key, locale);
   const row = (key: string, value: unknown) => `<p>${escape(label(key))}: <strong>${escape(value)}</strong></p>`;
-  const portal = booking.customer_access_token ? `https://booking.matt-transport.pl/rezerwacja/${encodeURIComponent(booking.customer_access_token)}?lang=${locale}` : null;
+  const portal = booking.customer_access_token ? `${bookingOrigin()}/rezerwacja/${encodeURIComponent(booking.customer_access_token)}?lang=${locale}` : null;
   const expires = new Date(booking.quote_expires_at || "");
   const expiry = Number.isFinite(expires.getTime()) ? expires.toLocaleString({pl:'pl-PL',en:'en-GB',de:'de-DE',cs:'cs-CZ'}[locale],{timeZone:'Europe/Warsaw',dateStyle:'short',timeStyle:'short'}) : null;
   const route = `${booking.pickup_address} ${booking.service_type === "roundtrip" ? "↔" : "→"} ${booking.destination_address || booking.airport_label}`;

@@ -1,3 +1,4 @@
+import { bookingOrigin } from "@/lib/bookingOrigin";
 import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
 import { resolveCustomerLocale } from "@/lib/localizedBookingEmails";
 import { NextRequest, NextResponse } from "next/server";
@@ -12,13 +13,7 @@ function appBaseUrl() {
   return String(process.env.NEXT_PUBLIC_APP_URL || "https://panel.matt-transport.pl").replace(/\/$/, "");
 }
 
-function customerBaseUrl() {
-  const configured = String(process.env.NEXT_PUBLIC_BOOKING_URL || "").trim();
-  if (configured && !configured.includes("vercel.app")) {
-    return configured.replace(/\/$/, "");
-  }
-  return "https://booking.matt-transport.pl";
-}
+function customerBaseUrl() { return bookingOrigin(); }
 
 function esc(value: unknown) {
   return String(value ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch] || ch));

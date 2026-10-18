@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "test:international": "node --test tests/international.test.cjs",
-    "test:international:browser": "playwright test"
+    "test:international:browser": "playwright test",
+    "test:international:rls": "node --test tests/international-rls.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",

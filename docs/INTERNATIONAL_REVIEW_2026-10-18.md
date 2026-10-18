@@ -75,3 +75,9 @@ Dostęp Vercel CLI został przywrócony. Potwierdzono oba projekty w zespole `ma
 4. Dopiero po zamknięciu tych braków: wydanie stabilnej wersji, smoke test produkcji i kontrola logów.
 
 Nie wykonano merge ani publikacji na produkcji. Raport opisuje zweryfikowany etap prac i rzeczywiste braki, a nie zakończoną realizację całego zlecenia.
+
+## Aktualizacja: izolowane środowisko testowe
+
+Utworzono osobny bezpłatny projekt Supabase w organizacji wskazanej przez użytkownika, odtworzono schemat i wykonano 7/7 rzeczywistych testów Auth/RLS. Dodano zabezpieczenia Preview, brakujące migracje push i poprawkę zakresu uprawnień. Nowe migracje obowiązują na razie tylko w bazie testowej. Dodano 7 testów logiki zabezpieczeń — łącznie 68/68 PASS. Poprzedni błąd konfiguracji ma przygotowane rozwiązanie: publiczne ustawienia testowej bazy są przypisane do gałęzi Preview obu projektów; pełny zapis nadal wymaga prywatnego klucza backendowego.
+
+[Konfiguracja testowa, testy rzeczywiste i brakujące klucze](INTERNATIONAL_TEST_ENVIRONMENT.md). Stan wcześniejszych braków opisanych wyżej jest historyczny; bieżącą instrukcją jest ten dokument testowy. Produkcji nadal nie wdrożono.

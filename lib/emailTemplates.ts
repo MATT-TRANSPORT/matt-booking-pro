@@ -1,3 +1,4 @@
+import { bookingOrigin, panelOrigin } from "@/lib/bookingOrigin";
 import { localizedStatusEmail } from "@/lib/localizedStatusEmails";
 import { resolveCustomerLocale } from "@/lib/localizedBookingEmails";
 import { travelGuideHtml } from "@/lib/travelGuide";
@@ -47,29 +48,9 @@ type BookingMail = {
   online_payment_requested?: boolean | null;
 };
 
-function customerBaseUrl() {
-  const configured = String(
-    process.env.NEXT_PUBLIC_BOOKING_URL || ""
-  ).trim().replace(/\/$/, "");
+function customerBaseUrl() { return bookingOrigin(); }
 
-  if (configured && !configured.includes("vercel.app")) {
-    return configured;
-  }
-
-  return "https://booking.matt-transport.pl";
-}
-
-function panelBaseUrl() {
-  const configured = String(
-    process.env.NEXT_PUBLIC_PANEL_URL || ""
-  ).trim().replace(/\/$/, "");
-
-  if (configured && !configured.includes("vercel.app")) {
-    return configured;
-  }
-
-  return "https://panel.matt-transport.pl";
-}
+function panelBaseUrl() { return panelOrigin(); }
 
 function clientUrl(b: BookingMail) {
   return b.customer_access_token

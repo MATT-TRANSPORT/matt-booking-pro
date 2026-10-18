@@ -1,3 +1,4 @@
+import { isTestEnvironment } from "@/lib/testEnvironment";
 import { bookingLegOperationalWindow, isAirportPickupLeg } from "@/lib/bookingOperationalWindow";
 import { bookingRouteText } from "@/lib/bookingRoute";
 import {
@@ -885,6 +886,7 @@ export async function syncBookingCalendar(
   admin: any,
   bookingOrId: any
 ): Promise<CalendarResult> {
+  if (isTestEnvironment()) return { configured: false, synced: false, error: "Test environment: calendar sync disabled" };
   const config = calendarConfig();
 
   if (!config) {

@@ -1,3 +1,4 @@
+import { bookingOrigin } from "@/lib/bookingOrigin";
 import { createHash, randomBytes } from "node:crypto";
 
 export const CUSTOMER_SESSION_COOKIE = "matt_customer_session";
@@ -28,11 +29,7 @@ export function customerSessionExpiry() {
   return new Date(Date.now() + CUSTOMER_SESSION_TTL_DAYS * 24 * 60 * 60_000);
 }
 
-export function customerBookingBaseUrl() {
-  return String(
-    process.env.NEXT_PUBLIC_BOOKING_URL || "https://booking.matt-transport.pl"
-  ).replace(/\/$/, "");
-}
+export function customerBookingBaseUrl() { return bookingOrigin(); }
 
 export function escapeCustomerHtml(value: unknown) {
   return String(value ?? "")

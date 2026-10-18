@@ -1,3 +1,4 @@
+import { assertSafeStripeKey } from "@/lib/testEnvironment";
 import Stripe from "stripe";
 
 let instance: Stripe | null = null;
@@ -10,6 +11,8 @@ export function getStripe() {
       "Płatności online nie są jeszcze skonfigurowane: brak STRIPE_SECRET_KEY."
     );
   }
+
+  assertSafeStripeKey(secretKey);
 
   if (!instance) {
     instance = new Stripe(secretKey);
