@@ -1,6 +1,18 @@
 # Izolowane testy International Edition (PR #48)
 
-## Stan środowiska
+## Aktualizacja 19.10.2026
+
+Konfiguracja obu Preview została sprawdzona rzeczywistym HTTP: 16 zapisów / cztery typy / cztery języki PASS. Dodano `GOOGLE_MAPS_API_KEY` do Panel Preview oraz dedykowany `STRIPE_WEBHOOK_SECRET` do Booking Preview, tylko na gałęzi `feature/international-booking-languages`. Oba buildy kodu d1785a6 SUCCESS.
+
+Stripe TEST: trzy płatności B2C PL/EN/DE rozliczone przez autentyczny webhook. CS i cztery B2B pozostają pending po blokadzie zatwierdzenia przez automatyczną kontrolę przeglądarki. Nie wolno uznawać utworzenia sesji za udaną płatność.
+
+Po testach usunięto oba zatwierdzone tymczasowe wyjątki Deployment Protection. Endpoint TEST `we_1US1EnRwXAcTCtJaXGz7Vn5v` ma status disabled. Przed kontynuacją płatności potrzebny jest działający, zatwierdzony dostęp webhooka i ponowne włączenie tego endpointu; nie używać webhooka live ani zmieniać produkcji. Tymczasowe pliki importu sekretów są usuwane po konfiguracji. Fikcyjne dane pozostały w izolowanej bazie do audytu, bez wysyłki do klientów.
+
+Skrypty opt-in: `tests/controlled-preview-api.cjs`, `tests/controlled-preview-checkout.cjs`, `tests/controlled-stripe-replay.cjs`. Wymagają jawnych flag, lokalnej konfiguracji TEST i dokładnych aliasów Preview. Wyniki z tokenami przechowywać poza repozytorium. Replay jest ręcznym podpisanym żądaniem do aplikacji, nie mechanizmem resend Stripe.
+
+Dalsze sekcje opisują historię przygotowania. Aktualny status i braki: [raport](INTERNATIONAL_REVIEW_2026-10-18.md).
+
+## Stan środowiska — wcześniejsza konfiguracja
 
 - Organizacja wybrana przez użytkownika: **MATT TRANSPORT**.
 - Osobny projekt Supabase: `matt-booking-pro-test-pr48`, ref `ozeqdorryajfioxpufzb`, Frankfurt. Wycena utworzenia: **0 USD/miesiąc**. Nie zmieniono planu na Pro.
@@ -40,7 +52,7 @@ NODE_USE_ENV_PROXY=1 npm run test:international:rls
 
 Publiczny klucz anon nie zastępuje klucza serwera. Integracja Supabase udostępnia publiczne klucze; nie udostępnia service_role nowego projektu ani kluczy Stripe.
 
-W obu projektach Vercel (`matt-booking-pro`, `matt-booking-pro1`) potwierdzono obecność Secret `SUPABASE_SERVICE_ROLE_KEY` i `STRIPE_SECRET_KEY` w **Preview dla gałęzi `feature/international-booking-languages`**. Wartości nie odczytywano; API katalogu lotnisk działa w obu projektach. Osobny testowy webhook i autentyczna płatność pozostają do skonfigurowania i sprawdzenia. Docelowe ustawienia:
+W obu projektach Vercel (`matt-booking-pro`, `matt-booking-pro1`) potwierdzono obecność Secret `SUPABASE_SERVICE_ROLE_KEY` i `STRIPE_SECRET_KEY` w **Preview dla gałęzi `feature/international-booking-languages`**. Wartości nie odczytywano; API katalogu lotnisk działa w obu projektach. W późniejszym etapie skonfigurowano webhook i wykonano trzy płatności TEST (patrz aktualizacja powyżej). Docelowe ustawienia:
 
 | Nazwa | Źródło |
 |---|---|
@@ -69,7 +81,7 @@ Przed wdrożeniem nowego webhooka zastosować `supabase/migrations/2026101818400
 
 Webhook: 17/17 podpisanych testów lokalnych. Dodatkowo `tests/stripe-payment-transaction.sql` przeszedł w izolowanym PostgreSQL; wszystkie zapisy danych wycofano. Migracje `20261018184000_stripe_webhook_claims.sql` i `20261018184521_stripe_payment_audit_transaction.sql` są zastosowane wyłącznie w TEST i muszą poprzedzać nowe wdrożenie webhooka na produkcji. Druga funkcja jest `SECURITY INVOKER`, bez EXECUTE dla PUBLIC/anon/authenticated, z EXECUTE dla service_role.
 
-Dodano outbox dla klienckiego Checkout, opisany poniżej. Nie obejmuje wszystkich innych typów powiadomień; rzeczywiste dostarczenie wymaga testów dostawców. Obie kompilacje Vercel `c8b6e86` przeszły; zmiana transakcji wymaga kolejnych buildów. Produkcja bez zmian.
+Dodano outbox dla klienckiego Checkout, opisany poniżej. Nie obejmuje wszystkich innych typów powiadomień; rzeczywiste dostarczenie wymaga testów dostawców. Obie kompilacje Vercel `c8b6e86` przeszły; późniejsze buildy d1785a6 również przeszły. Produkcja bez zmian.
 
 
 ### Testy API i zgodności ze schematem

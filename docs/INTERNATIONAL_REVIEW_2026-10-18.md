@@ -1,6 +1,25 @@
 # MATT Booking PRO International Edition — raport 18.10.2026
 
-**Status: środowisko testowe przygotowane, pełne wydanie produkcyjne nadal zablokowane.** Kontynuowany jest [PR #48](https://github.com/MATT-TRANSPORT/matt-booking-pro/pull/48) i gałąź `feature/international-booking-languages`. Nie tworzono nowego PR ani implementacji od zera. Referencja porannych testów aplikacji: `8f23c856657f9149e7c7700d149981f0e71e367d`. Wieczorem ponowiono testy i dodano opisane niżej poprawki webhooka.
+## Aktualny stan — 19.10.2026
+
+**Kontynuacja PR #48, produkcja jeszcze niewydana.** Poniższa aktualizacja zastępuje wcześniejsze historyczne opisy blokad dostępu i nieukończonej konfiguracji.
+
+- Kod aplikacji `d1785a68a6ef3921719a16a1af8173bee1054ab3`: oba wdrożenia Preview SUCCESS — [Booking](https://vercel.com/matt-transport/matt-booking-pro/9wGBZrenqhQM8XzeunXuW8nmqoSR), [Panel](https://vercel.com/matt-transport/matt-booking-pro1/BPQAaGLUmMhuU4RVRzyCjrbEV3Lo). Lokalny Next.js/TypeScript PASS, testy logiki 69/69 PASS.
+- Rzeczywiste HTTP Preview → Supabase TEST: **16/16** zapisów (B2C/B2B/Wedding/General × PL/EN/DE/CS). Sprawdzono język, oba odcinki tam, gdzie dotyczą przepływu, i tokenowy portal. API odrzuciło przelew bankowy B2C w czterech językach. B2B użyło rzeczywistego Auth testowej firmy w skrypcie HTTP; nie jest to pełny test logowania zdalnego UI.
+- Formularz B2C w zdalnym Chromium utworzył cztery fikcyjne rezerwacje PL/EN/DE/CS z powrotem. Zapis ostatniej CS potwierdzono odczytem bazy 19.10 (MB-20261018-000030).
+- **3/8 płatności TEST zakończone**: B2C PL/EN/DE, po 800 PLN. Niezależny odczyt Stripe 19.10: `livemode=false`, `complete`, `paid`; baza ma `paid` i po jednym przetworzonym zdarzeniu webhooka. Nie pobrano rzeczywistych pieniędzy. CS oraz B2B ×4 mają sesje utworzone, ale pozostają `pending`.
+- Prawdziwy webhook Stripe TEST rozliczył trzy płatności. Dodatkowy ręczny replay podpisanego, już dostarczonego zdarzenia PL: dwa równoczesne żądania zwróciły duplikat, błędny podpis odrzucono. To nie jest test mechanizmu ponowień transportowych dostawcy Stripe.
+- Kolejka powiadomień w TEST nie jest wysyłana do dostawców. Dotychczasowy test PL potwierdził jeden wpis rozliczenia i dwa zadania bez prób wysyłki. Nie deklarujemy rzeczywistego dostarczenia SMS/push.
+- Naprawiono brak serwerowego klucza Maps w Panel Preview (tylko ta gałąź), co odblokowało wycenę B2B. Dodano dedykowany testowy sekret webhooka w Booking Preview. Nie zmieniano wartości Production.
+- Usunięto chwilowe wyświetlanie starych cen lotnisk przed pobraniem katalogu; lokalny fallback odpowiada zweryfikowanym stawkom. Etykieta podatku ma tłumaczenia DE `MwSt.` i CS `DPH`. Dodano test regresji cen oraz opt-in skrypty kontrolowanych HTTP/Checkout/replay.
+- Użytkownik zatwierdził czasowy publiczny dostęp wyłącznie do dwóch aliasów gałęzi. **19.10 usunięto oba wyjątki, przywracając ochronę Vercel.** Dedykowany endpoint Stripe TEST został wyłączony po testach; nie należy płacić przygotowanych sesji, dopóki bezpieczny dostęp webhooka nie zostanie ponownie przygotowany. Nie zmieniono globalnych sekretów automatyzacji ani domen produkcyjnych.
+- Automatyczna kontrola bezpieczeństwa odrzuciła zatwierdzenie czeskiego Checkout TEST. Nie ponawiano płatności inną drogą. Pozostałe braki i warunki wydania opisano na końcu raportu.
+
+## Historia wcześniejszych prac — 18.10.2026
+
+Opisy dawnych blokad i konfiguracji poniżej są zapisem kolejnych etapów, a nie aktualnym statusem. Wyniki z atrapami pozostają odrębne od późniejszych testów HTTP i Stripe TEST.
+
+**Historyczny status 18.10: środowisko testowe przygotowane.** Kontynuowany jest [PR #48](https://github.com/MATT-TRANSPORT/matt-booking-pro/pull/48) i gałąź `feature/international-booking-languages`. Nie tworzono nowego PR ani implementacji od zera. Referencja porannych testów aplikacji: `8f23c856657f9149e7c7700d149981f0e71e367d`. Wieczorem ponowiono testy i dodano opisane niżej poprawki webhooka.
 
 ## Zmiany
 
@@ -58,7 +77,7 @@ Dalsza poprawka opisana niżej dodaje trwałą kolejkę dla potwierdzeń klienck
 | Lokalny Next.js build | PASS | konfiguracja lokalnego serwera testowego, bez danych produkcyjnych |
 | Handlery API rezerwacji | 85/85 PASS | rzeczywiste POST, lokalne atrapy zależności; język w body/nagłówku/URL, błędny JSON, terminy B2B, daty kalendarzowe, liczby pasażerów/pojazdów |
 | Kontrakty zapisu w PostgreSQL | 16/16 PASS | 4 typy × 4 języki; rzeczywiste INSERT wygenerowanych danych i rollback; bez HTTP Preview |
-| Testy logiki | 68/68 PASS | języki, linki, wiadomości, walidacja, Checkout i zabezpieczenia test mode |
+| Testy logiki | 69/69 PASS | języki, linki, wiadomości, walidacja, Checkout i zabezpieczenia test mode |
 | Playwright Chromium | 104/104 PASS, 53,5 s | PL/EN/DE/CS × desktop 1440×1000 i mobile 390×844; lokalne atrapy API oraz protokołu Supabase |
 | Rzeczywisty Resend API | 8/8 PASS + retry PASS | wyłącznie adresy testowe dostawcy, symulowane delivered; bez testu rzeczywistej skrzynki/antyspamu |
 | Kolejka potwierdzeń Checkout | 18/18 PASS | symulowane HTTP Resend, awarie/ponowienia/współbieżność i tryb testowy; bez wysłania e-maila |
@@ -74,7 +93,7 @@ Poranny odczyt podglądu wykonano przez uwierzytelniony token Vercel ograniczony
 
 Nie utworzono prawdziwych rezerwacji, nie pobrano płatności i nie wysłano wiadomości do klientów. Testowe rekordy i zmiana notatki przez staff istnieją tylko w nowym projekcie testowym. Lokalne testy Checkout używają atrap Stripe — nie dowodzą autentycznej płatności ani webhooka.
 
-Obie kompilacje `c8b6e86` uzyskały status success. Końcowa zmiana transakcji wymaga nowych kompilacji Preview; bieżące wyniki są także aktualizowane w opisie PR #48.
+Obie kompilacje `c8b6e86` uzyskały status success. Najnowsze kompilacje d1785a6 również zakończyły się sukcesem; odnośniki w aktualizacji na początku raportu.
 
 ## Podglądy i kompilacje
 
@@ -87,14 +106,11 @@ Obie kompilacje `c8b6e86` uzyskały status success. Końcowa zmiana transakcji w
 
 Publiczne zmienne nowej bazy i test mode są ustawione w Preview obu projektów, tylko dla tej gałęzi. Nie publikowano nowej wersji Production. Wieczorem potwierdzono w panelu Vercel obecność Secret `SUPABASE_SERVICE_ROLE_KEY` i `STRIPE_SECRET_KEY` w obu projektach, przypisanych do Preview tej gałęzi; nie odczytywano ich wartości. W projekcie `matt-booking-pro1` wykryto pusty Build Command i ustawiono jawnie `npm run build`; zmiana dotyczy przyszłych kompilacji projektu, istniejące wdrożenie produkcyjne pozostaje bez zmian. Nowa kompilacja Preview `E7W3DHgaBuKEpxTzgngaMT3oFzmf` zakończyła się statusem Ready po 1m 9s; API lotnisk sprawdzono w zalogowanej zdalnej przeglądarce i zwróciło dane. Nie wyłączono ochrony wdrożeń i nie utworzono nowych sekretów automatyzacji. Po jednorazowym przejęciu przeglądarki przez użytkownika sprawdzono polski formularz: dwie metody płatności (gotówka/online), pola powrotu i cenę bazową obu odcinków. Podczas zmiany języka ochrona pól uwierzytelniania ponownie ograniczyła odczyt. Pełne E2E nadal nie zostało wykonane.
 
-## Co blokuje produkcję
+## Co blokuje produkcję — aktualizacja 19.10.2026
 
-1. Potwierdzenie poprawności wartości i rzeczywistego działania obu konfiguracji Preview. Klucze są obecne w obu projektach, a Booking odczytuje katalog lotnisk; nie dowodzi to jeszcze poprawności Stripe ani pełnego przepływu zapisu.
-2. Weryfikacja dodanego klucza Stripe test oraz konfiguracja osobnego sekretu testowego webhooka, poprawny dostęp webhooka przez Deployment Protection i pełna płatność testowa z aktualizacją statusu oraz idempotencją.
-3. Pełny zapis B2C/B2B/Wedding/Transport pozostały z podglądu, oba odcinki, portal, powtórzenia i walidacja przez rzeczywistą bazę. Obecne testy Auth/RLS i UI nie zastępują tego scenariusza.
-4. Kontrolowane dostarczanie e-mail/SMS/push oraz Safari/iOS. Test mode celowo nie wysyła wiadomości.
-5. Zastosowanie sprawdzonych migracji, etapowany build produkcyjny, smoke test i kontrola logów — dopiero po zamknięciu powyższych punktów.
+1. Dokończenie pięciu płatności Stripe TEST: B2C CS i B2B PL/EN/DE/CS. Sesje utworzono i zweryfikowano; zatwierdzenie kolejnego Checkout zostało odrzucone przez automatyczną kontrolę bezpieczeństwa przeglądarki, która wymaga przejęcia przez użytkownika także dla testowej transakcji. Nie obchodzono blokady i nie deklarujemy 8/8 płatności.
+2. Pełny scenariusz uwierzytelnionego portalu B2B i ponowień w zdalnym UI oraz rzeczywiste Safari/iOS. Lokalny Chromium z atrapami nie zastępuje tych testów.
+3. Kontrolowane dostarczenie SMS/push do odbiorców testowych. Resend zaliczył wyłącznie syntetyczne dostarczenie dostawcy, nie test rzeczywistych skrzynek.
+4. Po zamknięciu powyższych: wymagane migracje na produkcji, etapowane wdrożenie obu projektów, smoke test i kontrola logów. Do tego czasu bez merge i bez publikacji International Edition na produkcji.
 
-[Dokładna konfiguracja testów i brakujących kluczy](INTERNATIONAL_TEST_ENVIRONMENT.md). Kluczy nie wolno wklejać do rozmowy ani repozytorium. Wprowadzić je bezpośrednio w Vercel jako Secret dla właściwej gałęzi Preview.
-
-Nie wykonano merge ani publikacji International Edition na produkcji.
+[Konfiguracja testów](INTERNATIONAL_TEST_ENVIRONMENT.md). Nie przekazywać sekretów w rozmowie ani repozytorium.
