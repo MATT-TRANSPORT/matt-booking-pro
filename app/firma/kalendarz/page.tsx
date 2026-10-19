@@ -31,7 +31,7 @@ export default async function CompanyCalendarPage({searchParams}:{searchParams:P
   const days=daysInMonth(month),offset=weekdayOffset(month),selected=selectedDate?legsByDate.get(selectedDate)??[]:[],today=warsawToday();
 
   return <main className="container company-calendar-page">
-    <span className="badge">MATT BOOKING PRO · B2B</span><h1>{t("Kalendarz transportów")}</h1><p className="muted">{t("Widoczne są wszystkie przejazdy: aktywne, zakończone i anulowane.")}</p><CompanyNav/>
+    <span className="badge">MATT BOOKING PRO · B2B</span><h1>{t("Kalendarz transportów")}</h1><p className="muted">{t("Widoczne są wszystkie przejazdy: aktywne, zakończone i anulowane.")}</p><CompanyNav customerLocale={locale}/>
     <section className="card company-calendar-card">
       <div className="company-calendar-toolbar"><a className="btn secondary" href={href(`/firma/kalendarz?month=${monthShift(month,-1)}`)}>{t("← POPRZEDNI")}</a><div><strong>{monthLabel(month,locale)}</strong><span>{t("Kliknij dzień, aby zobaczyć zlecenia.")}</span></div><a className="btn secondary" href={href(`/firma/kalendarz?month=${monthShift(month,1)}`)}>{t("NASTĘPNY →")}</a></div>
       <div className="company-calendar-weekdays">{[t("Pn"),t("Wt"),t("Śr"),t("Cz"),t("Pt"),t("So"),t("Nd")].map((d)=><span key={d}>{d}</span>)}</div>

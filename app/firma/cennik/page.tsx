@@ -67,7 +67,7 @@ export default async function Page({searchParams}:{searchParams:Promise<CompanyS
     <main className="container">
       <span className="badge">MATT BOOKING PRO · B2B PRO</span>
       <h1>{t("Cennik i warunki handlowe")}</h1>
-      <CompanyNav />
+      <CompanyNav customerLocale={locale} />
 
       <CompanyTermsSummaryCard customerLocale={locale}
         companyName={company.name}

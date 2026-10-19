@@ -67,7 +67,7 @@ export default async function Page({searchParams}:{searchParams:Promise<CompanyS
   return (
     <main className="container">
       <h1>{t("Rozliczenia")}</h1>
-      <CompanyNav />
+      <CompanyNav customerLocale={locale} />
 
       <div className="card company-settlement-summary">
         <div className="company-section-head">

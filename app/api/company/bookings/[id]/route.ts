@@ -339,7 +339,7 @@ export async function POST(
 
   compare("adres", current.pickup_address, address);
   compare("data", current.travel_date, body.travelDate);
-  compare("godzina", current.travel_time, body.travelTime);
+  compare("godzina", String(current.travel_time ?? "").slice(0, 5), String(body.travelTime ?? "").slice(0, 5));
   compare("data powrotu", current.return_date, returnDate);
   compare("godzina powrotu", String(current.return_time ?? "").slice(0, 5), returnTime);
   compare("lot", current.flight_number, body.flightNumber);

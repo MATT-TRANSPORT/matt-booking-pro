@@ -74,7 +74,7 @@ export default async function Page({searchParams}:{searchParams:Promise<CompanyS
   };
 
   return <main className="container">
-    <span className="badge">MATT BOOKING PRO · B2B PRO</span><h1>{company.name}</h1><CompanyNav />
+    <span className="badge">MATT BOOKING PRO · B2B PRO</span><h1>{company.name}</h1><CompanyNav customerLocale={locale} />
     <div className="card company-dashboard-transport-card">
       <div className="company-section-head"><div><span className="badge">{t("ZAMÓWIONE TRANSPORTY")}</span><h2>{t("Nadchodzące i aktywne")}</h2><p className="muted">{t("Najbliższy termin jest zawsze najwyżej. Zakończone, anulowane i minione przejazdy pozostają poniżej w historii.")}</p></div><a className="btn" href={href("/firma/nowa-rezerwacja")}>{t("+ ZAMÓW TRANSPORT")}</a></div>
       {!rows.length ? <div className="company-dashboard-empty"><strong>{t("Brak zamówionych transportów.")}</strong><span>{t("Nową rezerwację możesz utworzyć przyciskiem powyżej.")}</span></div> : <>

@@ -31,7 +31,7 @@ export default async function Page({searchParams}:{searchParams:Promise<CompanyS
   return (
     <main className="container">
       <h1>{t("Dane firmy")}</h1>
-      <CompanyNav />
+      <CompanyNav customerLocale={locale} />
       <div className="reservation-detail-grid">
         <div className="card">
           <h2>{t("Dane kontrahenta")}</h2>

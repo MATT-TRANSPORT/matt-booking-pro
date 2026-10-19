@@ -134,3 +134,13 @@ Publiczne zmienne nowej bazy i test mode są ustawione w Preview obu projektów,
 
 - Follow-up: PL empty-repeat validation also passed. Submitting a valid repeat in the isolated browser exposed a real persistence failure; no row was created. The route copied `customer_email_normalized`, a PostgreSQL generated column, from `SELECT *` into INSERT. Excluded it from the repeat payload. Added four locale-specific handler regression cases enforcing generated-column rejection and verifying new return dates, locale, current prices and cleared payment/driver assignments: 89/89 booking API tests pass. Live repeat verification is pending deployment of this fix.
 - Both Vercel builds for the preceding UI fix `a4d4e6a` succeeded: Booking `Hx56jaj5tkwNrayL5QEeuMt6fiUF`, Panel `4Di9veCas2929p12Sp2dE52vGPKD`.
+
+
+### Live B2B follow-up — 2026-10-19 evening
+
+- Repeat-booking UI → API → test DB → detail succeeded in all four languages after `ed68ab4`: CS/EN/DE/PL records MB-20261019-000031 through 000034. Independent DB reads verified locales, outbound/return dates and times, 864 PLN gross, pending payment and cleared driver/Checkout references. These are isolated TEST records, not fulfilled bookings.
+- Further UI testing found the edit form omitted return fields and its save label was hardcoded. `c958499` adds editable return dates/times, calendar-date validation for repeat/update, safe malformed-body handling, return changes in history and payment invalidation/reconfirmation. Fixture API tests: 97/97 PASS; TypeScript and local Next build PASS.
+- Live DE edit test on TEST MB-20261019-000033: return before departure rejected with German error; valid change to 2027-02-21 15:10 saved and displayed with German success text. Outbound remains 2027-02-12 08:30, gross 864 PLN. DB history independently confirms the return edit. No payment was executed.
+- Live CS calendar correctly shows the return leg separately (2027-02-17 14:55) with reversed airport-to-address route. CS billing and empty templates views are translated after hydration. This does not verify invoice downloads or recurring-template creation.
+- Follow-up removes initial Polish navigation links on all company server pages, adds the missing save-button translations, and normalizes HH:mm versus HH:mm:ss in edit history to avoid reporting an unchanged departure time as changed.
+- Production remains blocked by remaining Stripe TEST completion, wider portal/mobile Safari/iOS and real push delivery checks. No real customer messages or production writes.

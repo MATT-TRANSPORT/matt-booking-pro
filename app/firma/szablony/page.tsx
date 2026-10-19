@@ -23,7 +23,7 @@ export default async function CompanyTemplatesPage({searchParams}:{searchParams:
   return <main className="container">
     <span className="badge">MATT BOOKING PRO · B2B PRO</span>
     <h1>{t("Szablony i rezerwacje cykliczne")}</h1>
-    <CompanyNav />
+    <CompanyNav customerLocale={locale} />
     <CompanyBookingTemplates
       templates={templates ?? []}
       employees={employees ?? []}

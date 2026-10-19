@@ -37,7 +37,7 @@ export default async function Page({searchParams}:{searchParams:Promise<CompanyS
   return (
     <main className="container">
       <h1>{t("Nowa rezerwacja")}</h1>
-      <CompanyNav />
+      <CompanyNav customerLocale={locale} />
       <CompanyBookingForm
         employees={employees ?? []}
         companyName={company.name}
