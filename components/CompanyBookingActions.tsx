@@ -33,6 +33,8 @@ export default function CompanyBookingActions({ customerLocale, booking }: { cus
     airport: booking.airport_key,
     travelDate: booking.travel_date,
     travelTime: String(booking.travel_time).slice(0, 5),
+    returnDate: booking.return_date ?? "",
+    returnTime: String(booking.return_time ?? "").slice(0, 5),
     flightNumber: booking.flight_number ?? "",
     passengers: Number(booking.passengers),
     vehicleType: booking.vehicle_type,
@@ -229,6 +231,10 @@ export default function CompanyBookingActions({ customerLocale, booking }: { cus
           <div className="grid">
             <label>{t("Data")}<input type="date" value={form.travelDate} onChange={(e) => setForm({ ...form, travelDate: e.target.value })} /></label>
             <label>{booking.service_type === "from_airport" ? t("Godzina przylotu") : t("Godzina wyjazdu na lotnisko")}<input type="time" value={form.travelTime} onChange={(e) => setForm({ ...form, travelTime: e.target.value })} /></label>
+            {form.serviceType === "roundtrip" && <>
+              <label>{t("Data powrotu")}<input type="date" value={form.returnDate} onChange={e => setForm({ ...form, returnDate: e.target.value })} /></label>
+              <label>{t("Godzina powrotu")}<input type="time" value={form.returnTime} onChange={e => setForm({ ...form, returnTime: e.target.value })} /></label>
+            </>}
             <label>{t("Lot")}<input value={form.flightNumber} onChange={(e) => setForm({ ...form, flightNumber: e.target.value })} /></label>
             <label>
                {t("Pasażerowie")} <select value={form.passengers} onChange={(e) => {
@@ -256,7 +262,7 @@ export default function CompanyBookingActions({ customerLocale, booking }: { cus
 
           <label>{t("Uwagi")}<textarea rows={4} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></label>
           <button className="btn" style={{ width: "100%", marginTop: 12 }} disabled={saving || quoteBusy} onClick={save}>
-            {saving ? t("ZAPISYWANIE...") : "ZAPISZ ZMIANY"}
+            {saving ? t("ZAPISYWANIE...") : t("ZAPISZ ZMIANY")}
           </button>
         </div>
       )}

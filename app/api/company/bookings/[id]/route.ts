@@ -1,5 +1,6 @@
+import { bookingDateTime } from "@/lib/bookingDateTime";
 import { companyBookingUpdateEmail } from "@/lib/companyBookingUpdateEmail";
-import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
+import { customerJson, requestCustomerLocale, readCustomerBody } from "@/lib/customerErrors";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -49,8 +50,10 @@ export async function POST(
     return json({ error: "Brak firmy." }, { status: 403 });
   }
 
-  const body = await req.json();
- responseLocale=requestCustomerLocale(req,body?.locale);
+  const parsed = await readCustomerBody(req);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.body;
+  responseLocale = parsed.locale;
   const admin = createAdminClient();
 
   const { data: current } = await admin
@@ -184,14 +187,13 @@ export async function POST(
   }
 
   if (body.action === "repeat") {
-    if (current.service_type === "roundtrip" && (!body.returnDate || !body.returnTime || `${body.returnDate}T${body.returnTime}` <= `${body.travelDate}T${body.travelTime}`)) {
-      return json({ error: "Powrót musi nastąpić po wyjeździe." }, { status: 400 });
-    }
-    if (!body.travelDate || !body.travelTime) {
-      return json(
-        { error: "Podaj nową datę i godzinę." },
-        { status: 400 }
-      );
+    const departure = bookingDateTime(body.travelDate, body.travelTime);
+    if (!departure) return json({ error: "Podaj prawidłowy termin wyjazdu." }, { status: 400 });
+    if (current.service_type === "roundtrip") {
+      const back = bookingDateTime(body.returnDate, body.returnTime);
+      if (!back || back.getTime() <= departure.getTime()) {
+        return json({ error: "Termin powrotu musi być późniejszy niż wyjazd." }, { status: 400 });
+      }
     }
 
     let quote;
@@ -300,6 +302,15 @@ export async function POST(
   const address = String(body.address || current.pickup_address || "");
   const airport = String(body.airport || current.airport_key || "");
 
+  const departure = bookingDateTime(body.travelDate, body.travelTime);
+  if (!departure) return json({ error: "Podaj prawidłowy termin wyjazdu." }, { status: 400 });
+  const returnDate = serviceType === "roundtrip" ? (body.returnDate ?? current.return_date) : null;
+  const returnTime = serviceType === "roundtrip" ? String(body.returnTime ?? current.return_time ?? "").slice(0, 5) : null;
+  if (serviceType === "roundtrip") {
+    const back = bookingDateTime(returnDate, returnTime);
+    if (!back || back.getTime() <= departure.getTime()) return json({ error: "Termin powrotu musi być późniejszy niż wyjazd." }, { status: 400 });
+  }
+
   let quote;
   try {
     // Edycja zachowuje wersję warunków, według której rezerwacja została zawarta.
@@ -329,6 +340,8 @@ export async function POST(
   compare("adres", current.pickup_address, address);
   compare("data", current.travel_date, body.travelDate);
   compare("godzina", current.travel_time, body.travelTime);
+  compare("data powrotu", current.return_date, returnDate);
+  compare("godzina powrotu", String(current.return_time ?? "").slice(0, 5), returnTime);
   compare("lot", current.flight_number, body.flightNumber);
   compare("liczba pasażerów", current.passengers, body.passengers);
   compare("pojazd", current.vehicle_type, vehicle);
@@ -341,7 +354,9 @@ export async function POST(
   const materialChange =
     String(current.pickup_address ?? "") !== address ||
     String(current.travel_date ?? "") !== String(body.travelDate ?? "") ||
-    String(current.travel_time ?? "") !== String(body.travelTime ?? "") ||
+    String(current.travel_time ?? "").slice(0, 5) !== String(body.travelTime ?? "").slice(0, 5) ||
+    String(current.return_date ?? "") !== String(returnDate ?? "") ||
+    String(current.return_time ?? "").slice(0, 5) !== String(returnTime ?? "") ||
     String(current.airport_key ?? "") !== airport ||
     String(current.service_type ?? "") !== String(serviceType ?? "") ||
     String(current.vehicle_type ?? "") !== String(vehicle ?? "") ||
@@ -361,6 +376,8 @@ export async function POST(
       airport_label: quote.airportLabel,
       travel_date: body.travelDate,
       travel_time: body.travelTime,
+      return_date: returnDate,
+      return_time: returnTime,
       passengers: Number(body.passengers),
       vehicle_type: vehicle,
       flight_number: body.flightNumber || null,

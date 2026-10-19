@@ -8,13 +8,14 @@ const ts=require('typescript');
 const {randomUUID}=require('node:crypto');
 const root=path.resolve(__dirname,'..');
 let writes=[],emails=[],adminAccess=0;
-let repeatSource=null;
+let repeatSource=null, expiredSessions=[];
 const allRecords=[];
-function reset(){writes=[];emails=[];adminAccess=0}
+function reset(){writes=[];emails=[];adminAccess=0;expiredSessions=[]}
 function query(table){
- let insert;
- const q={select(){return q},eq(){return q},limit(){return q},order(){return q},single(){return q},maybeSingle(){return q},insert(value){insert=value;return q},
+ let insert,update;
+ const q={select(){return q},eq(){return q},limit(){return q},order(){return q},single(){return q},maybeSingle(){return q},insert(value){insert=value;return q},update(value){update=value;return q},
  then(resolve,reject){return Promise.resolve().then(()=>{
+  if(update){writes.push({table,value:update});return {data:{...repeatSource,...update},error:null}}
   if(insert && table==='bookings' && JSON.parse(JSON.stringify(insert)).customer_email_normalized!==undefined) return {data:null,error:{message:'cannot insert a non-DEFAULT value into column customer_email_normalized'}};
   if(insert){writes.push({table,value:insert});return {data:{id:randomUUID(),booking_number:'TEST-ONLY',customer_access_token:'test-only',...insert},error:null}}
   const rows={bookings:repeatSource,airport_pricing:{airport_key:'pyrzowice',label:'Katowice-Pyrzowice',route_address:'Test airport',car_price:290,bus_price:400,active:true},company_users:{company_id:'test-company',role:'admin'},company_employees:{id:'test-employee',first_name:'E2E TEST',last_name:'ONLY',email:'test@example.invalid'},companies:{email:'company@example.invalid'}};
@@ -26,12 +27,12 @@ const originalLoad=Module._load;
 Module._load=function(id,parent,isMain){
  if(id==='@/lib/supabase/admin')return {createAdminClient:()=>{adminAccess++;return admin}};
  if(id==='@/lib/supabase/server')return {createClient:async()=>({from:query,auth:{getUser:async()=>({data:{user:{id:'test-user',email:'company@example.invalid'}}})}})};
- if(id==='@/lib/stripeServer')return {expireCheckoutSession:async()=>{throw Error('Unexpected Stripe access')}};
- if(id==='@/lib/googleCalendar')return {syncBookingCalendar:async()=>{throw Error('Unexpected calendar access')}};
+ if(id==='@/lib/stripeServer')return {expireCheckoutSession:async id=>{expiredSessions.push(id)}};
+ if(id==='@/lib/googleCalendar')return {syncBookingCalendar:async()=>{}};
  if(id==='@/lib/email')return {sendMattEmail:async value=>{emails.push(value);return {sent:false,skipped:true}}};
  if(id==='@/lib/adminNotifications')return {sendNewBookingAdminPush:async()=>({sent:0,skipped:true}),sendNewWeddingAdminPush:async()=>({sent:0,skipped:true})};
  if(id==='@/lib/customerNotifications')return {sendBookingNotification:async()=>({sent:false,skipped:true})};
- if(id==='@/lib/pushServer')return {sendAdminPush:async()=>({sent:0,skipped:true})};
+ if(id==='@/lib/pushServer')return {sendAdminPush:async()=>({sent:0,skipped:true}),sendDriverPush:async()=>({sent:0,skipped:true})};
  if(id==='@/lib/routesServer')return {shortestDrivingRouteKm:async()=>({distanceKm:120})};
  if(id==='@/lib/companyPricing')return {calculateCompanyQuote:async(_admin,input)=>({serviceType:input.serviceType,airportKey:input.airportKey,airportLabel:'Katowice-Pyrzowice',vehicleType:input.vehicleType,defaultPaymentMethod:'company_transfer',net:800,gross:864,vatRate:8,distanceKm:20,billableKm:0}),bookingPricingFields:()=>({total_price:864,price_net:800,price_gross:864,vat_price:64,vat_rate:8})};
  if(id.startsWith('@/'))id=path.join(root,id.slice(2));
@@ -93,3 +94,21 @@ for(const locale of ['pl','en','de','cs'])test(`company repeat/${locale}: genera
  assert.ok(!Object.hasOwn(saved,'customer_email_normalized'));assert.equal(saved.payment_status,'pending');assert.equal(saved.payment_checkout_session_id,null);assert.equal(saved.payment_intent_id,null);assert.equal(saved.driver_id,null);assert.equal(saved.return_driver_id,null);assert.equal(saved.price_gross,864);assert.notEqual(saved.customer_access_token,repeatSource.customer_access_token);
  assert.equal(emails.length,0);
 });
+
+for(const locale of ['pl','en','de','cs']){
+ test(`company update/${locale}: return-only change expires old Checkout, saves dates and requests reconfirmation`,async()=>{
+  reset();repeatSource={...repeatSource,status:'confirmed',customer_locale:locale,payment_status:'pending',payment_checkout_session_id:'cs_test_old',travel_date:'2027-02-10',travel_time:'08:30:00',return_date:'2027-02-17',return_time:'14:55:00',price_gross:864};
+  const body={action:'update',locale,serviceType:'roundtrip',address:repeatSource.pickup_address,airport:'pyrzowice',vehicleType:'bus',passengers:8,travelDate:'2027-02-10',travelTime:'08:30',returnDate:'2027-02-18',returnTime:'15:10'};
+  const response=await repeatBooking(request(body,locale),{params:Promise.resolve({id:repeatSource.id})});assert.equal(response.status,200);const data=await response.json();
+  assert.equal(data.return_date,'2027-02-18');assert.equal(data.return_time,'15:10');assert.equal(data.status,'pending');assert.equal(data.customer_locale,locale);assert.equal(data.payment_checkout_session_id,null);assert.deepEqual(expiredSessions,['cs_test_old']);
+  assert.ok(writes.some(w=>w.table==='booking_history'&&w.value.event.includes('data powrotu')));
+ });
+ test(`company actions/${locale}: malformed bodies and impossible/reversed dates cannot mutate or expire Checkout`,async()=>{
+  for(const action of ['repeat','update'])for(const overrides of [{travelDate:'2027-02-31'},{returnDate:'2027-02-09'},{returnTime:'99:00'},{returnDate:'2027-02-30'}]){
+   reset();repeatSource={...repeatSource,status:'confirmed',payment_status:'pending'};
+   const response=await repeatBooking(request({action,locale,serviceType:'roundtrip',travelDate:'2027-02-10',travelTime:'08:30',returnDate:'2027-02-17',returnTime:'14:55',...overrides},locale),{params:Promise.resolve({id:repeatSource.id})});
+   assert.equal(response.status,400);assert.deepEqual(writes,[]);assert.deepEqual(expiredSessions,[]);
+  }
+  for(const body of [null,[],42]){reset();const response=await repeatBooking(request(body,locale),{params:Promise.resolve({id:'test-only'})});assert.equal(response.status,400);assert.deepEqual(writes,[]);}
+ });
+}
