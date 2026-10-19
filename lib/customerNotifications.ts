@@ -294,11 +294,13 @@ export async function sendBookingNotification(
     return { sent: false, skipped: true, reason: "b2b_or_missing" };
   }
 
-  const { data: subscriptions } = await admin
+  const { data: subscriptions, error: subscriptionError } = await admin
     .from("customer_push_subscriptions")
     .select("*")
     .eq("booking_id", bookingInput.id)
     .eq("active", true);
+
+  if (subscriptionError) throw new Error(subscriptionError.message);
 
   if (!subscriptions?.length) {
     return { sent: false, skipped: true, reason: "no_push_subscription" };
@@ -325,6 +327,7 @@ export async function sendBookingNotification(
 
   let sent = 0;
   let failed = 0;
+  let retryableRejectionsOnly = true;
   const payload = JSON.stringify({
     title,
     body,
@@ -347,6 +350,11 @@ export async function sendBookingNotification(
     } catch (error: any) {
       failed += 1;
       const statusCode = Number(error?.statusCode || 0);
+      // Retry only explicit transient provider rejections. A timeout can mean
+      // acceptance without acknowledgement, so it must not release deduplication.
+      if (statusCode !== 429 && !(statusCode >= 500 && statusCode <= 599)) {
+        retryableRejectionsOnly = false;
+      }
       if (statusCode === 404 || statusCode === 410) {
         await admin
           .from("customer_push_subscriptions")
@@ -360,10 +368,22 @@ export async function sendBookingNotification(
   }
 
   if (reserved.log) {
-    await admin
+    const { error: logError } = await admin
       .from("customer_push_notification_log")
       .update({ sent_count: sent, failed_count: failed })
       .eq("id", reserved.log.id);
+    if (logError) throw new Error(logError.message);
+
+    // Nobody accepted this event. Allow a later caller to retry it, without
+    // releasing another worker's reservation or repeating partial successes.
+    if (sent === 0 && failed > 0 && retryableRejectionsOnly) {
+      const { error: releaseError } = await admin
+        .from("customer_push_notification_log")
+        .delete()
+        .eq("id", reserved.log.id)
+        .eq("sent_count", 0);
+      if (releaseError) throw new Error(releaseError.message);
+    }
   }
 
   return {

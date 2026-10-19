@@ -1,5 +1,9 @@
 # Izolowane testy International Edition (PR #48)
 
+## Zakres wiadomości — potwierdzenie użytkownika 19.10.2026
+
+Automatyczna wysyłka SMS nie jest używana i nie stanowi warunku wydania. SMS/WhatsApp pozostają ręcznymi linkami z treścią PL/EN/DE/CS. Nie aktywować Twilio w ramach tej zmiany. Do sprawdzenia pozostaje rzeczywisty push; `node --test tests/customer-push.test.cjs` testuje lokalnie język i obsługę błędów, bez kontaktu z dostawcą.
+
 ## Aktualizacja 19.10.2026
 
 Konfiguracja obu Preview została sprawdzona rzeczywistym HTTP: 16 zapisów / cztery typy / cztery języki PASS. Dodano `GOOGLE_MAPS_API_KEY` do Panel Preview oraz dedykowany `STRIPE_WEBHOOK_SECRET` do Booking Preview, tylko na gałęzi `feature/international-booking-languages`. Oba buildy kodu d1785a6 SUCCESS.

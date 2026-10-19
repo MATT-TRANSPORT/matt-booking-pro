@@ -9,11 +9,19 @@
 - Formularz B2C w zdalnym Chromium utworzył cztery fikcyjne rezerwacje PL/EN/DE/CS z powrotem. Zapis ostatniej CS potwierdzono odczytem bazy 19.10 (MB-20261018-000030).
 - **3/8 płatności TEST zakończone**: B2C PL/EN/DE, po 800 PLN. Niezależny odczyt Stripe 19.10: `livemode=false`, `complete`, `paid`; baza ma `paid` i po jednym przetworzonym zdarzeniu webhooka. Nie pobrano rzeczywistych pieniędzy. CS oraz B2B ×4 mają sesje utworzone, ale pozostają `pending`.
 - Prawdziwy webhook Stripe TEST rozliczył trzy płatności. Dodatkowy ręczny replay podpisanego, już dostarczonego zdarzenia PL: dwa równoczesne żądania zwróciły duplikat, błędny podpis odrzucono. To nie jest test mechanizmu ponowień transportowych dostawcy Stripe.
-- Kolejka powiadomień w TEST nie jest wysyłana do dostawców. Dotychczasowy test PL potwierdził jeden wpis rozliczenia i dwa zadania bez prób wysyłki. Nie deklarujemy rzeczywistego dostarczenia SMS/push.
+- Kolejka powiadomień w TEST nie jest wysyłana do dostawców. Dotychczasowy test PL potwierdził jeden wpis rozliczenia i dwa zadania bez prób wysyłki. Nie deklarujemy rzeczywistego dostarczenia push. SMS/WhatsApp są ręcznymi linkami z tłumaczoną treścią; automatyczne SMS nie należą do zakresu wydania, co użytkownik potwierdził 19.10.
 - Naprawiono brak serwerowego klucza Maps w Panel Preview (tylko ta gałąź), co odblokowało wycenę B2B. Dodano dedykowany testowy sekret webhooka w Booking Preview. Nie zmieniano wartości Production.
 - Usunięto chwilowe wyświetlanie starych cen lotnisk przed pobraniem katalogu; lokalny fallback odpowiada zweryfikowanym stawkom. Etykieta podatku ma tłumaczenia DE `MwSt.` i CS `DPH`. Dodano test regresji cen oraz opt-in skrypty kontrolowanych HTTP/Checkout/replay.
 - Użytkownik zatwierdził czasowy publiczny dostęp wyłącznie do dwóch aliasów gałęzi. **19.10 usunięto oba wyjątki, przywracając ochronę Vercel.** Dedykowany endpoint Stripe TEST został wyłączony po testach; nie należy płacić przygotowanych sesji, dopóki bezpieczny dostęp webhooka nie zostanie ponownie przygotowany. Nie zmieniono globalnych sekretów automatyzacji ani domen produkcyjnych.
 - Automatyczna kontrola bezpieczeństwa odrzuciła zatwierdzenie czeskiego Checkout TEST. Nie ponawiano płatności inną drogą. Pozostałe braki i warunki wydania opisano na końcu raportu.
+
+## Uzupełnienie audytu push — 19.10.2026
+
+Użytkownik potwierdził, że automatyczna wysyłka SMS nie jest używana. Nie jest wymagana do wydania i nie należy włączać Twilio. Zakres tłumaczeń SMS/WhatsApp obejmuje istniejące ręczne linki i ich treść.
+
+Testy rzeczywistej funkcji `sendBookingNotification` z izolowanym dostawcą odtworzyły blokadę ponowienia po odrzuceniu wszystkich wysyłek oraz ignorowanie błędu odczytu subskrypcji. Poprawka zwalnia wyłącznie własny wpis deduplikacji po jednoznacznych przejściowych odrzuceniach HTTP 429/5xx, gdy nie było żadnego sukcesu. Timeout/nieznany wynik i częściowy sukces zachowują deduplikację. Błędy odczytu/zapisu bazy są zgłaszane. To pozwala na kolejne wywołanie, ale nie dodaje automatycznego harmonogramu ponowień wszystkich push.
+
+Wynik: **10/10 testów push PASS**, łącznie z 69 testami logiki **79/79 PASS**. Nowy zestaw sprawdza cztery języki, datę i trasę powrotu, link portalu, duplikaty, ponowienie po 503, błąd bazy, błąd zwolnienia rezerwacji, niepewny timeout oraz brak wysyłki w TEST. Nie wysyła nic do rzeczywistych urządzeń.
 
 ## Historia wcześniejszych prac — 18.10.2026
 
@@ -110,7 +118,7 @@ Publiczne zmienne nowej bazy i test mode są ustawione w Preview obu projektów,
 
 1. Dokończenie pięciu płatności Stripe TEST: B2C CS i B2B PL/EN/DE/CS. Sesje utworzono i zweryfikowano; zatwierdzenie kolejnego Checkout zostało odrzucone przez automatyczną kontrolę bezpieczeństwa przeglądarki, która wymaga przejęcia przez użytkownika także dla testowej transakcji. Nie obchodzono blokady i nie deklarujemy 8/8 płatności.
 2. Pełny scenariusz uwierzytelnionego portalu B2B i ponowień w zdalnym UI oraz rzeczywiste Safari/iOS. Lokalny Chromium z atrapami nie zastępuje tych testów.
-3. Kontrolowane dostarczenie SMS/push do odbiorców testowych. Resend zaliczył wyłącznie syntetyczne dostarczenie dostawcy, nie test rzeczywistych skrzynek.
+3. Kontrolowane dostarczenie push do odbiorców testowych. Resend zaliczył wyłącznie syntetyczne dostarczenie dostawcy, nie test rzeczywistych skrzynek.
 4. Po zamknięciu powyższych: wymagane migracje na produkcji, etapowane wdrożenie obu projektów, smoke test i kontrola logów. Do tego czasu bez merge i bez publikacji International Edition na produkcji.
 
 [Konfiguracja testów](INTERNATIONAL_TEST_ENVIRONMENT.md). Nie przekazywać sekretów w rozmowie ani repozytorium.
