@@ -215,6 +215,8 @@ export async function POST(
       ...current,
       id: undefined,
       booking_number: undefined,
+      // PostgreSQL generates this from email; SELECT * includes it, INSERT must not.
+      customer_email_normalized: undefined,
       customer_access_token: crypto.randomUUID(),
       created_at: undefined,
       updated_at: undefined,

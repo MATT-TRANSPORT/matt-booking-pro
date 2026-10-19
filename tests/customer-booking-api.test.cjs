@@ -8,14 +8,16 @@ const ts=require('typescript');
 const {randomUUID}=require('node:crypto');
 const root=path.resolve(__dirname,'..');
 let writes=[],emails=[],adminAccess=0;
+let repeatSource=null;
 const allRecords=[];
 function reset(){writes=[];emails=[];adminAccess=0}
 function query(table){
  let insert;
  const q={select(){return q},eq(){return q},limit(){return q},order(){return q},single(){return q},maybeSingle(){return q},insert(value){insert=value;return q},
  then(resolve,reject){return Promise.resolve().then(()=>{
+  if(insert && table==='bookings' && JSON.parse(JSON.stringify(insert)).customer_email_normalized!==undefined) return {data:null,error:{message:'cannot insert a non-DEFAULT value into column customer_email_normalized'}};
   if(insert){writes.push({table,value:insert});return {data:{id:randomUUID(),booking_number:'TEST-ONLY',customer_access_token:'test-only',...insert},error:null}}
-  const rows={airport_pricing:{airport_key:'pyrzowice',label:'Katowice-Pyrzowice',route_address:'Test airport',car_price:290,bus_price:400,active:true},company_users:{company_id:'test-company',role:'admin'},company_employees:{id:'test-employee',first_name:'E2E TEST',last_name:'ONLY',email:'test@example.invalid'},companies:{email:'company@example.invalid'}};
+  const rows={bookings:repeatSource,airport_pricing:{airport_key:'pyrzowice',label:'Katowice-Pyrzowice',route_address:'Test airport',car_price:290,bus_price:400,active:true},company_users:{company_id:'test-company',role:'admin'},company_employees:{id:'test-employee',first_name:'E2E TEST',last_name:'ONLY',email:'test@example.invalid'},companies:{email:'company@example.invalid'}};
   return {data:rows[table]??null,error:null};
  }).then(resolve,reject)}};return q;
 }
@@ -24,6 +26,8 @@ const originalLoad=Module._load;
 Module._load=function(id,parent,isMain){
  if(id==='@/lib/supabase/admin')return {createAdminClient:()=>{adminAccess++;return admin}};
  if(id==='@/lib/supabase/server')return {createClient:async()=>({from:query,auth:{getUser:async()=>({data:{user:{id:'test-user',email:'company@example.invalid'}}})}})};
+ if(id==='@/lib/stripeServer')return {expireCheckoutSession:async()=>{throw Error('Unexpected Stripe access')}};
+ if(id==='@/lib/googleCalendar')return {syncBookingCalendar:async()=>{throw Error('Unexpected calendar access')}};
  if(id==='@/lib/email')return {sendMattEmail:async value=>{emails.push(value);return {sent:false,skipped:true}}};
  if(id==='@/lib/adminNotifications')return {sendNewBookingAdminPush:async()=>({sent:0,skipped:true}),sendNewWeddingAdminPush:async()=>({sent:0,skipped:true})};
  if(id==='@/lib/customerNotifications')return {sendBookingNotification:async()=>({sent:false,skipped:true})};
@@ -78,3 +82,14 @@ for(const locale of ['pl','en','de','cs']){
   }
  });
 }
+
+const repeatBooking=require('../app/api/company/bookings/[id]/route.ts').POST;
+for(const locale of ['pl','en','de','cs'])test(`company repeat/${locale}: generated email excluded, new return dates and payment reset persisted`,async()=>{
+ reset(); repeatSource={id:'old-test-only',company_id:'test-company',booking_number:'TEST-OLD',customer_email_normalized:'test@example.invalid',email:'test@example.invalid',customer_name:'TEST ONLY',service_type:'roundtrip',pickup_address:'TEST ONLY',airport_key:'pyrzowice',vehicle_type:'bus',passengers:8,travel_date:'2027-01-20',return_date:'2027-01-27',customer_locale:'en',payment_status:'paid',payment_checkout_session_id:'cs_test_old',payment_intent_id:'pi_test_old',driver_id:'old-driver',return_driver_id:'old-return-driver'};
+ const response=await repeatBooking(request({action:'repeat',locale,travelDate:'2027-02-10',travelTime:'08:30',returnDate:'2027-02-17',returnTime:'14:55'},locale),{params:Promise.resolve({id:repeatSource.id})});
+ assert.equal(response.status,200); const data=await response.json();
+ assert.equal(data.customer_locale,locale);assert.equal(data.return_date,'2027-02-17');assert.equal(data.return_time,'14:55');assert.equal(data.travel_date,'2027-02-10');
+ const saved=JSON.parse(JSON.stringify(writes.find(w=>w.table==='bookings').value));
+ assert.ok(!Object.hasOwn(saved,'customer_email_normalized'));assert.equal(saved.payment_status,'pending');assert.equal(saved.payment_checkout_session_id,null);assert.equal(saved.payment_intent_id,null);assert.equal(saved.driver_id,null);assert.equal(saved.return_driver_id,null);assert.equal(saved.price_gross,864);assert.notEqual(saved.customer_access_token,repeatSource.customer_access_token);
+ assert.equal(emails.length,0);
+});
