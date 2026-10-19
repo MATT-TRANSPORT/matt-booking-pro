@@ -8,9 +8,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAirportPricing } from "@/lib/useAirportPricing";
 
-export default function CompanyBookingActions({ booking }: { booking: any }) {
+export default function CompanyBookingActions({ customerLocale, booking }: { customerLocale?: unknown; booking: any }) {
  const fetchCustomer=(input:RequestInfo|URL,init?:RequestInit)=>customerFetch(locale,input,init);
-  const locale=useCustomerLocale();
+  const locale=useCustomerLocale(customerLocale);
   const t=(key:string)=>companyText(key,locale);
   const href=(path:string)=>withCustomerLocale(path,locale);
   const router = useRouter();

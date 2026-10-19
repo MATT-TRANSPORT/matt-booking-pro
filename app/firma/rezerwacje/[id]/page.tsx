@@ -46,9 +46,9 @@ export default async function Page({
   return (
     <main className="container">
       <a className="back-link" href={href("/firma/rezerwacje")}>{t("← Wróć do rezerwacji")}</a>
-      <span className="badge">B2B PRO · NETTO + VAT 8%</span>
+      <span className="badge">B2B PRO · {t("NETTO + VAT 8%")}</span>
       <h1>{booking.booking_number}</h1>
-      <CompanyNav />
+      <CompanyNav customerLocale={locale} />
 
       <div className="reservation-detail-grid">
         <div>
@@ -77,11 +77,11 @@ export default async function Page({
 
             <div className="b2b-detail-financials">
               <div><span>{t("NETTO")}</span><strong>{money.net.toFixed(2)} zł</strong></div>
-              <div><span>VAT {money.vatRate.toFixed(0)}%</span><strong>{money.vat.toFixed(2)} zł</strong></div>
+              <div><span>{t("VAT")} {money.vatRate.toFixed(0)}%</span><strong>{money.vat.toFixed(2)} zł</strong></div>
               <div className="gross"><span>{t("BRUTTO")}</span><strong>{money.gross.toFixed(2)} zł</strong></div>
             </div>
             <div className="detail-list" style={{ marginTop: 12 }}>
-              <div><span>{t("Płatność")}</span><CompanyPaymentCell booking={booking} canPay={canPayOnline} /></div>
+              <div><span>{t("Płatność")}</span><CompanyPaymentCell customerLocale={locale} booking={booking} canPay={canPayOnline} /></div>
               <div><span>{t("Dokumenty")}</span><strong>{documents?.length ? `${documents.length} ${t("dostępne")}` : t("Brak")}</strong></div>
             </div>
             <p className="muted">{t("Wszystkie ceny B2B są cenami netto. Do ceny doliczany jest VAT 8%.")}</p>
@@ -106,10 +106,10 @@ export default async function Page({
           </div>
 
           <B2BPricingSnapshotCard customerLocale={locale} booking={booking} />
-          <BookingDocumentsCard bookingId={booking.id} documents={documents ?? []} />
+          <BookingDocumentsCard customerLocale={locale} bookingId={booking.id} documents={documents ?? []} />
         </div>
 
-        <CompanyBookingActions booking={booking} />
+        <CompanyBookingActions customerLocale={locale} booking={booking} />
       </div>
     </main>
   );

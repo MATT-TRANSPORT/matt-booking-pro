@@ -80,7 +80,7 @@ export default async function Page({searchParams}:{searchParams:Promise<CompanyS
         <div className="stats company-stats-pro company-settlement-stats">
           <div className="stat"><strong>{monthSummary.count}</strong><span>{t("Transporty")}</span></div>
           <div className="stat"><strong>{monthSummary.net.toFixed(2)} zł</strong><span>{t("Netto")}</span></div>
-          <div className="stat"><strong>{monthSummary.vat.toFixed(2)} zł</strong><span>VAT</span></div>
+          <div className="stat"><strong>{monthSummary.vat.toFixed(2)} zł</strong><span>{t("VAT")}</span></div>
           <div className="stat"><strong>{monthSummary.gross.toFixed(2)} zł</strong><span>{t("Brutto")}</span></div>
         </div>
       </div>

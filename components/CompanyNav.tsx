@@ -13,7 +13,7 @@ const links = [
   ["/firma/faktury","Rozliczenia"],
   ["/firma/ustawienia","Dane firmy"]
 ] as const;
-export default function CompanyNav() {
-  const locale=useCustomerLocale();
+export default function CompanyNav({ customerLocale }: { customerLocale?: unknown } = {}) {
+  const locale=useCustomerLocale(customerLocale);
   return <nav className="nav company-nav">{links.map(([path,label])=><a key={path} href={withCustomerLocale(path,locale)}>{customerText(label,locale)}</a>)}</nav>;
 }

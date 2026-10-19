@@ -3,6 +3,7 @@ import { resolveCustomerLocale } from "@/lib/bookingLocale";
 import { customerText } from "@/lib/customerCopy";
 
 export const companyCopy: Record<string,[string,string,string]> = {
+  "SNAPSHOT CENY": ["PRICE SNAPSHOT", "GESPEICHERTE PREISBERECHNUNG", "ULOŽENÝ VÝPOČET CENY"],
   "Dane kontrahenta": [
     "Customer company details",
     "Firmenkundendaten",

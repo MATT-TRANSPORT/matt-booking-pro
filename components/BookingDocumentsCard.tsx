@@ -15,16 +15,18 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default function BookingDocumentsCard({
+  customerLocale,
   bookingId,
   documents,
   canManage = false
 }: {
+  customerLocale?: unknown;
   bookingId: string;
   documents: any[];
   canManage?: boolean;
 }) {
  const fetchCustomer=(input:RequestInfo|URL,init?:RequestInit)=>customerFetch(locale,input,init);
-  const locale=useCustomerLocale();
+  const locale=useCustomerLocale(customerLocale);
   const t=(key:string)=>companyText(key,locale);
   const href=(path:string)=>withCustomerLocale(path,locale);
   const router = useRouter();

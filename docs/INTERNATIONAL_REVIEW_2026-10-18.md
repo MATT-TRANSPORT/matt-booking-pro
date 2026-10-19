@@ -122,3 +122,12 @@ Publiczne zmienne nowej bazy i test mode są ustawione w Preview obu projektów,
 4. Po zamknięciu powyższych: wymagane migracje na produkcji, etapowane wdrożenie obu projektów, smoke test i kontrola logów. Do tego czasu bez merge i bez publikacji International Edition na produkcji.
 
 [Konfiguracja testów](INTERNATIONAL_TEST_ENVIRONMENT.md). Nie przekazywać sekretów w rozmowie ani repozytorium.
+
+
+### Authenticated B2B follow-up — 2026-10-19
+
+- Signed-in isolated E2E TEST COMPANY A account: dashboard and round-trip detail verified in browser. EN/DE/CS navigation retains the requested locale; both journey dates/times and net/VAT/gross amounts are visible.
+- EN/DE/CS repeat form exposes outbound and return date/time inputs; submitting empty fields gives the appropriate translated validation message. No new booking or payment was submitted during these checks. This is not a completed repeat-booking end-to-end test.
+- Fixed hardcoded B2B price-snapshot badge and VAT labels in booking details, quote form and billing. Seeded detail-page navigation, payment, documents and action widgets with the server request locale to prevent their initial Polish render on translated pages. Operational callers retain Polish defaults.
+- Local production build passed; international logic plus customer-push fixture tests passed 79/79. Preview verification of this follow-up commit remains pending at commit time.
+- Production remains unchanged. Remaining provider-payment, real-device and complete authenticated workflow gates from the earlier report still apply. Manual SMS remains the intended workflow.

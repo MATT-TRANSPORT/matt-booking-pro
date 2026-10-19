@@ -7,9 +7,9 @@ import { withCustomerLocale } from "@/lib/bookingLocale";
 import { useEffect, useState } from "react";
 import { paymentBookingStatusAllowed, paymentStatusLabel } from "@/lib/payment";
 
-export default function CompanyPaymentCell({ booking, canPay = true }: { booking: any; canPay?: boolean }) {
+export default function CompanyPaymentCell({ customerLocale, booking, canPay = true }: { customerLocale?: unknown; booking: any; canPay?: boolean }) {
  const fetchCustomer=(input:RequestInfo|URL,init?:RequestInit)=>customerFetch(locale,input,init);
-  const locale=useCustomerLocale();
+  const locale=useCustomerLocale(customerLocale);
   const t=(key:string)=>companyText(key,locale);
   const href=(path:string)=>withCustomerLocale(path,locale);
   const [busy, setBusy] = useState(false);

@@ -301,7 +301,7 @@ export default function CompanyBookingForm({
         <div className="success-details">
           <div><span>{t("Pasażer")}</span><strong>{success.customer_name}</strong></div>
           <div><span>{t("Netto")}</span><strong>{net.toFixed(2)} zł</strong></div>
-          <div><span>VAT 8%</span><strong>{vat.toFixed(2)} zł</strong></div>
+          <div><span>{t("VAT")} 8%</span><strong>{vat.toFixed(2)} zł</strong></div>
           <div><span>{t("Brutto")}</span><strong>{gross.toFixed(2)} zł</strong></div>
         </div>
 
@@ -527,7 +527,7 @@ export default function CompanyBookingForm({
             {quote.additionalStopAddress && <div className="row"><span>{t("Dodatkowy przystanek")}</span><strong>{fixed(quote.additionalStopFeeNet, 2)} {t("zł netto")}</strong></div>}
             {quote.additionalStopAddress && <div className="row"><span>{t("Objazd przystanku")}</span><strong>{fixed(quote.additionalStopExtraKm, 1)} km · {fixed(quote.additionalStopExtraPriceNet, 2)} {t("zł netto")}</strong></div>}
             <div className="row total"><span>{t("RAZEM NETTO")}</span><strong>{fixed(quote.net, 2)} zł</strong></div>
-            <div className="row"><span>VAT {fixed(quote.vatRate, 0)}%</span><strong>{fixed(quote.vat, 2)} zł</strong></div>
+            <div className="row"><span>{t("VAT")} {fixed(quote.vatRate, 0)}%</span><strong>{fixed(quote.vat, 2)} zł</strong></div>
             <div className="row total"><span>{t("RAZEM BRUTTO")}</span><strong>{fixed(quote.gross, 2)} zł</strong></div>
             <p className="muted" style={{ marginTop: 12 }}>
               {quote.pricingSource === "custom" ? t("Indywidualny cennik kontrahenta.") : t("Cena standardowa MATT dla tej pozycji.")}<br />

@@ -23,7 +23,7 @@ export default function B2BPricingSnapshotCard({customerLocale,  booking }: {cus
   const source = booking.pricing_source === "custom" ? t("Indywidualny") : booking.pricing_source === "legacy_b2b" ? t("Historyczny") : t("Standardowy MATT / fallback");
 
   return <div className="card" style={{ marginTop: 16 }}>
-    <span className="badge">B2B PRO · SNAPSHOT CENY</span>
+    <span className="badge">B2B PRO · {t("SNAPSHOT CENY")}</span>
     <h2>{t("Wycena B2B")}</h2>
     <div className="detail-list">
       <div><span>{t("Cennik")}</span><strong>{source}</strong></div>
@@ -36,7 +36,7 @@ export default function B2BPricingSnapshotCard({customerLocale,  booking }: {cus
       <div><span>{t("Cena bazowa")}</span><strong>{base.toFixed(2)}  {t("zł netto")}</strong></div>
       <div><span>{t("Dopłata za km")}</span><strong>{extra.toFixed(2)}  {t("zł netto")}</strong></div>
       <div className="detail-total"><span>{t("Razem NETTO")}</span><strong>{net.toFixed(2)} zł</strong></div>
-      <div><span>VAT {vatRate.toFixed(0)}%</span><strong>{vat.toFixed(2)} zł</strong></div>
+      <div><span>{t("VAT")} {vatRate.toFixed(0)}%</span><strong>{vat.toFixed(2)} zł</strong></div>
       <div className="detail-total"><span>{t("Razem BRUTTO")}</span><strong>{gross.toFixed(2)} zł</strong></div>
     </div>
     <p className="muted" style={{ marginTop: 12 }}>{t("Cena została zapisana wraz z warunkami użytymi w chwili wyceny. Późniejsza zmiana cennika firmy nie zmienia tej rezerwacji.")}</p>
