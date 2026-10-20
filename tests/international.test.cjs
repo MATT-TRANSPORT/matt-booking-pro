@@ -170,7 +170,7 @@ for(const locale of ['pl','en','de','cs'])test(`${locale}: company repeat requir
  testBooking={...base,company_id:'test-company',customer_locale:locale};dbWrites=[];
  for(const dates of [{},{returnDate:'2027-02-19',returnTime:'14:55'}]){
   const response=await companyBookingAction({headers:new Headers({'x-matt-locale':locale}),json:async()=>({action:'repeat',locale,travelDate:'2027-02-20',travelTime:'08:30',...dates})},{params:Promise.resolve({id:'test-only'})});
-  assert.equal(response.status,400);assert.equal((await response.json()).error,customerErrorText('Powrót musi nastąpić po wyjeździe.',locale));assert.deepEqual(dbWrites,[]);
+  assert.equal(response.status,400);assert.equal((await response.json()).error,customerErrorText('Termin powrotu musi być późniejszy niż wyjazd.',locale));assert.deepEqual(dbWrites,[]);
  }
 });
 const {isTestEnvironment,assertTestDatabase,assertSafeStripeKey}=require('../lib/testEnvironment.ts');
