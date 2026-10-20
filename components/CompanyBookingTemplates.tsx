@@ -46,33 +46,49 @@ export default function CompanyBookingTemplates({
     if (!sourceBookingId || busy) return;
     setBusy(true);
     setMessage(t("Zapisywanie szablonu..."));
-    const r = await fetchCustomer("/api/company/templates", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ locale, action: "from_booking", bookingId: sourceBookingId, name: templateName })
-    });
-    const d = await r.json();
-    setBusy(false);
-    if (!r.ok) { setMessage(d.error || t("Nie udało się zapisać szablonu.")); return; }
-    setMessage(t("✓ Szablon zapisany."));
-    setSourceBookingId("");
-    setTemplateName("");
-    router.refresh();
+    try {
+      const r = await fetchCustomer("/api/company/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locale, action: "from_booking", bookingId: sourceBookingId, name: templateName })
+      });
+      const d = await r.json();
+      if (!r.ok) {
+        setMessage(d.error || t("Nie udało się zapisać szablonu."));
+        return;
+      }
+      setMessage(t("✓ Szablon zapisany."));
+      setSourceBookingId("");
+      setTemplateName("");
+      router.refresh();
+    } catch {
+      setMessage(t("Nie udało się zapisać szablonu."));
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function removeTemplate(id: string) {
-    if (!window.confirm(t("Usunąć ten szablon?"))) return;
+    if (busy || !window.confirm(t("Usunąć ten szablon?"))) return;
     setBusy(true);
-    const r = await fetchCustomer("/api/company/templates", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ locale, action: "delete", id })
-    });
-    const d = await r.json();
-    setBusy(false);
-    if (!r.ok) { setMessage(d.error || t("Nie udało się usunąć szablonu.")); return; }
-    setMessage(t("✓ Szablon usunięty."));
-    router.refresh();
+    try {
+      const r = await fetchCustomer("/api/company/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locale, action: "delete", id })
+      });
+      const d = await r.json();
+      if (!r.ok) {
+        setMessage(d.error || t("Nie udało się usunąć szablonu."));
+        return;
+      }
+      setMessage(t("✓ Szablon usunięty."));
+      router.refresh();
+    } catch {
+      setMessage(t("Nie udało się usunąć szablonu."));
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function createSeries() {
