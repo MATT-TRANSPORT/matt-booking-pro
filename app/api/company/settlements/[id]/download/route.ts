@@ -10,6 +10,9 @@ export async function GET(
   let responseLocale=requestCustomerLocale(_req);
   const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
   const { id } = await params;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+    return json({ error: "Nieprawidłowe dane formularza." }, { status: 400 });
+  }
   const auth = await createClient();
   const { data: { user } } = await auth.auth.getUser();
 
@@ -49,5 +52,8 @@ export async function GET(
     return json({ error: error?.message ?? "Błąd pliku." }, { status: 500 });
   }
 
-  return NextResponse.redirect(data.signedUrl);
+  const redirect = NextResponse.redirect(data.signedUrl);
+  redirect.headers.set("Cache-Control", "private, no-store");
+  redirect.headers.set("Referrer-Policy", "no-referrer");
+  return redirect;
 }
