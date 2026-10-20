@@ -43,5 +43,7 @@ jobs:
         run: npm run test:payments:outbox
       - name: Customer push contract (isolated, no device delivery)
         run: node --test tests/customer-push.test.cjs
+      - name: Invoice download route regression
+        run: node --test tests/company-invoice-download.test.cjs
       - name: TypeScript check
         run: npx tsc --noEmit
