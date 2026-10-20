@@ -91,6 +91,7 @@ export default function CompanyBookingTemplates({
     setMessage(t("Tworzenie {count} rezerwacji...").replace("{count}",String(count)));
     const created: any[] = [];
 
+    try {
     for (let i = 0; i < count; i++) {
       const travelDate = addDays(firstDate, recurrence === "weekly" ? i * 7 : 0);
       const returnDate = selected.service_type === "roundtrip"
@@ -128,6 +129,13 @@ export default function CompanyBookingTemplates({
         return;
       }
       created.push(d);
+    }
+
+    } catch {
+      setBusy(false);
+      setMessage(t("Utworzono {created}/{count}. Błąd połączenia — sprawdź listę rezerwacji przed ponowną próbą.").replace("{created}",String(created.length)).replace("{count}",String(count)));
+      router.refresh();
+      return;
     }
 
     setBusy(false);
