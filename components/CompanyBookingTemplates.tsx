@@ -133,7 +133,7 @@ export default function CompanyBookingTemplates({
 
     } catch {
       setBusy(false);
-      setMessage(t("Utworzono {created}/{count}. Błąd połączenia — sprawdź listę rezerwacji przed ponowną próbą.").replace("{created}",String(created.length)).replace("{count}",String(count)));
+      setMessage(t("Utworzono {created}/{count}. Błąd dla {date}: {error}").replace("{created}",String(created.length)).replace("{count}",String(count)).replace("{date}",addDays(firstDate, recurrence === "weekly" ? created.length * 7 : 0)).replace("{error}",t("nie udało się zapisać")));
       router.refresh();
       return;
     }
