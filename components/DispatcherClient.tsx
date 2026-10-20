@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { addDays, statusStageClass, warsawToday } from "@/lib/bookingOps";
 import { statusPl } from "@/lib/status";
 import {
@@ -36,17 +36,33 @@ type AttentionItem = {
 export default function DispatcherClient({
   bookings,
   drivers,
-  vehicles
+  vehicles,
+  viewerId
 }: {
   bookings: any[];
   drivers: any[];
   vehicles: any[];
+  viewerId: string;
 }) {
   const [rows, setRows] = useState(bookings);
   const [scope, setScope] = useState<Scope>("all");
   const [filter, setFilter] = useState<Filter>("all");
   const [message, setMessage] = useState("");
   const [savingId, setSavingId] = useState("");
+  const [seenNewIds, setSeenNewIds] = useState<string[] | null>(null);
+  const seenKey = `matt-panel-seen-new-${viewerId}`;
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(seenKey) || "[]");
+      setSeenNewIds(Array.isArray(saved) ? saved.filter((id): id is string => typeof id === "string") : []);
+    } catch { setSeenNewIds([]); }
+  }, [seenKey]);
+  function markAsRead(id: string) {
+    const next = Array.from(new Set([...(seenNewIds || []), id]));
+    setSeenNewIds(next);
+    try { window.localStorage.setItem(seenKey, JSON.stringify(next)); } catch { /* private browsing */ }
+  }
+
 
   const today = warsawToday();
   const tomorrow = addDays(today, 1);
@@ -229,8 +245,8 @@ export default function DispatcherClient({
   }
 
   const newRequests = useMemo(() => activeRows
-    .filter((booking) => booking.status === "pending")
-    .sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || ""))), [activeRows]);
+    .filter((booking) => booking.status === "pending" && seenNewIds !== null && !seenNewIds.includes(String(booking.id)))
+    .sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || ""))), [activeRows, seenNewIds]);
 
   const overdueCount = activeRows.filter((x) => isDispatcherOverdue(x, nowKey)).length;
   const next3hCount = activeRows.filter((x) => bookingInNextMinutes(x, 180, nowKey)).length;
@@ -250,7 +266,7 @@ export default function DispatcherClient({
         {newRequests.length ? (
           <div className="dispatcher-new-list">
             {newRequests.slice(0, 12).map((booking) => (
-              <a className="dispatcher-new-item" key={booking.id} href={`/panel/rezerwacje/${booking.id}`}>
+              <a className="dispatcher-new-item" key={booking.id} href={`/panel/rezerwacje/${booking.id}`} onClick={() => markAsRead(String(booking.id))}>
                 <span className="dispatcher-new-sticker">NOWA!</span>
                 <span className="dispatcher-new-details">
                   <strong>{booking.booking_number} · {booking.customer_name}</strong>
