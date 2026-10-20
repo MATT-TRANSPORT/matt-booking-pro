@@ -17,7 +17,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ v
     ? (view as DispatcherView)
     : "active";
 
-  const { s } = await panelClient();
+  const { s, user } = await panelClient();
   let bookingsQuery = s
     .from("bookings")
     .select("*,companies(name),drivers:drivers!bookings_driver_id_fkey(full_name,color)");
@@ -130,7 +130,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ v
       <span className="muted">AirLabs · cache 20 min · maks. 8 zapytań na jedno zbiorcze odświeżenie</span>
     </div>
 
-    {selectedView === "active" ? <DispatcherClient bookings={bookingsWithFlights} drivers={drivers ?? []} vehicles={vehicles ?? []} /> :
+    {selectedView === "active" ? <DispatcherClient bookings={bookingsWithFlights} drivers={drivers ?? []} vehicles={vehicles ?? []} viewerId={user.id} /> :
       <ReadOnlyDispatcherList bookings={bookingsWithFlights} title={readOnlyTitle} />}
   </main>;
 }
