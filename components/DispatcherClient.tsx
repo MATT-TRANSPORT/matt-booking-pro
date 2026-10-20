@@ -228,12 +228,42 @@ export default function DispatcherClient({
     }
   }
 
+  const newRequests = useMemo(() => activeRows
+    .filter((booking) => booking.status === "pending")
+    .sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || ""))), [activeRows]);
+
   const overdueCount = activeRows.filter((x) => isDispatcherOverdue(x, nowKey)).length;
   const next3hCount = activeRows.filter((x) => bookingInNextMinutes(x, 180, nowKey)).length;
   const unassignedCount = activeRows.filter((x) => bookingHasMissingAssignment(x)).length;
 
   return (
     <>
+      <section className="dispatcher-new-requests card" aria-label="Nowe rezerwacje">
+        <div className="dispatcher-new-head">
+          <div>
+            <span className="dispatcher-new-heading">NOWE ZGŁOSZENIA</span>
+            <h2>Nowe rezerwacje do obsługi</h2>
+            <p>Oczekujące na potwierdzenie, od najnowszej rezerwacji.</p>
+          </div>
+          <strong className="dispatcher-new-count" aria-label={`Nowe rezerwacje: ${newRequests.length}`}>{newRequests.length}</strong>
+        </div>
+        {newRequests.length ? (
+          <div className="dispatcher-new-list">
+            {newRequests.slice(0, 12).map((booking) => (
+              <a className="dispatcher-new-item" key={booking.id} href={`/panel/rezerwacje/${booking.id}`}>
+                <span className="dispatcher-new-sticker">NOWA!</span>
+                <span className="dispatcher-new-details">
+                  <strong>{booking.booking_number} · {booking.customer_name}</strong>
+                  <span>{booking.company_id ? "B2B" : "INDYWIDUALNA"} · {booking.travel_date} {String(booking.travel_time || "").slice(0, 5)} {booking.quote_required ? "· WYMAGA WYCENY" : ""}</span>
+                  <small>{booking.pickup_address || "Sprawdź trasę w szczegółach"}</small>
+                </span>
+                <span className="dispatcher-new-open">OTWÓRZ →</span>
+              </a>
+            ))}
+            {newRequests.length > 12 && <p className="muted">Pozostałe {newRequests.length - 12} rezerwacje znajdziesz na liście kursów poniżej.</p>}
+          </div>
+        ) : <p className="dispatcher-new-empty">✓ Brak nowych rezerwacji do potwierdzenia.</p>}
+      </section>
       <section className={`dispatcher-command-center card ${attention.length ? "has-attention" : "is-clear"}`}>
         <div className="dispatcher-command-head">
           <div>
