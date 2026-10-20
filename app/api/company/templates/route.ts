@@ -48,6 +48,10 @@ export async function POST(req: NextRequest) {
     const { data: booking } = await admin.from("bookings").select("*")
       .eq("id", body.bookingId).eq("company_id", membership.company_id).maybeSingle();
     if (!booking) return json({ error: "Nie znaleziono rezerwacji firmy." }, { status: 404 });
+    if (!booking.company_employee_id) return json({ error: "Nie udało się ustalić pasażera." }, { status: 400 });
+    const { data: employee } = await admin.from("company_employees").select("id")
+      .eq("id", booking.company_employee_id).eq("company_id", membership.company_id).eq("active", true).maybeSingle();
+    if (!employee) return json({ error: "Nie udało się ustalić pasażera." }, { status: 400 });
     const name = String(body.name || `${booking.customer_name} · ${booking.airport_label}`).trim().slice(0, 120);
     const { data, error } = await admin.from("company_booking_templates").insert({
       company_id: membership.company_id,
