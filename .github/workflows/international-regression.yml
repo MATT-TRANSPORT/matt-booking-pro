@@ -35,6 +35,8 @@ jobs:
         run: npm run test:international
       - name: Booking API regression
         run: npm run test:bookings:api
+      - name: Company templates API regression
+        run: node --test tests/company-templates-api.test.cjs
       - name: Payment webhook regression
         run: npm run test:payments:webhook
       - name: Payment outbox regression
