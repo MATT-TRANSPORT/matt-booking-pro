@@ -36,6 +36,12 @@ export async function POST(req: NextRequest) {
   responseLocale = parsed.locale;
   const action = String(body.action || "create");
 
+  if (!["create", "update", "delete", "from_booking"].includes(action)) {
+    return json({ error: "Nieprawidłowe dane formularza." }, { status: 400 });
+  }
+  if ((action === "delete" || action === "update") && (typeof body.id !== "string" || !body.id.trim())) {
+    return json({ error: "Nieprawidłowe dane formularza." }, { status: 400 });
+  }
   if (action === "delete") {
     const { error } = await admin.from("company_booking_templates")
       .update({ active: false, updated_at: new Date().toISOString() })
@@ -45,6 +51,9 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === "from_booking") {
+    if (typeof body.bookingId !== "string" || !body.bookingId.trim()) {
+      return json({ error: "Nieprawidłowe dane formularza." }, { status: 400 });
+    }
     const { data: booking } = await admin.from("bookings").select("*")
       .eq("id", body.bookingId).eq("company_id", membership.company_id).maybeSingle();
     if (!booking) return json({ error: "Nie znaleziono rezerwacji firmy." }, { status: 404 });
@@ -104,6 +113,10 @@ export async function POST(req: NextRequest) {
   if (payload.service_type === "roundtrip" && !payload.return_time) {
     return json({ error: "Dla kursu w obie strony podaj godzinę powrotu." }, { status: 400 });
   }
+
+  const { data: activeEmployee } = await admin.from("company_employees").select("id")
+    .eq("id", payload.employee_id).eq("company_id", membership.company_id).eq("active", true).maybeSingle();
+  if (!activeEmployee) return json({ error: "Nie udało się ustalić pasażera." }, { status: 400 });
 
   if (action === "update") {
     const { data, error } = await admin.from("company_booking_templates").update(payload)
