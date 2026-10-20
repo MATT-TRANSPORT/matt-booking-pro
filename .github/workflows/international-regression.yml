@@ -39,3 +39,7 @@ jobs:
         run: npm run test:payments:webhook
       - name: Payment outbox regression
         run: npm run test:payments:outbox
+      - name: Customer push contract (isolated, no device delivery)
+        run: node --test tests/customer-push.test.cjs
+      - name: TypeScript check
+        run: npx tsc --noEmit
