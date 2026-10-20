@@ -1,4 +1,4 @@
-import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
+import { customerJson, requestCustomerLocale, readCustomerBody } from "@/lib/customerErrors";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -30,8 +30,10 @@ export async function POST(req: NextRequest) {
   const ctx = await access();
   if (ctx.error) return ctx.error;
   const { user, membership, admin } = ctx;
-  const body = await req.json();
- responseLocale=requestCustomerLocale(req,body?.locale);
+  const parsed = await readCustomerBody(req);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.body;
+  responseLocale = parsed.locale;
   const action = String(body.action || "create");
 
   if (action === "delete") {
@@ -45,7 +47,6 @@ export async function POST(req: NextRequest) {
   if (action === "from_booking") {
     const { data: booking } = await admin.from("bookings").select("*")
       .eq("id", body.bookingId).eq("company_id", membership.company_id).maybeSingle();
- responseLocale=requestCustomerLocale(req,booking?.customer_locale);
     if (!booking) return json({ error: "Nie znaleziono rezerwacji firmy." }, { status: 404 });
     const name = String(body.name || `${booking.customer_name} · ${booking.airport_label}`).trim().slice(0, 120);
     const { data, error } = await admin.from("company_booking_templates").insert({
