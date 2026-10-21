@@ -2671,3 +2671,12 @@
   .dispatcher-new-open{margin-left:auto}
   .dispatcher-card-selects{grid-template-columns:minmax(0,1fr)}
 }
+
+/* History cards have an icon, route and actions; keep actions out of the icon column. */
+.dashboard-feed-card.booking-stage-card.dispatcher-history-card{grid-template-columns:46px minmax(0,1fr) auto}
+.dispatcher-history-card .dashboard-feed-meta{min-width:0;gap:10px}
+.dispatcher-history-card a,.dispatcher-history-card .origin-badge{overflow-wrap:anywhere;max-width:100%}
+@media(max-width:800px){
+ .dashboard-feed-card.booking-stage-card.dispatcher-history-card{grid-template-columns:38px minmax(0,1fr)}
+ .dispatcher-history-card .dashboard-feed-meta{grid-column:2/-1;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between}
+}

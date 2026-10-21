@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { addDays, statusStageClass, warsawToday } from "@/lib/bookingOps";
 import { statusPl } from "@/lib/status";
 import {
@@ -37,33 +37,20 @@ export default function DispatcherClient({
   bookings,
   drivers,
   vehicles,
-  viewerId
+  seenNewIds,
+  readStateUnavailable = false
 }: {
   bookings: any[];
   drivers: any[];
   vehicles: any[];
-  viewerId: string;
+  seenNewIds: string[];
+  readStateUnavailable?: boolean;
 }) {
   const [rows, setRows] = useState(bookings);
   const [scope, setScope] = useState<Scope>("all");
   const [filter, setFilter] = useState<Filter>("all");
   const [message, setMessage] = useState("");
   const [savingId, setSavingId] = useState("");
-  const [seenNewIds, setSeenNewIds] = useState<string[] | null>(null);
-  const seenKey = `matt-panel-seen-new-${viewerId}`;
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(window.localStorage.getItem(seenKey) || "[]");
-      setSeenNewIds(Array.isArray(saved) ? saved.filter((id): id is string => typeof id === "string") : []);
-    } catch { setSeenNewIds([]); }
-  }, [seenKey]);
-  function markAsRead(id: string) {
-    const next = Array.from(new Set([...(seenNewIds || []), id]));
-    setSeenNewIds(next);
-    try { window.localStorage.setItem(seenKey, JSON.stringify(next)); } catch { /* private browsing */ }
-  }
-
-
   const today = warsawToday();
   const tomorrow = addDays(today, 1);
   const weekEnd = addDays(today, 6);
@@ -245,7 +232,7 @@ export default function DispatcherClient({
   }
 
   const newRequests = useMemo(() => activeRows
-    .filter((booking) => booking.status === "pending" && seenNewIds !== null && !seenNewIds.includes(String(booking.id)))
+    .filter((booking) => booking.status === "pending" && !seenNewIds.includes(String(booking.id)))
     .sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || ""))), [activeRows, seenNewIds]);
 
   const overdueCount = activeRows.filter((x) => isDispatcherOverdue(x, nowKey)).length;
@@ -263,10 +250,11 @@ export default function DispatcherClient({
           </div>
           <strong className="dispatcher-new-count" aria-label={`Nowe rezerwacje: ${newRequests.length}`}>{newRequests.length}</strong>
         </div>
+        {readStateUnavailable && <p role="alert">Nie udało się odczytać oznaczeń. Lista może zawierać wcześniej otwarte rezerwacje. Odśwież stronę.</p>}
         {newRequests.length ? (
           <div className="dispatcher-new-list">
             {newRequests.slice(0, 12).map((booking) => (
-              <a className="dispatcher-new-item" key={booking.id} href={`/panel/rezerwacje/${booking.id}`} onClick={() => markAsRead(String(booking.id))}>
+              <a className="dispatcher-new-item" key={booking.id} href={`/panel/rezerwacje/${booking.id}`}>
                 <span className="dispatcher-new-sticker">NOWA!</span>
                 <span className="dispatcher-new-details">
                   <strong>{booking.booking_number} · {booking.customer_name}</strong>
@@ -278,7 +266,7 @@ export default function DispatcherClient({
             ))}
             {newRequests.length > 12 && <p className="muted">Pozostałe {newRequests.length - 12} rezerwacje znajdziesz na liście kursów poniżej.</p>}
           </div>
-        ) : <p className="dispatcher-new-empty">✓ Brak nowych rezerwacji do potwierdzenia.</p>}
+        ) : <p className="dispatcher-new-empty">✓ Brak nowych, nieodczytanych rezerwacji.</p>}
       </section>
       <section className={`dispatcher-command-center card ${attention.length ? "has-attention" : "is-clear"}`}>
         <div className="dispatcher-command-head">

@@ -47,5 +47,7 @@ jobs:
         run: node --test tests/company-invoice-download.test.cjs
       - name: Saved template render regression
         run: node --test tests/company-templates-render.test.cjs
+      - name: Panel read receipt authorization
+        run: node --test tests/panel-booking-reads.test.cjs
       - name: TypeScript check
         run: npx tsc --noEmit

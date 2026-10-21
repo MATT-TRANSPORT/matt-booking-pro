@@ -62,6 +62,10 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ v
     alertRows = alerts.data ?? [];
   }
 
+  const { data: reads, error: readsError } = bookingIds.length && selectedView === "active"
+    ? await s.from("panel_booking_reads").select("booking_id").eq("user_id", user.id).in("booking_id", bookingIds)
+    : { data: [], error: null };
+
   const flightByBookingLeg = new Map(flightRows.map((f: any) => [`${f.booking_id}:${f.leg || "primary"}`, f]));
   const alertByBookingLeg = new Map<string, any>();
   for (const alert of alertRows) {
@@ -130,7 +134,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ v
       <span className="muted">AirLabs · cache 20 min · maks. 8 zapytań na jedno zbiorcze odświeżenie</span>
     </div>
 
-    {selectedView === "active" ? <DispatcherClient bookings={bookingsWithFlights} drivers={drivers ?? []} vehicles={vehicles ?? []} viewerId={user.id} /> :
+    {selectedView === "active" ? <DispatcherClient bookings={bookingsWithFlights} drivers={drivers ?? []} vehicles={vehicles ?? []} seenNewIds={(reads ?? []).map((row: any) => row.booking_id)} readStateUnavailable={Boolean(readsError)} /> :
       <ReadOnlyDispatcherList bookings={bookingsWithFlights} title={readOnlyTitle} />}
   </main>;
 }
@@ -143,7 +147,7 @@ function ReadOnlyDispatcherList({ bookings, title }: { bookings: any[]; title: s
         {bookings.map((b: any) => {
           const company = Array.isArray(b.companies) ? b.companies[0] : b.companies;
           const general = String(b.service_type || "").startsWith("point_to_point");
-          return <article className={`dashboard-feed-card booking-stage-card ${b.status || ""}`} key={b.id}>
+          return <article className={`dashboard-feed-card booking-stage-card dispatcher-history-card ${b.status || ""}`} key={b.id}>
             <div className="feed-icon">{b.company_id ? "🏢" : general ? "🚐" : "✈️"}</div>
             <div style={{ minWidth: 0 }}>
               <div className="booking-origin">

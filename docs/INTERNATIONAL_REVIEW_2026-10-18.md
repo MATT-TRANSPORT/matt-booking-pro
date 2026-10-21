@@ -1,3 +1,12 @@
+## 2026-10-21 — live recurring B2B and operator read receipts
+
+- Actual signed-in B2B UI created TEST series MB-20261021-000035/000036. DB confirms outbound 2027-03-01/08 08:30; return 2027-03-08/15 14:55; roundtrip, PL, 864 PLN gross each, pending. No real reservation or charge.
+- Saved-template fix a58d0de: Booking and Panel Preview both READY.
+- Added server-only per-operator read receipts; detail mount POST marks read from every entry route, with visible retry on failure. Server rendering/prefetch cannot mark read. No booking-status change. Existing local browser read markers are not trusted/migrated.
+- TEST-only migration enables RLS, revokes anon/authenticated access, grants server select/insert. Transactional DB check confirms duplicate-safe insert and access denial; fixture rolled back. Production migration remains pending.
+- Fixed history card grid: route/actions occupy separate desktop columns, actions wrap under route on mobile.
+- New route regression: 4/4 PASS (anonymous/nonstaff, cross-site/invalid/missing, authenticated actor binding, DB failure); TypeScript PASS. Live staff UI and history layout still require verification after Preview deployment.
+
 ## Aktualizacja 21.10.2026 — rzeczywisty formularz szablonów
 
 - Kontynuacja najnowszych zmian 867651a. Nie ponawiano zaliczonych płatności ani całej macierzy językowej.
