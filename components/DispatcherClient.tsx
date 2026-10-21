@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { addDays, statusStageClass, warsawToday } from "@/lib/bookingOps";
 import { statusPl } from "@/lib/status";
 import {
@@ -46,6 +46,14 @@ export default function DispatcherClient({
   seenNewIds: string[];
   readStateUnavailable?: boolean;
 }) {
+  useEffect(() => {
+    // Back/forward cache restores the old document without fetching server read receipts.
+    const refreshRestoredPage = (event: PageTransitionEvent) => {
+      if (event.persisted) window.location.reload();
+    };
+    window.addEventListener("pageshow", refreshRestoredPage);
+    return () => window.removeEventListener("pageshow", refreshRestoredPage);
+  }, []);
   const [rows, setRows] = useState(bookings);
   const [scope, setScope] = useState<Scope>("all");
   const [filter, setFilter] = useState<Filter>("all");
