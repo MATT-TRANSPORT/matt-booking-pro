@@ -44,7 +44,7 @@ jobs:
       - name: Customer push contract (isolated, no device delivery)
         run: node --test tests/customer-push.test.cjs
       - name: Invoice download route regression
-        run: node --test tests/company-invoice-download.test.cjs
+        run: node --test tests/company-invoice-download.test.cjs tests/booking-document-download.test.cjs
       - name: Saved template render regression
         run: node --test tests/company-templates-render.test.cjs
       - name: Panel read receipt authorization
