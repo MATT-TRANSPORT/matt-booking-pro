@@ -1,3 +1,21 @@
+## Aktualizacja 21.10.2026 — rzeczywisty formularz szablonów
+
+- Kontynuacja najnowszych zmian 867651a. Nie ponawiano zaliczonych płatności ani całej macierzy językowej.
+- Po zalogowaniu właściciela E2E TEST COMPANY A dashboard pokazuje cztery płatności B2B jako opłacone online/potwierdzone.
+- Utworzenie szablonu E2E PR48 SERIES 20261021 TEST ONLY przez formularz zapisało rekord 39f656ff-5b36-48bf-8d3f-31d6f8d59fab w izolowanej bazie. Zachowano roundtrip, powrót +7 dni, 14:55. Następnie interfejs uległ awarii: zmienna `t` w mapowaniu zapisanych szablonów przesłaniała tłumacza. Naprawiono nazwę zmiennej i etykietę tworzenia.
+- Test renderowania z rzeczywistym React dla niepustych szablonów: 4/4 PASS. API szablonów i faktur: 11/11 PASS. TypeScript PASS. Renderowanie dodano do CI; utworzenie serii i pobranie pliku nadal wymagają testu Preview po tej poprawce.
+- „NOWA!” nadal używa localStorage per operator, a nie trwałego zapisu w bazie. Nie uznano tego wymagania ani CSS zakończonych kursów za zakończone.
+
+## Aktualizacja 20.10.2026, 20:10 Europe/Warsaw
+
+- Stripe TEST: **8/8 płatności zakończonych** (B2C i B2B × PL/EN/DE/CS). Ostatnie B2B MB-20261018-000025–000028: 864 PLN, Checkout complete/paid, livemode=false. Niezależny odczyt izolowanej bazy potwierdził paid, właściwy customer_locale i po jednym wpisie audytu księgowania. Końcowe przyciski płatności naciskał użytkownik.
+- B2C CS: powrót do portalu wyświetlił „Zaplaceno” i „Platba přijata”. Wieczorne powroty B2B zachowały język, lecz sesja konta wygasła: wyświetlono lokalizowany login. Widok opłaconej rezerwacji po ponownym zalogowaniu pozostaje do sprawdzenia.
+- Oba Vercel statusy dla c381765: success. [Booking](https://vercel.com/matt-transport/matt-booking-pro/DFjoYeGY8rHBxtXyZZiX38D8Z9KL), [Panel](https://vercel.com/matt-transport/matt-booking-pro1/5NTCZ2cEXHKtzQ3YowNCtxLkpk5V).
+- Odtworzono niezapisane lokalnie poprawki: tłumaczenie przycisku zapisu portalu prywatnego, akcji i komunikatu zapisania adresu B2B, przykładów adresów i nazwy szablonu. Bez zmian w panelach operacyjnych.
+- Świeża weryfikacja: 212/212 testów logiki/API/webhook/outbox/push PASS; TypeScript PASS. Są to testy lokalne z atrapami zależności, osobne od powyższych rzeczywistych Checkout TEST.
+- Nadal bez publikacji produkcyjnej: uwierzytelniony powrót B2B, tworzenie szablonów/serii, pobieranie faktur, rzeczywiste Safari/iOS i dostarczenie push wymagają weryfikacji; potem migracje, wydanie obu projektów i smoke test. Wcześniejsze historyczne listy brakujących pięciu płatności są już nieaktualne.
+- Tymczasowy wyjątek ochrony Booking Preview i webhook TEST zostały ponownie włączone za zgodą użytkownika 20.10 rano; wymagają uporządkowania po testach. Panel pozostaje chroniony. Brak prawdziwych płatności i wiadomości do klientów.
+
 # MATT Booking PRO International Edition — raport 18.10.2026
 
 ## Aktualny stan — 19.10.2026

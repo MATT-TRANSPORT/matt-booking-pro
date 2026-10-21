@@ -43,7 +43,7 @@ export default function CompanyAddressesManager({
       return;
     }
     setForm({ id: "", label: "", address: "" });
-    setMessage("✓ Adres zapisany.");
+    setMessage(t("✓ Adres zapisany."));
     router.refresh();
   }
 
@@ -93,11 +93,11 @@ export default function CompanyAddressesManager({
         <div className="company-address-form">
           <h3>{form.id ? t("Edytuj adres") : t("Dodaj adres")}</h3>
           <div className="grid">
-            <label>{t("Nazwa miejsca")}<input value={form.label} placeholder="np. Biuro Rybnik" onChange={(e) => setForm({ ...form, label: e.target.value })} /></label>
-            <label>{t("Pełny adres")}<input value={form.address} placeholder="ulica, numer, miasto" onChange={(e) => setForm({ ...form, address: e.target.value })} /></label>
+            <label>{t("Nazwa miejsca")}<input value={form.label} placeholder={t("np. Biuro Rybnik")} onChange={(e) => setForm({ ...form, label: e.target.value })} /></label>
+            <label>{t("Pełny adres")}<input value={form.address} placeholder={t("ulica, numer, miasto")} onChange={(e) => setForm({ ...form, address: e.target.value })} /></label>
           </div>
           <div className="manager-actions">
-            <button className="btn" type="button" disabled={saving} onClick={save}>{saving ? t("ZAPISYWANIE...") : form.id ? "ZAPISZ ZMIANY" : "DODAJ ADRES"}</button>
+            <button className="btn" type="button" disabled={saving} onClick={save}>{saving ? t("ZAPISYWANIE...") : form.id ? t("ZAPISZ ZMIANY") : t("DODAJ ADRES")}</button>
             {form.id && <button className="btn secondary" type="button" onClick={() => setForm({ id: "", label: "", address: "" })}>{t("ANULUJ")}</button>}
           </div>
         </div>

@@ -1037,7 +1037,7 @@ export default function ClientBookingPortal({
             >
               {saving
                 ? t("ZAPISYWANIE...")
-                : "ZAPISZ ZMIANY"}
+                : t("ZAPISZ ZMIANY")}
             </button>
           )}
 

@@ -3,6 +3,12 @@ import { resolveCustomerLocale } from "@/lib/bookingLocale";
 import { customerText } from "@/lib/customerCopy";
 
 export const companyCopy: Record<string,[string,string,string]> = {
+  "TWORZENIE...": ["CREATING...", "WIRD ERSTELLT...", "VYTVÁŘENÍ..."],
+  "DODAJ ADRES": ["ADD ADDRESS", "ADRESSE HINZUFÜGEN", "PŘIDAT ADRESU"],
+  "✓ Adres zapisany.": ["✓ Address saved.", "✓ Adresse gespeichert.", "✓ Adresa uložena."],
+  "np. Biuro Rybnik": ["e.g. Rybnik office", "z. B. Büro Rybnik", "např. kancelář Rybnik"],
+  "ulica, numer, miasto": ["street, number, city", "Straße, Hausnummer, Stadt", "ulice, číslo, město"],
+  "np. Zarząd → Pyrzowice": ["e.g. Management → Pyrzowice", "z. B. Geschäftsführung → Pyrzowice", "např. vedení → Pyrzowice"],
   "ZAPISZ ZMIANY": ["SAVE CHANGES", "ÄNDERUNGEN SPEICHERN", "ULOŽIT ZMĚNY"],
   "SNAPSHOT CENY": ["PRICE SNAPSHOT", "GESPEICHERTE PREISBERECHNUNG", "ULOŽENÝ VÝPOČET CENY"],
   "Dane kontrahenta": [

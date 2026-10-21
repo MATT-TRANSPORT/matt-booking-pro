@@ -1,6 +1,7 @@
 import { resolveCustomerLocale } from "@/lib/bookingLocale";
 
 export const customerCopy: Record<string, [string, string, string]> = {
+  "ZAPISZ ZMIANY": ["SAVE CHANGES", "ÄNDERUNGEN SPEICHERN", "ULOŽIT ZMĚNY"],
   "VAT": ["VAT", "MwSt.", "DPH"],
   "Numer rezerwacji": [
     "Booking reference",

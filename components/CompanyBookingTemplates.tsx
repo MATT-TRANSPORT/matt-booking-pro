@@ -171,7 +171,7 @@ export default function CompanyBookingTemplates({
               {recentBookings.map((b) => <option key={b.id} value={b.id}>{b.booking_number} · {b.customer_name} · {b.airport_label}</option>)}
             </select>
           </label>
-          <label>{t("Nazwa szablonu (opcjonalnie)")} <input value={templateName} onChange={(e) => setTemplateName(e.target.value)} placeholder="np. Zarząd → Pyrzowice" />
+          <label>{t("Nazwa szablonu (opcjonalnie)")} <input value={templateName} onChange={(e) => setTemplateName(e.target.value)} placeholder={t("np. Zarząd → Pyrzowice")} />
           </label>
         </div>
         <button className="btn" style={{ marginTop: 12 }} disabled={!sourceBookingId || busy} onClick={saveFromBooking}>{t("ZAPISZ SZABLON")}</button>
@@ -208,7 +208,7 @@ export default function CompanyBookingTemplates({
             {selected.service_type === "roundtrip" && <div className="muted">{t("Powrót: +")}{selected.return_offset_days || 0}  {t("dni ·")} {selected.return_time || "—"}</div>}
           </div>}
 
-          <button className="btn" style={{ marginTop: 14 }} disabled={busy || !selected || !firstDate || !time} onClick={createSeries}>{busy ? "TWORZENIE..." : recurrence === "weekly" ? t("UTWÓRZ SERIĘ") : t("UTWÓRZ REZERWACJĘ")}</button>
+          <button className="btn" style={{ marginTop: 14 }} disabled={busy || !selected || !firstDate || !time} onClick={createSeries}>{busy ? t("TWORZENIE...") : recurrence === "weekly" ? t("UTWÓRZ SERIĘ") : t("UTWÓRZ REZERWACJĘ")}</button>
         </>}
 
         {message && <div className="admin-save-message" style={{ marginTop: 14 }}>{message}</div>}
@@ -216,9 +216,9 @@ export default function CompanyBookingTemplates({
 
       {templates.length > 0 && <section className="card" style={{ marginTop: 18 }}>
         <h2>{t("Zapisane szablony")}</h2>
-        {templates.map((t) => <div className="row" key={t.id} style={{ alignItems: "center", gap: 12 }}>
-          <span><strong>{t.name}</strong><br/><small className="muted">{t.pickup_address} → {airports[t.airport_key]?.label || t.airport_key}</small></span>
-          <button className="btn secondary company-small-btn" disabled={busy} onClick={() => removeTemplate(t.id)}>{t("USUŃ")}</button>
+        {templates.map((template) => <div className="row" key={template.id} style={{ alignItems: "center", gap: 12 }}>
+          <span><strong>{template.name}</strong><br/><small className="muted">{template.pickup_address} → {airports[template.airport_key]?.label || template.airport_key}</small></span>
+          <button className="btn secondary company-small-btn" disabled={busy} onClick={() => removeTemplate(template.id)}>{t("USUŃ")}</button>
         </div>)}
       </section>}
     </>
