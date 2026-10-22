@@ -1,3 +1,27 @@
+## Aktualny stan odbioru — 22.10.2026
+
+Ta sekcja zastępuje historyczne listy zaległości poniżej.
+
+- Weryfikowany commit: `2a0d45955b39cf113638f393615debe51f6c042d`; PR #48 pozostaje otwarty/draft.
+- Booking Preview READY: https://matt-booking-jjj6k3mhr-matt-transport.vercel.app
+- Panel Preview READY: https://matt-booking-pro1-7t8z3izy4-matt-transport.vercel.app
+- CI PASS: https://github.com/MATT-TRANSPORT/matt-booking-pro/actions/runs/39734580551
+- Ostatni pełny lokalny zestaw: 233/233 PASS (a1082ed); po zmianie router.refresh TypeScript PASS i CI PASS.
+- Stripe TEST 8/8 pozostaje PASS; nie ponawiano płatności, nie pobrano prawdziwych środków.
+- Logowanie administratora TEST PASS. Odczyt rezerwacji zapisany w panel_booking_reads dla operatora; status rezerwacji pozostaje pending.
+- Odtworzono błąd: przeglądarkowe Wstecz przywracało oznaczenie NOWA z cache Next. Sam pageshow nie wystarczył. Po router.refresh po udanym zapisie: MB-20261019-000034 nie wraca do NOWA, normalny wiersz pozostaje (test rzeczywistego Preview PASS).
+- Dodano syntetyczny PDF jako Inny dokument, E2E-PR48-TEST-ONLY, do MB-20261021-000036. Dokument abd9d01d-3437-4695-a824-13cbf8356dcb istnieje w prywatnym Storage i jest przypisany do firmy A.
+- Otwarcie i renderowanie tego PDF przez administratora oraz właściciela firmy A w rzeczywistym Preview PASS. Testy izolacji dostępu i private/no-store/no-referrer PASS. Nie utworzono prawdziwej faktury.
+- Widoki zakończonych/anulowanych kursów otwierają się, ale mają zero rekordów. Układ kart z danymi pozostaje niezweryfikowany.
+
+Nadal otwarte warunki wydania:
+1. Rzeczywiste Safari/iOS i push na urządzeniu testowym; brak dostępnego urządzenia. Dotychczasowe testy Chromium mobile viewport i atrapy push nie są równoważne.
+2. Układ historii z rekordami na desktop/mobile oraz pełny scenariusz rozliczenia miesięcznego (odrębny od zaliczonego załącznika rezerwacji).
+3. Test dostarczenia do rzeczywistej skrzynki testowej; dotychczas zaliczono syntetyczne adresy dostawcy Resend.
+4. Po odbiorze: migracje produkcyjne, wydanie obu projektów, smoke test produkcji i uporządkowanie tymczasowej konfiguracji Preview/webhook TEST.
+
+Produkcja nie została opublikowana. Nie traktować kompilacji READY jako pełnego odbioru end-to-end.
+
 ## 2026-10-21 — live recurring B2B and operator read receipts
 
 - Actual signed-in B2B UI created TEST series MB-20261021-000035/000036. DB confirms outbound 2027-03-01/08 08:30; return 2027-03-08/15 14:55; roundtrip, PL, 864 PLN gross each, pending. No real reservation or charge.
