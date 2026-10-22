@@ -1,3 +1,27 @@
+## Kontrola przed publikacją — 22.10.2026
+
+Ta sekcja zastępuje wcześniejsze listy warunków wydania. Produkcja nadal NIEOPUBLIKOWANA.
+
+- Użytkownik zaakceptował pominięcie rzeczywistego testu push i iPhone/iOS/Safari. Nie oznaczać ich PASS.
+- Dodatkowy przykład assignedEmail z MATT Travel Guide (wylot i powrót), fikcyjne dane, bez rezerwacji: Resend delivered, 01a164e8-a0ea-7118-98fe-c01233c041a4.
+- PR #48 open/draft, mergeable clean; head przed aktualizacją raportu 68f81b17e2bcc20462c52c7f6f4d6d7b9ac1613a.
+- Vercel: obie domeny produkcyjne booking.matt-transport.pl i panel.matt-transport.pl są przypisane do projektu matt-booking-pro. Projekt matt-booking-pro1 ma wyłącznie domeny vercel.app. Nie zmieniano przypisań domen.
+- Odczyt listy zmiennych (decrypt=false): matt-booking-pro posiada produkcyjne zmienne Supabase, Stripe, Resend i Maps; matt-booking-pro1 zwraca wyłącznie Preview, hiddenProductionEnvCount=0. Brak konfiguracji Production drugiego projektu blokuje jego pełne wdrożenie. Nie skopiowano kluczy TEST na produkcję, nie odczytywano wartości sekretów.
+- Produkcyjna baza: brak processing_started_at w payment_webhook_events, funkcji settle_customer_stripe_payment i wersji with_outbox, tabel payment_notification_outbox oraz panel_booking_reads. Migracje wymagają zastosowania przed kodem.
+- Produkcyjna polityka authenticated_read_bookings nadal ma USING true; przygotowana i przetestowana migracja restrict_booking_access nie jest zastosowana. Przed publikacją wymagane wdrożenie ograniczeń dostępu wraz z kontrolą zgodności.
+- Zalogowana sesja Preview działa; historia zakończona zawiera MB35. Interfejs sterowania przeglądarką nie udostępnia ustawiania viewportu; próba skrótu powiększenia nie zmieniła szerokości 1363px. Końcowy rzeczywisty mobilny widok historii pozostaje NIEZWERYFIKOWANY.
+- Nie zmieniono danych, migracji ani konfiguracji produkcyjnej podczas tej kontroli. Nie powtarzano zaliczonych 8/8 płatności TEST.
+
+## Uzupełnienie odbioru — 22.10.2026, 20:34 Europe/Warsaw
+
+- Użytkownik zaakceptował pominięcie testu iPhone/iOS/Safari; wynik pozostaje NIEZWERYFIKOWANY, nie PASS.
+- Cztery rzeczywiste e-maile PL/EN/DE/CS wysłano do wskazanej przez użytkownika skrzynki Gmail z zatwierdzonego nadawcy booking@notify.matt-transport.pl. Szablony przyjęcia rezerwacji z aplikacji, HTML + tekst, wyraźne oznaczenie TEST, bez utworzenia rezerwacji. Resend potwierdził delivered dla 4/4; użytkownik odpowiedział „gotowe”. Umieszczenie w Odebranych zamiast Spamu nie zostało jednoznacznie potwierdzone.
+- Identyfikatory Resend: PL 01a164e4-5a46-73a7-9fe1-a3ec1b6472b1; EN 01a164e4-7149-76a1-83d5-50fea6b9cf52; DE 01a164e4-72e1-7aca-b42f-25c1a8e7482d; CS 01a164e4-7467-7450-93be-9cefe4b296aa.
+- Miesięczne rozliczenie TEST b7a9fc13-4997-451a-933e-f660221c9a26 dla firmy A i marca 2027 zapisane z syntetycznym PDF: 864 PLN. Zakończony MB35 uwzględniony, anulowany MB36 pominięty. Portal firmy wyświetla rozliczenie i poprawnie otwiera PDF. PL/EN/DE/CS: etykiety, statusy, kwota i język nawigacji PASS.
+- Historia desktop: karty zakończonego MB35 i anulowanego MB36 z obiema trasami poprawne wizualnie. Mobilna historia nadal bez końcowej kontroli.
+- Liczba subskrypcji push w TEST: klient 0, admin 0, kierowca 0. Użytkownik następnie wyraźnie zaakceptował pominięcie rzeczywistego testu push; wynik NIEZWERYFIKOWANY, nie PASS.
+- Produkcja pozostaje bez publikacji International Edition.
+
 ## Aktualny stan odbioru — 22.10.2026
 
 Ta sekcja zastępuje historyczne listy zaległości poniżej.
