@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { driverPaymentDue, driverPln } from "@/lib/driverPayment";
 import { createClient } from "@/lib/supabase/client";
 import FlightStatusBadge from "@/components/FlightStatusBadge";
 import { displayFlightTime, suggestedPickupTime } from "@/lib/flightDisplay";
@@ -287,18 +288,7 @@ export default function DriverTrips({
         return;
       }
 
-      const gross = Number(
-        booking.company_id
-          ? (booking.price_gross ?? booking.total_price ?? 0)
-          : (booking.total_price ?? 0)
-      );
-
-      const baseAmountCents =
-        booking.payment_status === "paid"
-          ? 0
-          : Number.isFinite(gross) && gross > 0
-            ? Math.round(gross * 100)
-            : 0;
+      const baseAmountCents = driverPaymentDue(booking).collectibleCents;
 
       bridge.postMessage(
         JSON.stringify({
@@ -472,6 +462,7 @@ function DriverTripCard({
   const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(recommendedTarget)}`;
   const secondaryMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
   const lastStepAt = progress?.[leg]?.at || b.updated_at;
+  const payment = driverPaymentDue(b);
 
   return (
     <article
@@ -561,17 +552,14 @@ function DriverTripCard({
 
       <div className="driver-payment-panel">
         <div className="driver-payment-copy">
-          <span>PŁATNOŚĆ</span>
-          <strong>
-            {b.payment_status === "paid"
-              ? "🟢 OPŁACONA"
-              : "Kwota do pobrania"}
+          <span>PŁATNOŚĆ · {b.service_type === "roundtrip" ? "CAŁA REZERWACJA W OBIE STRONY" : "PRZEJAZD"}</span>
+          <strong className={payment.collectibleCents > 0 ? "driver-payment-due" : "driver-payment-settlement"}>
+            {payment.collectibleCents > 0
+              ? `DO POBRANIA: ${driverPln(payment.collectibleCents)}`
+              : payment.label}
           </strong>
-          <small>
-            {b.payment_status === "paid"
-              ? "Jeśli klient ma dopłatę, możesz pobrać ją kartą."
-              : "Dopłatę i jej powód wpiszesz przed płatnością."}
-          </small>
+          {payment.collectibleCents === 0 && <span className="driver-payment-price">Wartość rezerwacji: {driverPln(payment.grossCents)}</span>}
+          <small>{payment.note}</small>
         </div>
 
         {nativeApp && !legLocked && b.status !== "cancelled" && (
@@ -580,7 +568,7 @@ function DriverTripCard({
             className="driver-payment-button"
             onClick={() => onPayment(b, leg)}
           >
-            💳 POBIERZ KARTĄ
+            {payment.collectibleCents > 0 ? "💳 POBIERZ KARTĄ" : "💳 DOPŁATA KARTĄ"}
           </button>
         )}
       </div>
