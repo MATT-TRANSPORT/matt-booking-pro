@@ -2798,3 +2798,143 @@
 /* Visual cue for corporate bookings on both archive layouts. */
 .booking-archive-table tr.booking-b2b{background:rgba(116,103,181,.06)}
 .booking-mobile-list .mobile-data-card.booking-b2b{background:linear-gradient(110deg,rgba(116,103,181,.09),rgba(255,255,255,.015));border-color:rgba(146,135,197,.34)}
+
+/* MATT Dispatcher v5.2.1 — responsive operational cards.
+   Earlier table min-width:1280 overflowed inside the 1220px .container.
+   Use readable trip cards for normal laptops; wide screens keep the full table. */
+main.container.dispatcher-page{max-width:1760px}
+.dispatcher-page .dispatcher-desktop{display:none}
+.dispatcher-page .dispatcher-mobile-list{display:grid;gap:12px;min-width:0}
+.dispatcher-page .dispatcher-trip-card{
+  display:grid;gap:12px;min-width:0;width:100%;max-width:100%;
+  padding:16px 18px;border:1px solid var(--line);border-left:5px solid var(--line);
+  border-radius:15px;background:#171c26;box-sizing:border-box;
+}
+.dispatcher-page .dispatcher-trip-card.stage-pending{border-left-color:#d5ae5d}
+.dispatcher-page .dispatcher-trip-card.stage-confirmed{border-left-color:#4f8fe8}
+.dispatcher-page .dispatcher-trip-card.stage-assigned{border-left-color:#7767dc}
+.dispatcher-page .dispatcher-trip-card.stage-progress{border-left-color:#e79a43}
+.dispatcher-page .dispatcher-trip-card.dispatcher-b2b{
+  background:linear-gradient(125deg,rgba(116,103,181,.08),rgba(21,26,35,.99) 65%);
+  border-color:rgba(146,135,197,.27);border-left-color:#7767dc;
+}
+.dispatcher-page .dispatcher-trip-header{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  flex-wrap:wrap;gap:10px 20px;min-width:0;
+  padding-bottom:12px;border-bottom:1px solid rgba(147,161,186,.2);
+}
+.dispatcher-page .dispatcher-trip-identity{display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-width:0;flex:1}
+.dispatcher-page .dispatcher-trip-number{font-size:15px;font-weight:850;color:var(--gold2);text-decoration:none;overflow-wrap:anywhere}
+.dispatcher-page .dispatcher-trip-status{display:grid;justify-items:end;gap:5px;min-width:0}
+.dispatcher-page .dispatcher-trip-status .dispatcher-payment-summary{margin:0!important;justify-content:flex-end;max-width:100%}
+.dispatcher-page .dispatcher-trip-status .status{max-width:100%;white-space:normal;text-align:center;overflow-wrap:normal}
+.dispatcher-page .dispatcher-trip-overview{
+  display:grid;grid-template-columns:minmax(300px,.85fr) minmax(0,1.15fr);
+  gap:12px;min-width:0
+}
+.dispatcher-page .dispatcher-trip-overview>section{min-width:0;margin:0}
+.dispatcher-page .dispatcher-trip-dates,
+.dispatcher-page .dispatcher-trip-route{
+  padding:12px;border-radius:11px;border:1px solid rgba(147,161,186,.18);
+  background:rgba(255,255,255,.015)
+}
+.dispatcher-page .dispatcher-trip-card h3{
+  margin:0 0 9px;font-size:11px;line-height:1.3;font-weight:900;
+  letter-spacing:.055em;text-transform:uppercase;color:#d0b16b
+}
+.dispatcher-page .dispatcher-trip-dates .dispatcher-leg-list{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+  gap:8px;min-width:0;max-width:100%
+}
+.dispatcher-page .dispatcher-trip-dates .dispatcher-leg-list>div{
+  display:grid;grid-template-columns:1fr auto;align-items:center;gap:5px 9px;
+  min-width:0;padding:9px 10px;border:1px solid rgba(147,161,186,.22);
+  border-radius:9px;background:rgba(255,255,255,.02)
+}
+.dispatcher-page .dispatcher-trip-dates .dispatcher-leg-list>div.next{
+  border-color:rgba(213,174,93,.4);background:rgba(213,174,93,.065)
+}
+.dispatcher-page .dispatcher-trip-dates .dispatcher-leg-list>div span{font-size:10px}
+.dispatcher-page .dispatcher-trip-dates .dispatcher-leg-list>div strong{font-size:12px;text-align:right}
+.dispatcher-page .dispatcher-trip-dates .dispatcher-leg-list>div b{
+  grid-column:1/-1;font-size:17px;white-space:normal;overflow-wrap:normal
+}
+.dispatcher-page .dispatcher-trip-dates .dispatcher-leg-list>div small{grid-column:1/-1}
+.dispatcher-page .dispatcher-trip-route{display:flex;flex-direction:column;gap:5px}
+.dispatcher-page .dispatcher-trip-route strong{font-size:14px;line-height:1.4;overflow-wrap:anywhere}
+.dispatcher-page .dispatcher-trip-route>span{font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.dispatcher-page .dispatcher-trip-phone{font-size:12px;color:var(--gold2);width:max-content;max-width:100%}
+.dispatcher-page .dispatcher-trip-route .dispatcher-flight-stack{margin-top:4px;max-width:100%;min-width:0}
+.dispatcher-page .dispatcher-trip-route .flight-chip{max-width:100%;min-width:0;overflow-wrap:anywhere}
+.dispatcher-page .dispatcher-trip-crew{min-width:0}
+.dispatcher-page .dispatcher-trip-crew .dispatcher-leg-assignments{display:grid;gap:10px}
+.dispatcher-page .dispatcher-trip-crew .dispatcher-leg-assignment{
+  display:grid;grid-template-columns:110px minmax(0,1fr) minmax(0,1fr);
+  align-items:center;gap:12px;min-width:0;padding:11px 12px;
+  border-radius:11px;background:rgba(255,255,255,.027)
+}
+.dispatcher-page .dispatcher-trip-crew .dispatcher-leg-assignment.return{
+  background:rgba(213,174,93,.045);border-color:rgba(213,174,93,.3)
+}
+.dispatcher-page .dispatcher-trip-crew .dispatcher-leg-assignment strong{
+  min-width:0;font-size:12px;white-space:nowrap
+}
+.dispatcher-page .dispatcher-trip-crew .dispatcher-leg-assignment select{
+  width:100%;max-width:100%;min-width:0;
+  padding:10px 28px 10px 12px;font-size:13px;line-height:1.3;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.dispatcher-page .dispatcher-trip-footer{
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:10px 16px;min-width:0;
+  padding-top:12px;border-top:1px solid rgba(147,161,186,.2)
+}
+.dispatcher-page .dispatcher-trip-footer .dispatcher-mobile-actions{
+  display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:0;min-width:0
+}
+.dispatcher-page .dispatcher-trip-footer .dispatcher-mobile-actions>.btn,
+.dispatcher-page .dispatcher-trip-footer .dispatcher-status-next{
+  display:inline-flex;align-items:center;justify-content:center;flex:0 1 auto;
+  width:auto;max-width:100%;min-height:38px;margin:0;
+  padding:9px 14px;font-size:11px;line-height:1.3;
+  font-weight:800;white-space:normal;text-align:center
+}
+.dispatcher-page .dispatcher-trip-footer .dispatcher-quick-links{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0
+}
+.dispatcher-page .dispatcher-trip-footer .dispatcher-quick-links a{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:38px;padding:8px 12px;font-size:11px;line-height:1.2;
+  white-space:nowrap
+}
+@media(max-width:960px){
+  .dispatcher-page .dispatcher-trip-overview{grid-template-columns:minmax(0,1fr)}
+  .dispatcher-page .dispatcher-trip-dates .dispatcher-leg-list{
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr))
+  }
+}
+@media(max-width:650px){
+  .dispatcher-page .dispatcher-trip-card{padding:12px;gap:10px}
+  .dispatcher-page .dispatcher-trip-status{justify-items:start}
+  .dispatcher-page .dispatcher-trip-status .dispatcher-payment-summary{justify-content:flex-start}
+  .dispatcher-page .dispatcher-trip-crew .dispatcher-leg-assignment{
+    grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px
+  }
+  .dispatcher-page .dispatcher-trip-crew .dispatcher-leg-assignment strong{grid-column:1/-1}
+  .dispatcher-page .dispatcher-trip-footer .dispatcher-mobile-actions,
+  .dispatcher-page .dispatcher-trip-footer .dispatcher-quick-links{width:100%}
+  .dispatcher-page .dispatcher-trip-footer .dispatcher-mobile-actions>*{flex:1 1 130px!important}
+}
+@media(max-width:390px){
+  .dispatcher-page .dispatcher-trip-crew .dispatcher-leg-assignment{
+    grid-template-columns:minmax(0,1fr)
+  }
+  .dispatcher-page .dispatcher-trip-crew .dispatcher-leg-assignment strong{grid-column:1}
+  .dispatcher-page .dispatcher-trip-footer .dispatcher-quick-links a{flex:1}
+}
+/* Render the multi-column table only on genuinely wide desktop screens. */
+@media(min-width:1841px){
+  .dispatcher-page .dispatcher-desktop{display:block}
+  .dispatcher-page .dispatcher-mobile-list{display:none}
+  .dispatcher-page .dispatcher-table{min-width:1480px}
+}
