@@ -2794,3 +2794,7 @@
 .driver-payment-copy strong.driver-payment-due{font-size:20px;line-height:1.2;color:#f5cb72;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .driver-payment-copy strong.driver-payment-settlement{font-size:14px;color:#aee9c5;overflow-wrap:anywhere}
 .driver-payment-copy .driver-payment-price{color:#bbc5d4;font-size:12px;font-weight:650;letter-spacing:0}
+
+/* Visual cue for corporate bookings on both archive layouts. */
+.booking-archive-table tr.booking-b2b{background:rgba(116,103,181,.06)}
+.booking-mobile-list .mobile-data-card.booking-b2b{background:linear-gradient(110deg,rgba(116,103,181,.09),rgba(255,255,255,.015));border-color:rgba(146,135,197,.34)}
