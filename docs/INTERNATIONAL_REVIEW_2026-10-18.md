@@ -1,3 +1,11 @@
+## Migracje produkcyjne zastosowane — aktualizacja 23.10.2026
+
+- W bazie produkcyjnej zastosowano migrację `20261022184541_international_release_access_payments_and_read_receipts`, obejmującą siedem wcześniej przetestowanych plików: restrict_booking_access, customer_push_subscriptions, stripe_webhook_claims, stripe_payment_audit_transaction, payment_notification_outbox, payment_outbox_rollout_guard i panel_booking_reads.
+- Kontrola po migracji: wymagane tabele, kolumna i funkcja istnieją; liczba nieograniczonych polityk bookings wynosi 0; dostęp anon/authenticated do nowych tabel serwerowych zabroniony; outbox i odczyty zawierają po 0 rekordów. Migracja nie tworzy rezerwacji ani płatności.
+- Kontrola Supabase: brak nowych błędów ERROR. Informacja RLS bez polityk dotyczy również zamierzonych tabel dostępnych wyłącznie przez service_role. Pozostają ostrzeżenia function_search_path_mutable, extension_in_public i auth_leaked_password_protection.
+- Kod International Edition nadal nie został opublikowany na produkcji. Konfiguracja Production drugiego projektu i końcowy mobilny widok historii pozostają otwarte.
+- Vercel ma zainstalowaną integrację Supabase; ekran Connect Database nie pokazuje bazy do przypięcia. Configure kieruje do panelu Supabase, który wymaga ponownego logowania. Nie ujawniano ani nie kopiowano sekretów.
+
 ## Kontrola przed publikacją — 22.10.2026
 
 Ta sekcja zastępuje wcześniejsze listy warunków wydania. Produkcja nadal NIEOPUBLIKOWANA.
