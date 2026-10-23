@@ -1,23 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { driverFromBearerRequest } from "@/lib/driverMobileAuth";
 import { getStripe } from "@/lib/stripeServer";
+import { driverPaymentDue } from "@/lib/driverPayment";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-function amountFromBooking(booking: any) {
-  const gross = Number(
-    booking.company_id
-      ? (booking.price_gross ?? booking.total_price ?? 0)
-      : (booking.total_price ?? 0)
-  );
-
-  if (!Number.isFinite(gross) || gross < 0) {
-    return 0;
-  }
-
-  return Math.round(gross * 100);
-}
 
 export async function POST(req: NextRequest) {
   const auth = await driverFromBearerRequest(req);
@@ -89,8 +76,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const baseAmountCents =
-    booking.payment_status === "paid" ? 0 : amountFromBooking(booking);
+  const baseAmountCents = driverPaymentDue(booking, leg).collectibleCents;
 
   const totalAmountCents = baseAmountCents + surchargeAmountCents;
 

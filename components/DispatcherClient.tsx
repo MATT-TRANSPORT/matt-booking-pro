@@ -593,7 +593,7 @@ function DispatchRow({
     : `${b.pickup_address} → ${b.airport_label}`;
 
   return (
-    <tr className={`${statusStageClass(b.status)} ${overdue ? "booking-overdue" : ""} ${conflicts.length ? "dispatcher-has-conflict" : ""}`}>
+    <tr className={`${statusStageClass(b.status)} ${b.company_id ? "dispatcher-b2b" : ""} ${overdue ? "booking-overdue" : ""} ${conflicts.length ? "dispatcher-has-conflict" : ""}`}>
       <td><OperationalLegs b={b} nowKey={nowKey} />{overdue && <div className="overdue-badge">⚠ TERMIN MINĄŁ</div>}</td>
       <td>
         <div className="booking-origin">{b.company_id ? <span className="origin-badge b2b">🏢 B2B · {company?.name ?? "Firma"}</span> : <span className="origin-badge private">👤 INDYWIDUALNY</span>}</div>
@@ -638,7 +638,7 @@ function DispatchCard({ b, drivers, vehicles, update, saving, conflicts, nowKey 
   async function save(status = b.status, leg?: "primary" | "return") { await update(b.id, driverId, vehicleId, status, returnDriverId, returnVehicleId, leg); }
   const route = b.service_type === "from_airport" ? `${b.airport_label} → ${b.pickup_address}` : b.service_type === "roundtrip" ? `${b.pickup_address} ↔ ${b.airport_label}` : `${b.pickup_address} → ${b.airport_label}`;
   return (
-    <article className={`dispatcher-card ${statusStageClass(b.status)} ${overdue ? "booking-overdue" : ""} ${conflicts.length ? "dispatcher-has-conflict" : ""}`}>
+    <article className={`dispatcher-card ${statusStageClass(b.status)} ${b.company_id ? "dispatcher-b2b" : ""} ${overdue ? "booking-overdue" : ""} ${conflicts.length ? "dispatcher-has-conflict" : ""}`}>
       <div className="dispatcher-card-head"><div><a href={`/panel/rezerwacje/${b.id}`}>{b.booking_number}</a><OperationalLegs b={b} nowKey={nowKey}/></div><span className={`status ${b.status}`}>{statusPl(b.status)}</span></div>
       {overdue && <div className="overdue-badge">⚠ TERMIN MINĄŁ — status niezamknięty</div>}<ConflictBadges conflicts={conflicts} />
       {bookingHasMissingAssignment({ ...b, driver_id: driverId || null, vehicle_id: vehicleId || null, return_driver_id: returnDriverId || null, return_vehicle_id: returnVehicleId || null }) && <div className="dispatcher-missing-badge">⚠ NIEPEŁNA OBSADA</div>}

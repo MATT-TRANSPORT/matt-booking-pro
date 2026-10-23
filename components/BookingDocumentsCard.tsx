@@ -18,12 +18,14 @@ export default function BookingDocumentsCard({
   customerLocale,
   bookingId,
   documents,
-  canManage = false
+  canManage = false,
+  compact = false
 }: {
   customerLocale?: unknown;
   bookingId: string;
   documents: any[];
   canManage?: boolean;
+  compact?: boolean;
 }) {
  const fetchCustomer=(input:RequestInfo|URL,init?:RequestInit)=>customerFetch(locale,input,init);
   const locale=useCustomerLocale(customerLocale);
@@ -84,7 +86,7 @@ export default function BookingDocumentsCard({
   }
 
   return (
-    <div className="card" style={{ marginTop: 16 }}>
+    <div className={`card booking-documents-card ${compact ? "booking-documents-compact" : ""}`} style={{ marginTop: 16 }}>
       <h2>{t("Faktura / dokumenty")}</h2>
       <p className="muted">
          {t("Dokumenty są prywatne. Firma otrzymuje dostęp tylko do dokumentów swoich rezerwacji.")} </p>
@@ -124,8 +126,8 @@ export default function BookingDocumentsCard({
       )}
 
       {canManage && (
-        <div style={{ marginTop: 16, borderTop: "1px solid #343b49", paddingTop: 16 }}>
-          <h3>{t("Dodaj dokument")}</h3>
+        <details className="booking-documents-upload" style={{ marginTop: 12, borderTop: "1px solid #343b49", paddingTop: 10 }}>
+          <summary>{t("Dodaj dokument")}</summary>
           <div className="grid">
             <label>
                {t("Typ")} <select value={documentType} onChange={(e) => setDocumentType(e.target.value)}>
@@ -153,7 +155,7 @@ export default function BookingDocumentsCard({
           <button className="btn" style={{ marginTop: 12 }} disabled={busy} onClick={upload}>
             {busy ? t("WYSYŁANIE...") : "DODAJ DOKUMENT"}
           </button>
-        </div>
+        </details>
       )}
 
       {message && <div className="admin-save-message">{message}</div>}

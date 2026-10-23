@@ -82,17 +82,17 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const quoteExpired = general && booking.quote_status === "priced" && Boolean(booking.quote_expires_at) && new Date(booking.quote_expires_at).getTime() < Date.now();
   const displayAmount = Number(booking.company_id ? (booking.price_gross ?? booking.total_price) : booking.total_price || 0);
 
-  return <main className="container">
+  return <main className={`container reservation-admin-compact ${booking.company_id ? "reservation-is-b2b" : "reservation-is-private"}`}>
     <BookingReadMarker bookingId={booking.id} />
     <a href="/panel/dyspozytor" className="back-link">← Wróć do Planu kursów</a>
     <h1>{booking.booking_number}</h1>
     <PanelNav />
 
     {!general && flightAlerts?.length ? <div className="card flight-alert-detail-card"><h2>⚠ Alerty lotnicze</h2><FlightAlertList alerts={flightAlerts} /></div> : null}
-    {!general && booking.flight_number && <FlightMonitorCard bookingId={booking.id} leg="primary" flightNumber={booking.flight_number} flight={primaryFlight} pickupFromAirport={booking.service_type === "from_airport"} />}
-    {!general && booking.return_flight_number && <div style={{ marginTop: 14 }}><FlightMonitorCard bookingId={booking.id} leg="return" flightNumber={booking.return_flight_number} flight={returnFlight} pickupFromAirport /></div>}
+    {!general && booking.flight_number && <details className="card panel-collapsible-card reservation-flight-fold"><summary className="panel-collapsible-summary"><span><strong>✈ Monitor lotu {booking.flight_number}</strong><small> · {primaryFlight?.status || "Szczegóły"}</small></span></summary><FlightMonitorCard bookingId={booking.id} leg="primary" flightNumber={booking.flight_number} flight={primaryFlight} pickupFromAirport={booking.service_type === "from_airport"} /></details>}
+    {!general && booking.return_flight_number && <details className="card panel-collapsible-card reservation-flight-fold"><summary className="panel-collapsible-summary"><span><strong>✈ Monitor lotu powrotnego {booking.return_flight_number}</strong></span></summary><FlightMonitorCard bookingId={booking.id} leg="return" flightNumber={booking.return_flight_number} flight={returnFlight} pickupFromAirport /></details>}
 
-    <div className="reservation-detail-grid" style={{ marginTop: 18 }}>
+    <div className={`reservation-detail-grid reservation-admin-compact ${booking.company_id ? "reservation-is-b2b" : "reservation-is-private"}`} style={{ marginTop: 18 }}>
       <div>
         <div className={`card booking-detail-main booking-stage-card ${statusStageClass(booking.status)} ${overdue ? "booking-overdue" : ""}`}>
           <div className="reservation-title-row">
@@ -155,8 +155,8 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           {booking.notes && <><h2>Uwagi</h2><p style={{whiteSpace:"pre-wrap"}}>{booking.notes}</p></>}
         </div>
 
-        {booking.company_id && <B2BPricingSnapshotCard booking={booking} />}
-        {booking.company_id && <BookingDocumentsCard bookingId={booking.id} documents={bookingDocuments ?? []} canManage />}
+        {booking.company_id && <details className="card panel-collapsible-card reservation-snapshot-fold"><summary className="panel-collapsible-summary"><span><strong>🔒 Snapshot ceny B2B</strong><small> · {displayAmount.toFixed(2)} zł brutto</small></span></summary><B2BPricingSnapshotCard booking={booking} /></details>}
+        {booking.company_id && <BookingDocumentsCard bookingId={booking.id} documents={bookingDocuments ?? []} canManage compact />}
       </div>
 
       <div>
@@ -174,7 +174,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           vehicles={vehicles ?? []}
         />
 
-        <GoogleCalendarSyncCard booking={booking} />
+        <details className="card panel-collapsible-card reservation-calendar-fold"><summary className="panel-collapsible-summary"><span><strong>📅 Google Calendar</strong><small> · {booking.google_calendar_sync_error ? "Błąd synchronizacji" : booking.google_calendar_event_id || booking.google_calendar_return_event_id ? "Zsynchronizowano" : "Brak synchronizacji"}</small></span></summary><GoogleCalendarSyncCard booking={booking} /></details>
         <CustomerCommunicationCard
           booking={booking}
           pushLogs={customerPushLogs ?? []}

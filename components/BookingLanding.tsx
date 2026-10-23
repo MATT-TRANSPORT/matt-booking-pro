@@ -5,7 +5,7 @@ import { customerText } from "@/lib/customerCopy";
 import BookingForm from "@/components/BookingForm";
 import CustomerAppInstall from "@/components/CustomerAppInstall";
 import type { BookingEntry } from "@/lib/bookingEntry";
-import {BOOKING_FLAGS,BOOKING_LANGUAGE_NAMES,BOOKING_LOCALES,bookingHubTranslations,isBookingLocale,type BookingLocale} from "@/lib/bookingLocale";
+import {BOOKING_LANGUAGE_NAMES,BOOKING_LOCALES,bookingHubTranslations,isBookingLocale,type BookingLocale} from "@/lib/bookingLocale";
 
 const MAIN_SITE_URL = "https://www.matt-transport.pl/";
 
@@ -31,7 +31,12 @@ export default function BookingLanding({initialEntry}: {initialEntry?: BookingEn
    </a>
    <a className="booking-site-back" href={MAIN_SITE_URL}>{t.offer}</a>
   </div>
-  <nav aria-label={t.language} className="booking-language-switch" style={{display:"flex",gap:8,justifyContent:"flex-end",flexWrap:"wrap",margin:"12px 0"}}>{BOOKING_LOCALES.map(code=><button key={code} type="button" onClick={()=>changeLocale(code)} aria-label={BOOKING_LANGUAGE_NAMES[code]} aria-pressed={locale===code} title={BOOKING_LANGUAGE_NAMES[code]} style={{fontSize:24,padding:"5px 10px",borderRadius:8,border:locale===code?"2px solid #d8ac55":"1px solid #777",background:"transparent",cursor:"pointer"}}>{BOOKING_FLAGS[code]}</button>)}</nav>
+  <nav aria-label={t.language} className="booking-language-switch">
+    {BOOKING_LOCALES.map(code=><button className="booking-language-button" key={code} type="button" onClick={()=>changeLocale(code)} aria-label={BOOKING_LANGUAGE_NAMES[code]} aria-pressed={locale===code} title={BOOKING_LANGUAGE_NAMES[code]}>
+      <img src={`/flags/${code}.svg`} alt="" width={28} height={18} aria-hidden="true" />
+      <span>{code.toUpperCase()}</span>
+    </button>)}
+  </nav>
   {chooseService ? <section className="card booking-service-hub" aria-labelledby="service-choice-title">
    <span className="badge">MATT BOOKING</span>
    <h1 id="service-choice-title">{t.heading}</h1>

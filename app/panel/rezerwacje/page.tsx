@@ -8,8 +8,10 @@ import { isArchivedBooking, isOverdueBooking, sortBookingsChronologically, statu
 import { bookingRouteText } from "@/lib/bookingRoute";
 import BookingArchiveActions from "@/components/BookingArchiveActions";
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ q?: string; view?: string }> }) {
-  const { q = "", view = "active" } = await searchParams;
+export default async function Page({ searchParams }: { searchParams: Promise<{ q?: string; view?: string; deletedAt?: string }> }) {
+  const { q = "", view = "active", deletedAt = "" } = await searchParams;
+  const deletionTimestamp = Number(deletedAt);
+  const justDeleted = /^[0-9]{13}$/.test(deletedAt) && Number.isFinite(deletionTimestamp) && Math.abs(Date.now() - deletionTimestamp) < 120_000;
   const { s } = await panelClient();
   let query = s.from("bookings").select("*,drivers:drivers!bookings_driver_id_fkey(full_name,color)").limit(700);
   if (q.trim()) query = query.or(`booking_number.ilike.%${q}%,customer_name.ilike.%${q}%,phone.ilike.%${q}%,email.ilike.%${q}%`);
@@ -52,6 +54,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
 
   return <main className="container">
     <h1>Rezerwacje / wyszukiwarka</h1><PanelNav/>
+    {justDeleted && <div role="status" className="booking-delete-notice">✓ Rezerwacja została usunięta. Lista została odświeżona.</div>}
     <div className="booking-view-tabs">
       <a className={view==="active"?"active":""} href={href("active")}>AKTYWNE ({counts.active})</a>
       <a className={view==="completed"?"active":""} href={href("completed")}>ZAKOŃCZONE ({counts.completed})</a>
@@ -63,7 +66,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
     <form className="archive-search"><input type="hidden" name="view" value={view}/><input name="q" defaultValue={q} placeholder="Numer, nazwisko, telefon lub e-mail"/><button className="btn">SZUKAJ</button></form>
 
     <div className="desktop-table card"><table className="table booking-archive-table"><thead><tr><th>Numer</th><th>Termin / trasa</th><th>Klient</th><th>Kierowca</th><th>Cena</th><th>Status</th><th>Akcja</th></tr></thead><tbody>
-      {rows.map((b:any)=>{const driver=Array.isArray(b.drivers)?b.drivers[0]:b.drivers;const overdue=isOverdueBooking(b);return <tr key={b.id} className={`${statusStageClass(b.status)} ${overdue?"booking-overdue":""}`}>
+      {rows.map((b:any)=>{const driver=Array.isArray(b.drivers)?b.drivers[0]:b.drivers;const overdue=isOverdueBooking(b);return <tr key={b.id} className={`${statusStageClass(b.status)} ${b.company_id ? "booking-b2b" : ""} ${overdue?"booking-overdue":""}`}>
         <td><a className="booking-number-link" href={`/panel/rezerwacje/${b.id}`}>{b.booking_number}</a>{b.quote_required&&<div className="quote-required-badge">{quoteBadge(b)}</div>}{overdue&&<div className="overdue-badge">⚠ TERMIN MINĄŁ</div>}</td>
         <td>{b.travel_date}<br/>{String(b.travel_time||"").slice(0,5)}<br/><small>{bookingRouteText(b,"primary")}</small></td>
         <td>{b.customer_name}<br/>{b.phone||"—"}</td>
@@ -72,7 +75,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
       </tr>})}
     </tbody></table></div>
 
-    <div className="mobile-card-list booking-mobile-list">{rows.map((b:any)=>{const overdue=isOverdueBooking(b);const driver=Array.isArray(b.drivers)?b.drivers[0]:b.drivers;return <a className={`mobile-data-card booking-stage-card ${statusStageClass(b.status)} ${overdue?"booking-overdue":""}`} href={`/panel/rezerwacje/${b.id}`} key={b.id}>
+    <div className="mobile-card-list booking-mobile-list">{rows.map((b:any)=>{const overdue=isOverdueBooking(b);const driver=Array.isArray(b.drivers)?b.drivers[0]:b.drivers;return <a className={`mobile-data-card booking-stage-card ${statusStageClass(b.status)} ${b.company_id ? "booking-b2b" : ""} ${overdue?"booking-overdue":""}`} href={`/panel/rezerwacje/${b.id}`} key={b.id}>
       <div className="mobile-booking-head"><strong>{b.booking_number}</strong><span className={`status ${b.status}`}>{statusPl(b.status)}</span></div>
       {b.quote_required&&<span className="quote-required-badge">{quoteBadge(b)}</span>}{overdue&&<span className="overdue-badge">⚠ TERMIN MINĄŁ — wymaga zamknięcia</span>}
       <span>{b.customer_name}</span><span>{b.travel_date} {String(b.travel_time||"").slice(0,5)}</span><small>{bookingRouteText(b,"primary")}</small>
