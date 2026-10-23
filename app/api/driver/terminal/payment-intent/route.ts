@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const baseAmountCents = driverPaymentDue(booking).collectibleCents;
+  const baseAmountCents = driverPaymentDue(booking, leg).collectibleCents;
 
   const totalAmountCents = baseAmountCents + surchargeAmountCents;
 
