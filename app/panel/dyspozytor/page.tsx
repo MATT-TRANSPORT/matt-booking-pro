@@ -92,7 +92,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ v
     ? "Anulowane przejazdy"
     : "Wszystkie przejazdy";
 
-  return <main className="container">
+  return <main className="container dispatcher-page">
     <span className="badge">MATT DISPATCHER PRO</span>
     <h1>Plan kursów</h1>
     <p className="muted">Główne miejsce do obsługi wszystkich przejazdów. Najbliższe kursy, obsada, konflikty i realne alerty lotnicze są w jednym widoku.</p>

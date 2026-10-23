@@ -55,5 +55,7 @@ jobs:
         run: node --test tests/panel-server-component-render.test.cjs
       - name: Booking flag, compact admin, and driver payment regressions
         run: node --test tests/admin-compact-driver-flags.test.cjs
+      - name: Dispatcher responsive cards regression
+        run: node --test tests/dispatcher-responsive-cards.test.cjs
       - name: TypeScript check
         run: npx tsc --noEmit
