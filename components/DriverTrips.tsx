@@ -288,7 +288,7 @@ export default function DriverTrips({
         return;
       }
 
-      const baseAmountCents = driverPaymentDue(booking).collectibleCents;
+      const baseAmountCents = driverPaymentDue(booking, leg).collectibleCents;
 
       bridge.postMessage(
         JSON.stringify({
@@ -462,7 +462,7 @@ function DriverTripCard({
   const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(recommendedTarget)}`;
   const secondaryMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
   const lastStepAt = progress?.[leg]?.at || b.updated_at;
-  const payment = driverPaymentDue(b);
+  const payment = driverPaymentDue(b, leg);
 
   return (
     <article
