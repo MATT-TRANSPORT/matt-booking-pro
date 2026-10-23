@@ -1,3 +1,10 @@
+## Konfiguracja drugiego projektu — 23.10.2026
+
+- Po wyraźnym zatwierdzeniu użytkownika połączono produkcyjny projekt Supabase z matt-booking-pro1 przez istniejącą integrację. Panel Supabase potwierdza 2 project connections; API Vercel potwierdza 16 zmiennych integracyjnych wyłącznie Production. Branch Preview zachował odrębne zmienne TEST.
+- Ustawiono Production NEXT_PUBLIC_APP_URL i NEXT_PUBLIC_PANEL_URL na https://panel.matt-transport.pl oraz NEXT_PUBLIC_BOOKING_URL na https://booking.matt-transport.pl.
+- Pozostałe produkcyjne usługi drugiego projektu nadal bez konfiguracji: Stripe, Resend, Maps, AirLabs, Calendar i VAPID/cron. Sekret Stripe pierwszego projektu jest write-only; menu Copy jest disabled, brak opcji konwersji na wspólną zmienną, lista Link Shared Variable pusta. Nie próbowano wydobywać sekretu z runtime ani kopiować klucza TEST do Production.
+- Kod pozostaje bez publikacji produkcyjnej do czasu uzupełnienia konfiguracji i zakończenia kontroli mobilnej historii.
+
 ## Migracje produkcyjne zastosowane — aktualizacja 23.10.2026
 
 - W bazie produkcyjnej zastosowano migrację `20261022184541_international_release_access_payments_and_read_receipts`, obejmującą siedem wcześniej przetestowanych plików: restrict_booking_access, customer_push_subscriptions, stripe_webhook_claims, stripe_payment_audit_transaction, payment_notification_outbox, payment_outbox_rollout_guard i panel_booking_reads.
