@@ -82,7 +82,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const quoteExpired = general && booking.quote_status === "priced" && Boolean(booking.quote_expires_at) && new Date(booking.quote_expires_at).getTime() < Date.now();
   const displayAmount = Number(booking.company_id ? (booking.price_gross ?? booking.total_price) : booking.total_price || 0);
 
-  return <main className="container">
+  return <main className={`container reservation-admin-compact ${booking.company_id ? "reservation-is-b2b" : "reservation-is-private"}`}>
     <BookingReadMarker bookingId={booking.id} />
     <a href="/panel/dyspozytor" className="back-link">← Wróć do Planu kursów</a>
     <h1>{booking.booking_number}</h1>
