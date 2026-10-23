@@ -3,6 +3,7 @@ name: International Edition regression
 on:
   push:
     branches:
+      - main
       - feature/international-booking-languages
   pull_request:
     branches:
@@ -14,7 +15,6 @@ permissions:
 
 jobs:
   regression:
-    if: github.head_ref == 'feature/international-booking-languages' || github.ref == 'refs/heads/feature/international-booking-languages'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -51,5 +51,7 @@ jobs:
         run: node --test tests/panel-booking-reads.test.cjs
       - name: Dispatcher history responsive rules (static contract)
         run: node --test tests/dispatcher-history-layout.test.cjs
+      - name: Server Component action-cell regression
+        run: node --test tests/panel-server-component-render.test.cjs
       - name: TypeScript check
         run: npx tsc --noEmit
