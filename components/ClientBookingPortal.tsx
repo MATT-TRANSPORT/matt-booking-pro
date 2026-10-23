@@ -1,4 +1,7 @@
 "use client";
+import { customerFetch } from "@/lib/customerFetch";
+import { customerText } from "@/lib/customerCopy";
+import { useCustomerLocale } from "@/lib/useCustomerLocale";
 
 import { useEffect, useState } from "react";
 import OnlinePaymentCard from "@/components/OnlinePaymentCard";
@@ -30,7 +33,7 @@ function quoteExpiryLabel(value: unknown) {
   if (!value) return null;
   const date = new Date(String(value));
   if (!Number.isFinite(date.getTime())) return null;
-  return date.toLocaleString("pl-PL");
+  return date.toLocaleString();
 }
 
 function quoteExpired(booking: any) {
@@ -59,7 +62,12 @@ export default function ClientBookingPortal({
 }: {
   token: string;
 }) {
+ const fetchCustomer=(input:RequestInfo|URL,init?:RequestInit)=>customerFetch(locale,input,init);
   const [data, setData] = useState<any>(null);
+  const locale = useCustomerLocale(data?.booking?.customer_locale);
+  const portalCopy: Record<string,[string,string,string]> = {"Twoja rezerwacja":["Your booking","Ihre Buchung","Vaše rezervace"],"Szczegóły przejazdu":["Trip details","Fahrtdetails","Podrobnosti jízdy"],"Podsumowanie":["Summary","Zusammenfassung","Shrnutí"],"Wycena":["Quote","Angebot","Cenová nabídka"],"Decyzja":["Decision","Entscheidung","Rozhodnutí"],"Płatność":["Payment","Zahlung","Platba"],"Netto":["Net","Netto","Bez DPH"],"Brutto":["Gross","Brutto","Včetně DPH"],"Kwota":["Amount","Betrag","Částka"],"Status":["Status","Status","Stav"],"Pojazd":["Vehicle","Fahrzeug","Vozidlo"],"Kierowca":["Driver","Fahrer","Řidič"]};
+  const extraPortalCopy: Record<string,[string,string,string]> = {"Ładowanie rezerwacji…":["Loading booking…","Buchung wird geladen…","Načítání rezervace…"],"POWRÓT":["RETURN","RÜCKFAHRT","NÁVRAT"],"PASAŻEROWIE":["PASSENGERS","FAHRGÄSTE","CESTUJÍCÍ"],"Pasażerowie":["Passengers","Fahrgäste","Cestující"],"Samochód osobowy":["Passenger car","PKW","Osobní vůz"],"Bus do 8 osób":["Minibus up to 8 people","Kleinbus bis 8 Personen","Minibus až pro 8 osob"],"WYCENA WYGASŁA":["QUOTE EXPIRED","ANGEBOT ABGELAUFEN","NABÍDKA VYPRŠELA"],"WRÓĆ":["BACK","ZURÜCK","ZPĚT"],"REZYGNUJĘ Z WYCENY":["DECLINE QUOTE","ANGEBOT ABLEHNEN","ODMÍTNOUT NABÍDKU"],"Potwierdzić":["Confirm","Bestätigen","Potvrdit"],"rezygnację?":["decline?","Ablehnung?","odmítnutí?"],"ANULUJ REZERWACJĘ":["CANCEL BOOKING","BUCHUNG STORNIEREN","ZRUŠIT REZERVACI"],"WYGASŁA":["EXPIRED","ABGELAUFEN","VYPRŠELA"],"CZEKA NA WYCENĘ":["AWAITING QUOTE","ANGEBOT AUSSTEHEND","ČEKÁ NA NABÍDKU"],"ZAMÓWIENIE":["ORDER","BESTELLUNG","OBJEDNÁVKA"],"Zamówienie":["Order","Bestellung","Objednávka"],"Termin ważności":["Valid until","Gültig bis","Platnost do"],"Płatność:":["Payment:","Zahlung:","Platba:"],"Wycena ważna do:":["Quote valid until:","Angebot gültig bis:","Nabídka platí do:"],"Nie udało się zapisać zmian.":["Could not save changes.","Änderungen konnten nicht gespeichert werden.","Změny se nepodařilo uložit."],"Zmiany zostały zapisane.":["Changes saved.","Änderungen gespeichert.","Změny byly uloženy."],"Nie udało się zapisać decyzji.":["Could not save your decision.","Entscheidung konnte nicht gespeichert werden.","Rozhodnutí se nepodařilo uložit."],"Nie udało się anulować rezerwacji.":["Could not cancel booking.","Buchung konnte nicht storniert werden.","Rezervaci se nepodařilo zrušit."],"Gotówka u kierowcy":["Cash to driver","Barzahlung beim Fahrer","Hotově řidiči"],"Przelew tradycyjny":["Bank transfer","Banküberweisung","Bankovní převod"],"Płatność online":["Online payment","Online-Zahlung","Online platba"]};
+  const t=(key:string)=>locale==="pl"?key:(portalCopy[key]??extraPortalCopy[key])?.[locale==="en"?0:locale==="de"?1:2]??customerText(key,locale);
   const [form, setForm] = useState<any>(null);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
@@ -71,7 +79,7 @@ export default function ClientBookingPortal({
     useState(false);
 
   useEffect(() => {
-    fetch(`/api/client-booking/${token}`)
+    fetchCustomer(`/api/client-booking/${token}`)
       .then((r) =>
         r.json().then((d) => ({
           ok: r.ok,
@@ -82,7 +90,7 @@ export default function ClientBookingPortal({
         if (!ok) {
           setMessage(
             d.error ||
-              "Nie znaleziono rezerwacji."
+              t("Nie znaleziono rezerwacji.")
           );
           return;
         }
@@ -123,7 +131,7 @@ export default function ClientBookingPortal({
     setSaving(true);
     setMessage("");
 
-    const response = await fetch(
+    const response = await fetchCustomer(
       `/api/client-booking/${token}`,
       {
         method: "PATCH",
@@ -140,7 +148,7 @@ export default function ClientBookingPortal({
     if (!response.ok) {
       setMessage(
         result.error ||
-          "Nie udało się zapisać zmian."
+          t("Nie udało się zapisać zmian.")
       );
       setSaving(false);
       return;
@@ -155,7 +163,7 @@ export default function ClientBookingPortal({
     setMessage(
       result.requiresReconfirmation
         ? "Zmiany zapisane. Rezerwacja oczekuje teraz na ponowne potwierdzenie przez MATT TRANSPORT."
-        : "Zmiany zostały zapisane."
+        : t("Zmiany zostały zapisane.")
     );
 
     setSaving(false);
@@ -174,7 +182,7 @@ export default function ClientBookingPortal({
     setMessage("");
 
     try {
-      const response = await fetch(
+      const response = await fetchCustomer(
         `/api/client-booking/${token}/quote`,
         {
           method: "POST",
@@ -193,7 +201,7 @@ export default function ClientBookingPortal({
       if (!response.ok) {
         setMessage(
           result.error ||
-            "Nie udało się zapisać decyzji."
+            t("Nie udało się zapisać decyzji.")
         );
         setQuoteBusy("");
         return;
@@ -213,9 +221,9 @@ export default function ClientBookingPortal({
         action === "accept"
           ? result.booking.payment_method ===
             "online"
-            ? "✓ Wycena zaakceptowana. Rezerwacja została potwierdzona — możesz teraz opłacić ją online."
-            : "✓ Wycena zaakceptowana. Rezerwacja została potwierdzona."
-          : "Rezygnacja została zapisana. Transport nie będzie realizowany."
+            ? t("✓ Wycena zaakceptowana. Rezerwacja została potwierdzona — możesz teraz opłacić ją online.")
+            : t("✓ Wycena zaakceptowana. Rezerwacja została potwierdzona.")
+          : t("Rezygnacja została zapisana. Transport nie będzie realizowany.")
       );
 
       window.scrollTo({
@@ -224,7 +232,7 @@ export default function ClientBookingPortal({
       });
     } catch {
       setMessage(
-        "Nie udało się zapisać decyzji. Spróbuj ponownie lub zadzwoń: +48 691 242 691."
+        t("Nie udało się zapisać decyzji. Spróbuj ponownie lub zadzwoń: +48 691 242 691.")
       );
     }
 
@@ -238,7 +246,7 @@ export default function ClientBookingPortal({
     setMessage("");
 
     try {
-      const response = await fetch(
+      const response = await fetchCustomer(
         `/api/client-booking/${token}`,
         { method: "DELETE" }
       );
@@ -249,7 +257,7 @@ export default function ClientBookingPortal({
       if (!response.ok) {
         setMessage(
           result.error ||
-            "Nie udało się anulować rezerwacji."
+            t("Nie udało się anulować rezerwacji.")
         );
         setCancelling(false);
         return;
@@ -266,8 +274,8 @@ export default function ClientBookingPortal({
 
       setMessage(
         result.payment_requires_review
-          ? "Rezerwacja została anulowana. Ponieważ była już opłacona, MATT TRANSPORT zweryfikuje ewentualny zwrot zgodnie z warunkami anulacji."
-          : "Rezerwacja została anulowana. Potwierdzenie zostało wysłane e-mailem."
+          ? t("Rezerwacja została anulowana. Ponieważ była już opłacona, MATT TRANSPORT zweryfikuje ewentualny zwrot zgodnie z warunkami anulacji.")
+          : t("Rezerwacja została anulowana. Potwierdzenie zostało wysłane e-mailem.")
       );
 
       window.scrollTo({
@@ -276,7 +284,7 @@ export default function ClientBookingPortal({
       });
     } catch {
       setMessage(
-        "Nie udało się anulować rezerwacji. Spróbuj ponownie lub zadzwoń: +48 691 242 691."
+        t("Nie udało się anulować rezerwacji. Spróbuj ponownie lub zadzwoń: +48 691 242 691.")
       );
     }
 
@@ -287,7 +295,7 @@ export default function ClientBookingPortal({
     return (
       <main className="container client-portal-shell">
         <div className="card">
-          <h1>Twoja rezerwacja</h1>
+          <h1>{t("Twoja rezerwacja")}</h1>
           <div className="booking-error">
             {message}
           </div>
@@ -301,8 +309,7 @@ export default function ClientBookingPortal({
       <main className="container client-portal-shell">
         <div className="card">
           <h1>
-            Ładowanie rezerwacji…
-          </h1>
+            {t("Ładowanie rezerwacji…")}</h1>
         </div>
       </main>
     );
@@ -366,41 +373,37 @@ export default function ClientBookingPortal({
           MATT TRANSPORT
         </span>
         <h1>
-          Rezerwacja
-        </h1>
+          {t("Rezerwacja")}</h1>
         <div
           className={`client-booking-status ${b.status}`}
         >
           {general
-            ? quoteHeroStatus(b)
-            : STATUS[b.status] ||
-              b.status}
+            ? t(quoteHeroStatus(b))
+            : t(STATUS[b.status] || b.status)}
         </div>
         <p className="muted">
           {general
-            ? "Transport A → B · wycena indywidualna"
-            : `Tutaj możesz sprawdzić szczegóły swojej rezerwacji${editable ? " i wprowadzić dozwolone zmiany." : "."}`}
+            ? t("Transport A → B · wycena indywidualna")
+            : `${t("Tutaj możesz sprawdzić szczegóły swojej rezerwacji")}${editable ? t(" i wprowadzić dozwolone zmiany.") : "."}`}
         </p>
         {editable && (
           <a className="btn secondary client-edit-data-button" href="#client-edit-data">
-            ✎ EDYTUJ DANE
-          </a>
+            {t("✎ EDYTUJ DANE")}</a>
         )}
         <div className="client-booking-number">
-          NR REZERWACJI <strong>{b.booking_number}</strong>
+          {t("NR REZERWACJI")}<strong>{b.booking_number}</strong>
         </div>
       </div>
 
       <div className="client-portal-grid">
         <section className="card" id="client-edit-data">
-          <h2>Szczegóły przejazdu</h2>
+          <h2>{t("Szczegóły przejazdu")}</h2>
 
           {general ? (
             <div className="grid">
               <div>
                 <small className="muted">
-                  PUNKT A
-                </small>
+                  {t("PUNKT A")}</small>
                 <br />
                 <strong>
                   {b.pickup_address}
@@ -408,8 +411,7 @@ export default function ClientBookingPortal({
               </div>
               <div>
                 <small className="muted">
-                  PUNKT B
-                </small>
+                  {t("PUNKT B")}</small>
                 <br />
                 <strong>
                   {b.destination_address ||
@@ -418,8 +420,7 @@ export default function ClientBookingPortal({
               </div>
               <div>
                 <small className="muted">
-                  WYJAZD
-                </small>
+                  {t("WYJAZD")}</small>
                 <br />
                 <strong>
                   {b.travel_date} ·{" "}
@@ -431,8 +432,7 @@ export default function ClientBookingPortal({
               {b.return_date && (
                 <div>
                   <small className="muted">
-                    POWRÓT
-                  </small>
+                    {t("POWRÓT")}</small>
                   <br />
                   <strong>
                     {b.return_date} ·{" "}
@@ -444,8 +444,7 @@ export default function ClientBookingPortal({
               )}
               <div>
                 <small className="muted">
-                  PASAŻEROWIE
-                </small>
+                  {t("PASAŻEROWIE")}</small>
                 <br />
                 <strong>
                   {b.passengers}
@@ -453,8 +452,7 @@ export default function ClientBookingPortal({
               </div>
               <div>
                 <small className="muted">
-                  DYSTANS A→B
-                </small>
+                  {t("DYSTANS A→B")}</small>
                 <br />
                 <strong>
                   {Number(
@@ -467,8 +465,7 @@ export default function ClientBookingPortal({
             <>
               <div className="grid">
                 <label>
-                  Adres
-                  <input
+                  {t("Adres")}<input
                     disabled={!editable}
                     value={
                       form.pickupAddress
@@ -484,8 +481,7 @@ export default function ClientBookingPortal({
                 </label>
 
                 <label>
-                  Data
-                  <input
+                  {t("Data")}<input
                     disabled={!editable}
                     type="date"
                     value={
@@ -504,8 +500,8 @@ export default function ClientBookingPortal({
                 <label>
                   {b.service_type ===
                   "from_airport"
-                    ? "Godzina przylotu"
-                    : "Godzina wyjazdu na lotnisko"}
+                    ? t("Godzina przylotu")
+                    : t("Godzina wyjazdu na lotnisko")}
                   <input
                     disabled={!editable}
                     type="time"
@@ -523,8 +519,7 @@ export default function ClientBookingPortal({
                 </label>
 
                 <label>
-                  Numer lotu
-                  <input
+                  {t("Numer lotu")}<input
                     disabled={!editable}
                     value={
                       form.flightNumber
@@ -540,8 +535,7 @@ export default function ClientBookingPortal({
                 </label>
 
                 <label>
-                  Pasażerowie
-                  <select
+                  {t("Pasażerowie")}<select
                     disabled={!editable}
                     value={
                       form.passengers
@@ -574,8 +568,7 @@ export default function ClientBookingPortal({
                 </label>
 
                 <label>
-                  Pojazd
-                  <select
+                  {t("Pojazd")}<select
                     disabled={!editable}
                     value={
                       form.vehicleType
@@ -594,11 +587,9 @@ export default function ClientBookingPortal({
                         form.passengers > 3
                       }
                     >
-                      Samochód osobowy
-                    </option>
+                      {t("Samochód osobowy")}</option>
                     <option value="bus">
-                      Bus do 8 osób
-                    </option>
+                      {t("Bus do 8 osób")}</option>
                   </select>
                 </label>
 
@@ -606,8 +597,7 @@ export default function ClientBookingPortal({
                   "roundtrip" && (
                   <>
                     <label>
-                      Data powrotu
-                      <input
+                      {t("Data powrotu")}<input
                         disabled={!editable}
                         type="date"
                         value={
@@ -623,9 +613,7 @@ export default function ClientBookingPortal({
                       />
                     </label>
                     <label>
-                      Godzina przylotu
-                      powrotnego
-                      <input
+                      {t("Godzina przylotu powrotnego")}<input
                         disabled={!editable}
                         type="time"
                         value={
@@ -641,8 +629,7 @@ export default function ClientBookingPortal({
                       />
                     </label>
                     <label>
-                      Lot powrotny
-                      <input
+                      {t("Lot powrotny")}<input
                         disabled={!editable}
                         value={
                           form.returnFlightNumber
@@ -663,8 +650,7 @@ export default function ClientBookingPortal({
               <label
                 style={{ marginTop: 14 }}
               >
-                Uwagi
-                <textarea
+                {t("Uwagi")}<textarea
                   disabled={!editable}
                   rows={4}
                   value={form.notes}
@@ -689,15 +675,9 @@ export default function ClientBookingPortal({
                   }}
                 >
                   <strong>
-                    Rozliczenie firmowe
-                    B2B
-                  </strong>
+                    {t("Rozliczenie firmowe B2B")}</strong>
                   <div className="muted">
-                    Ceny netto + VAT 8%.
-                    Ustawień faktury nie
-                    zmienia się z linku
-                    pasażera.
-                  </div>
+                    {t("Ceny netto + VAT 8%. Ustawień faktury nie zmienia się z linku pasażera.")}</div>
                 </div>
               ) : (
                 <div
@@ -707,8 +687,7 @@ export default function ClientBookingPortal({
                   }}
                 >
                   <label>
-                    Faktura VAT
-                    <select
+                    {t("Faktura VAT")}<select
                       disabled={!editable}
                       value={
                         form.invoiceRequired
@@ -726,11 +705,9 @@ export default function ClientBookingPortal({
                       }
                     >
                       <option value="0">
-                        Nie
-                      </option>
+                        {t("Nie")}</option>
                       <option value="1">
-                        Tak
-                      </option>
+                        {t("Tak")}</option>
                     </select>
                   </label>
 
@@ -775,8 +752,7 @@ export default function ClientBookingPortal({
                 }}
               >
                 <small className="muted">
-                  UWAGI
-                </small>
+                  {t("UWAGI")}</small>
                 <p>{b.notes}</p>
               </div>
             )}
@@ -791,17 +767,11 @@ export default function ClientBookingPortal({
                 "pending" && (
                 <>
                   <span className="badge">
-                    WYCENA
-                  </span>
+                    {t("WYCENA")}</span>
                   <h2>
-                    Przygotowujemy cenę
-                  </h2>
+                    {t("Przygotowujemy cenę")}</h2>
                   <p className="muted">
-                    To zapytanie nie jest
-                    jeszcze wiążącym
-                    zamówieniem. Wyślemy
-                    wycenę e-mailem.
-                  </p>
+                    {t("To zapytanie nie jest jeszcze wiążącym zamówieniem. Wyślemy wycenę e-mailem.")}</p>
                 </>
               )}
 
@@ -810,20 +780,11 @@ export default function ClientBookingPortal({
                 !b.quote_expires_at && (
                   <>
                     <span className="badge">
-                      WYCENA
-                    </span>
+                      {t("WYCENA")}</span>
                     <h2>
-                      Wycena wymaga
-                      ponownego wysłania
-                    </h2>
+                      {t("Wycena wymaga ponownego wysłania")}</h2>
                     <p className="muted">
-                      Ta wycena powstała
-                      przed uruchomieniem
-                      akceptacji online.
-                      Skontaktuj się z MATT
-                      TRANSPORT, aby otrzymać
-                      aktualny link.
-                    </p>
+                      {t("Ta wycena powstała przed uruchomieniem akceptacji online. Skontaktuj się z MATT TRANSPORT, aby otrzymać aktualny link.")}</p>
                     <a
                       className="btn secondary"
                       href="tel:+48691242691"
@@ -839,14 +800,11 @@ export default function ClientBookingPortal({
                 expired && (
                   <>
                     <span className="badge">
-                      WYCENA WYGASŁA
-                    </span>
+                      {t("WYCENA WYGASŁA")}</span>
                     <h2>
-                      Termin ważności
-                      wyceny minął
-                    </h2>
+                      {t("Termin ważności wyceny minął")}</h2>
                     <p>
-                      Ostatnia cena:{" "}
+                      {t("Ostatnia cena:")}{" "}
                       <strong>
                         {Number(
                           b.total_price ||
@@ -856,16 +814,12 @@ export default function ClientBookingPortal({
                       </strong>
                     </p>
                     <p className="muted">
-                      Poproś o ponowną
-                      kalkulację przed
-                      zamówieniem transportu.
-                    </p>
+                      {t("Poproś o ponowną kalkulację przed zamówieniem transportu.")}</p>
                     <a
                       className="btn secondary"
                       href="tel:+48691242691"
                     >
-                      📞 ZADZWOŃ DO MATT
-                    </a>
+                      {t("📞 ZADZWOŃ DO MATT")}</a>
                   </>
                 )}
 
@@ -875,8 +829,7 @@ export default function ClientBookingPortal({
                 !expired && (
                   <>
                     <span className="badge">
-                      WYCENA GOTOWA
-                    </span>
+                      {t("WYCENA GOTOWA")}</span>
                     <h2>
                       {Number(
                         b.total_price || 0
@@ -884,9 +837,9 @@ export default function ClientBookingPortal({
                       zł
                     </h2>
                     <p>
-                      Sposób płatności:{" "}
+                      {t("Sposób płatności:")}{" "}
                       <strong>
-                        {paymentLabel(b)}
+                        {t(paymentLabel(b))}
                       </strong>
                     </p>
                     {b.quote_note && (
@@ -895,17 +848,13 @@ export default function ClientBookingPortal({
                       </p>
                     )}
                     <p className="muted">
-                      Wycena ważna do:{" "}
+                      {t("Wycena ważna do:")}{" "}
                       <strong>
                         {expiry}
                       </strong>
                     </p>
                     <p className="individual-quote-obligation">
-                      Akceptacja oznacza
-                      odpłatne zamówienie
-                      transportu na wskazaną
-                      kwotę.
-                    </p>
+                      {t("Akceptacja oznacza odpłatne zamówienie transportu na wskazaną kwotę.")}</p>
 
                     <button
                       type="button"
@@ -921,7 +870,7 @@ export default function ClientBookingPortal({
                     >
                       {quoteBusy ===
                       "accept"
-                        ? "ZAPISYWANIE..."
+                        ? t("ZAPISYWANIE...")
                         : `ZAMAWIAM Z OBOWIĄZKIEM ZAPŁATY · ${Number(
                             b.total_price ||
                               0
@@ -943,19 +892,13 @@ export default function ClientBookingPortal({
                           )
                         }
                       >
-                        REZYGNUJĘ Z WYCENY
-                      </button>
+                        {t("REZYGNUJĘ Z WYCENY")}</button>
                     ) : (
                       <div className="individual-quote-reject-confirm">
                         <strong>
-                          Potwierdzić
-                          rezygnację?
-                        </strong>
+                          {t("Potwierdzić rezygnację?")}</strong>
                         <p className="muted">
-                          Zlecenie zostanie
-                          anulowane i nie
-                          będzie realizowane.
-                        </p>
+                          {t("Zlecenie zostanie anulowane i nie będzie realizowane.")}</p>
                         <div>
                           <button
                             type="button"
@@ -969,8 +912,7 @@ export default function ClientBookingPortal({
                               quoteBusy
                             )}
                           >
-                            WRÓĆ
-                          </button>
+                            {t("WRÓĆ")}</button>
                           <button
                             type="button"
                             className="btn"
@@ -985,8 +927,8 @@ export default function ClientBookingPortal({
                           >
                             {quoteBusy ===
                             "reject"
-                              ? "ZAPISYWANIE..."
-                              : "TAK, REZYGNUJĘ"}
+                              ? t("ZAPISYWANIE...")
+                              : t("TAK, REZYGNUJĘ")}
                           </button>
                         </div>
                       </div>
@@ -998,15 +940,11 @@ export default function ClientBookingPortal({
                 "accepted" && (
                   <>
                     <span className="badge">
-                      ✓ WYCENA
-                      ZAAKCEPTOWANA
-                    </span>
+                      {t("✓ WYCENA ZAAKCEPTOWANA")}</span>
                     <h2>
-                      Zamówienie
-                      potwierdzone
-                    </h2>
+                      {t("Zamówienie potwierdzone")}</h2>
                     <p>
-                      Cena:{" "}
+                      {t("Cena:")}{" "}
                       <strong>
                         {Number(
                           b.total_price ||
@@ -1016,9 +954,9 @@ export default function ClientBookingPortal({
                       </strong>
                     </p>
                     <p>
-                      Płatność:{" "}
+                      {t("Płatność:")}{" "}
                       <strong>
-                        {paymentLabel(b)}
+                        {t(paymentLabel(b))}
                       </strong>
                     </p>
                   </>
@@ -1028,18 +966,11 @@ export default function ClientBookingPortal({
                 "rejected" && (
                   <>
                     <span className="badge">
-                      WYCENA ODRZUCONA
-                    </span>
+                      {t("WYCENA ODRZUCONA")}</span>
                     <h2>
-                      Zrezygnowano z
-                      transportu
-                    </h2>
+                      {t("Zrezygnowano z transportu")}</h2>
                     <p className="muted">
-                      Zlecenie nie będzie
-                      realizowane. Jeśli
-                      zmienisz zdanie,
-                      skontaktuj się z nami.
-                    </p>
+                      {t("Zlecenie nie będzie realizowane. Jeśli zmienisz zdanie, skontaktuj się z nami.")}</p>
                   </>
                 )}
             </div>
@@ -1052,7 +983,7 @@ export default function ClientBookingPortal({
             (!general ||
               b.quote_status ===
                 "accepted") && (
-              <CustomerPushControls
+              <CustomerPushControls customerLocale={b.customer_locale}
                 token={token}
               />
             )}
@@ -1061,17 +992,13 @@ export default function ClientBookingPortal({
             b.quote_status ===
               "accepted" && (
               <div className="client-edit-warning">
-                Wycena została
-                zaakceptowana. Zmiany trasy
-                lub terminu ustal z MATT
-                TRANSPORT telefonicznie.
-              </div>
+                {t("Wycena została zaakceptowana. Zmiany trasy lub terminu ustal z MATT TRANSPORT telefonicznie.")}</div>
             )}
 
           {editable && (
             <div className="client-edit-warning">
               {paidBooking
-                ? "Rezerwacja jest już opłacona. Możesz ją edytować, ale zmiana adresu, daty, godziny lub ceny wymaga ponownego sprawdzenia przez MATT TRANSPORT. Jeśli zmieni się kwota, płatność zostanie oznaczona jako DO WERYFIKACJI — nie płać ponownie."
+                ? t("Rezerwacja jest już opłacona. Możesz ją edytować, ale zmiana adresu, daty, godziny lub ceny wymaga ponownego sprawdzenia przez MATT TRANSPORT. Jeśli zmieni się kwota, płatność zostanie oznaczona jako DO WERYFIKACJI — nie płać ponownie.")
                 : "Zmiana adresu, daty lub godziny powoduje ponowne sprawdzenie rezerwacji przez MATT TRANSPORT."}
             </div>
           )}
@@ -1086,7 +1013,7 @@ export default function ClientBookingPortal({
                   "Zmiany"
                 ) ||
                 message.startsWith(
-                  "Rezygnacja została"
+                  t("Rezygnacja została")
                 )
                   ? "client-success-message"
                   : "booking-error"
@@ -1109,8 +1036,8 @@ export default function ClientBookingPortal({
               onClick={save}
             >
               {saving
-                ? "ZAPISYWANIE..."
-                : "ZAPISZ ZMIANY"}
+                ? t("ZAPISYWANIE...")
+                : t("ZAPISZ ZMIANY")}
             </button>
           )}
 
@@ -1134,8 +1061,7 @@ export default function ClientBookingPortal({
                   )
                 }
               >
-                ANULUJ REZERWACJĘ
-              </button>
+                {t("ANULUJ REZERWACJĘ")}</button>
             )}
 
           {cancellable &&
@@ -1155,20 +1081,14 @@ export default function ClientBookingPortal({
                     color: "#ffb9bf"
                   }}
                 >
-                  Czy na pewno chcesz
-                  całkowicie anulować tę
-                  rezerwację?
-                </strong>
+                  {t("Czy na pewno chcesz całkowicie anulować tę rezerwację?")}</strong>
                 <p
                   className="muted"
                   style={{
                     marginTop: 8
                   }}
                 >
-                  Kurs zostanie oznaczony
-                  jako anulowany i usunięty
-                  z planu realizacji.
-                </p>
+                  {t("Kurs zostanie oznaczony jako anulowany i usunięty z planu realizacji.")}</p>
                 <div
                   style={{
                     display: "grid",
@@ -1188,8 +1108,7 @@ export default function ClientBookingPortal({
                       )
                     }
                   >
-                    NIE, ZOSTAW
-                  </button>
+                    {t("NIE, ZOSTAW")}</button>
                   <button
                     type="button"
                     className="btn"
@@ -1214,13 +1133,13 @@ export default function ClientBookingPortal({
         </section>
 
         <aside className="card client-booking-summary">
-          <h2>Podsumowanie</h2>
+          <h2>{t("Podsumowanie")}</h2>
 
           <div>
             <span>
               {general
-                ? "Trasa"
-                : "Lotnisko"}
+                ? t("Trasa")
+                : t("Lotnisko")}
             </span>
             <strong>
               {general
@@ -1232,7 +1151,7 @@ export default function ClientBookingPortal({
           {general ? (
             <>
               <div>
-                <span>Wycena</span>
+                <span>{t("Wycena")}</span>
                 <strong>
                   {b.quote_status ===
                   "pending"
@@ -1246,7 +1165,7 @@ export default function ClientBookingPortal({
                 </strong>
               </div>
               <div>
-                <span>Decyzja</span>
+                <span>{t("Decyzja")}</span>
                 <strong>
                   {b.quote_status ===
                   "accepted"
@@ -1257,9 +1176,9 @@ export default function ClientBookingPortal({
                     : b.quote_status ===
                       "priced"
                     ? expired
-                      ? "WYGASŁA"
+                      ? t("WYGASŁA")
                       : "OCZEKUJE"
-                    : "CZEKA NA WYCENĘ"}
+                    : t("CZEKA NA WYCENĘ")}
                 </strong>
               </div>
               {[
@@ -1269,9 +1188,9 @@ export default function ClientBookingPortal({
                 b.quote_status
               ) && (
                 <div>
-                  <span>Płatność</span>
+                  <span>{t("Płatność")}</span>
                   <strong>
-                    {paymentLabel(b)}
+                    {t(paymentLabel(b))}
                   </strong>
                 </div>
               )}
@@ -1280,7 +1199,7 @@ export default function ClientBookingPortal({
             b2bMoney ? (
             <>
               <div>
-                <span>Netto</span>
+                <span>{t("Netto")}</span>
                 <strong>
                   {b2bMoney.net.toFixed(
                     2
@@ -1304,7 +1223,7 @@ export default function ClientBookingPortal({
                 </strong>
               </div>
               <div>
-                <span>Brutto</span>
+                <span>{t("Brutto")}</span>
                 <strong>
                   {b2bMoney.gross.toFixed(
                     2
@@ -1315,7 +1234,7 @@ export default function ClientBookingPortal({
             </>
           ) : (
             <div>
-              <span>Kwota</span>
+              <span>{t("Kwota")}</span>
               <strong>
                 {Number(
                   b.total_price
@@ -1326,32 +1245,31 @@ export default function ClientBookingPortal({
           )}
 
           <div>
-            <span>Status</span>
+            <span>{t("Status")}</span>
             <strong>
               {general
-                ? quoteHeroStatus(b)
-                : STATUS[b.status] ||
-                  b.status}
+                ? t(quoteHeroStatus(b))
+                : t(STATUS[b.status] || b.status)}
             </strong>
           </div>
 
           {!general && (
             <div>
-              <span>Płatność</span>
+              <span>{t("Płatność")}</span>
               <strong>
                 {b.company_id
                   ? b.payment_method ===
                     "employee_payment"
-                    ? "Płatność online firmy"
-                    : "Przelew firmowy"
+                    ? t("Płatność online firmy")
+                    : t("🏢 Przelew firmowy").replace("🏢 ", "")
                   : b.payment_method ===
                       "online" ||
                     b.online_payment_requested
-                  ? "Płatność online po potwierdzeniu"
+                  ? t("Płatność online po potwierdzeniu")
                   : b.payment_method ===
                     "bank_transfer"
-                  ? "Przelew tradycyjny"
-                  : "Gotówka u kierowcy"}
+                  ? t("Przelew tradycyjny")
+                  : t("Gotówka u kierowcy")}
               </strong>
             </div>
           )}
@@ -1366,7 +1284,7 @@ export default function ClientBookingPortal({
 
           {vehicle && (
             <div>
-              <span>Pojazd</span>
+              <span>{t("Pojazd")}</span>
               <strong>
                 {vehicle.name} ·{" "}
                 {vehicle.registration}
@@ -1376,7 +1294,7 @@ export default function ClientBookingPortal({
 
           {driver && (
             <div>
-              <span>Kierowca</span>
+              <span>{t("Kierowca")}</span>
               <strong>
                 {driver.full_name}
               </strong>
@@ -1388,8 +1306,7 @@ export default function ClientBookingPortal({
               className="btn secondary"
               href={`tel:${driver.phone}`}
             >
-              📞 ZADZWOŃ DO KIEROWCY
-            </a>
+              {t("📞 ZADZWOŃ DO KIEROWCY")}</a>
           )}
 
           <a

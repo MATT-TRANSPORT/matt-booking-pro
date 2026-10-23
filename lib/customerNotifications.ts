@@ -1,3 +1,7 @@
+import { bookingOrigin } from "@/lib/bookingOrigin";
+import { isTestEnvironment } from "@/lib/testEnvironment";
+import { resolveCustomerLocale, withCustomerLocale } from "@/lib/bookingLocale";
+import { localizedCustomerUpdate } from "@/lib/localizedCustomerUpdates";
 import webpush from "web-push";
 
 export type CustomerNotificationKind =
@@ -41,17 +45,7 @@ export type CustomerNotificationResult = {
   failed_count?: number;
 };
 
-function customerPortalBaseUrl() {
-  const configured = String(process.env.NEXT_PUBLIC_BOOKING_URL || "").trim();
-
-  if (configured && !configured.includes("vercel.app")) {
-    return configured.replace(/\/$/, "");
-  }
-
-  // Wiadomości klienta zawsze pokazują markową domenę MATT,
-  // nawet jeśli główna aplikacja jest technicznie hostowana w Vercel.
-  return "https://booking.matt-transport.pl";
-}
+function customerPortalBaseUrl() { return bookingOrigin(); }
 
 function configureWebPush() {
   const subject =
@@ -92,8 +86,8 @@ function routeText(booking: any, leg?: "primary" | "return") {
 }
 
 function portalUrl(booking: any) {
-  if (!booking.customer_access_token) return customerPortalBaseUrl();
-  return `${customerPortalBaseUrl()}/rezerwacja/${booking.customer_access_token}`;
+  if (!booking.customer_access_token) return withCustomerLocale(customerPortalBaseUrl(), booking.customer_locale);
+  return withCustomerLocale(`${customerPortalBaseUrl()}/rezerwacja/${encodeURIComponent(booking.customer_access_token)}`, booking.customer_locale);
 }
 
 function shortTime(value: unknown) {
@@ -172,6 +166,15 @@ export function customerUpdateText(
   const alert = options.alert;
   const flight = options.flight;
 
+  const translated = localizedCustomerUpdate(booking.customer_locale, options.kind, {
+    number: String(number || ""), date: String(date || ""), time, route,
+    driver: `${driver?.full_name || "MATT TRANSPORT"}${driver?.phone ? `, tel. ${driver.phone}` : ""}`,
+    vehicle: vehicle ? `${vehicle.name}${vehicle.registration ? `, ${vehicle.registration}` : ""}` : "",
+    flight: String(flight?.flight_number || booking.flight_number || ""),
+    delay: Number(alert?.payload?.delay ?? flight?.arr_delayed ?? flight?.dep_delayed ?? 0)
+  });
+  if (translated) return translated;
+
   switch (options.kind) {
     case "received":
       return `Przyjęliśmy rezerwację ${number} na ${date} o ${time}. Oczekuje na potwierdzenie MATT TRANSPORT.`;
@@ -222,6 +225,9 @@ export function quickWhatsAppText(booking: any) {
       : booking.driver_id && booking.vehicle_id
       ? "assigned"
       : "confirmed";
+
+  const locale = resolveCustomerLocale(booking.customer_locale);
+  if (locale !== "pl") return `${customerUpdateText(booking, { kind })} ${{en:"Details",de:"Einzelheiten",cs:"Podrobnosti"}[locale]}: ${portalUrl(booking)}`;
 
   if (kind === "assigned") {
     return quickAssignedText(booking);
@@ -283,15 +289,18 @@ export async function sendBookingNotification(
   bookingInput: any,
   options: NotifyOptions
 ): Promise<CustomerNotificationResult> {
+  if (isTestEnvironment()) return { sent: false, skipped: true, reason: "test_environment" };
   if (!bookingInput || bookingInput.company_id) {
     return { sent: false, skipped: true, reason: "b2b_or_missing" };
   }
 
-  const { data: subscriptions } = await admin
+  const { data: subscriptions, error: subscriptionError } = await admin
     .from("customer_push_subscriptions")
     .select("*")
     .eq("booking_id", bookingInput.id)
     .eq("active", true);
+
+  if (subscriptionError) throw new Error(subscriptionError.message);
 
   if (!subscriptions?.length) {
     return { sent: false, skipped: true, reason: "no_push_subscription" };
@@ -300,8 +309,8 @@ export async function sendBookingNotification(
   configureWebPush();
   const booking = await enrichBooking(admin, bookingInput);
   const body = customerUpdateText(booking, options);
-  const url = options.url || portalUrl(booking);
-  const title = options.title || (options.kind === "review_request" ? "⭐ Jak minęła podróż?" : "MATT TRANSPORT");
+  const url = withCustomerLocale(options.url || portalUrl(booking), booking.customer_locale);
+  const title = options.title || (options.kind === "review_request" ? {pl:"⭐ Jak minęła podróż?",en:"⭐ How was your journey?",de:"⭐ Wie war Ihre Fahrt?",cs:"⭐ Jaká byla vaše cesta?"}[resolveCustomerLocale(booking.customer_locale)] : "MATT TRANSPORT");
 
   const reserved = await reservePushLog(
     admin,
@@ -318,6 +327,7 @@ export async function sendBookingNotification(
 
   let sent = 0;
   let failed = 0;
+  let retryableRejectionsOnly = true;
   const payload = JSON.stringify({
     title,
     body,
@@ -340,6 +350,11 @@ export async function sendBookingNotification(
     } catch (error: any) {
       failed += 1;
       const statusCode = Number(error?.statusCode || 0);
+      // Retry only explicit transient provider rejections. A timeout can mean
+      // acceptance without acknowledgement, so it must not release deduplication.
+      if (statusCode !== 429 && !(statusCode >= 500 && statusCode <= 599)) {
+        retryableRejectionsOnly = false;
+      }
       if (statusCode === 404 || statusCode === 410) {
         await admin
           .from("customer_push_subscriptions")
@@ -353,10 +368,22 @@ export async function sendBookingNotification(
   }
 
   if (reserved.log) {
-    await admin
+    const { error: logError } = await admin
       .from("customer_push_notification_log")
       .update({ sent_count: sent, failed_count: failed })
       .eq("id", reserved.log.id);
+    if (logError) throw new Error(logError.message);
+
+    // Nobody accepted this event. Allow a later caller to retry it, without
+    // releasing another worker's reservation or repeating partial successes.
+    if (sent === 0 && failed > 0 && retryableRejectionsOnly) {
+      const { error: releaseError } = await admin
+        .from("customer_push_notification_log")
+        .delete()
+        .eq("id", reserved.log.id)
+        .eq("sent_count", 0);
+      if (releaseError) throw new Error(releaseError.message);
+    }
   }
 
   return {

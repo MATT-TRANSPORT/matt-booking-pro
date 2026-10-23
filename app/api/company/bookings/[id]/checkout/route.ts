@@ -1,3 +1,5 @@
+import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
+import { resolveCustomerLocale } from "@/lib/bookingLocale";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -10,12 +12,14 @@ export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let responseLocale=requestCustomerLocale(_req);
+  const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
   const { id } = await params;
   const auth = await createClient();
   const { data: { user } } = await auth.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Brak autoryzacji." }, { status: 401 });
+    return json({ error: "Brak autoryzacji." }, { status: 401 });
   }
 
   const { data: membership } = await auth
@@ -26,12 +30,12 @@ export async function POST(
     .single();
 
   if (!membership) {
-    return NextResponse.json({ error: "Brak aktywnego dostępu do firmy." }, { status: 403 });
+    return json({ error: "Brak aktywnego dostępu do firmy." }, { status: 403 });
   }
 
   // Płatność może uruchomić administrator/manager/księgowość firmy.
   if (!["admin", "manager", "accounting"].includes(String(membership.role || ""))) {
-    return NextResponse.json({ error: "Brak uprawnień do płatności firmowej." }, { status: 403 });
+    return json({ error: "Brak uprawnień do płatności firmowej." }, { status: 403 });
   }
 
   const admin = createAdminClient();
@@ -41,15 +45,16 @@ export async function POST(
     .eq("id", id)
     .eq("company_id", membership.company_id)
     .single();
+ responseLocale=requestCustomerLocale(_req,booking?.customer_locale);
 
   if (!booking) {
-    return NextResponse.json({ error: "Nie znaleziono rezerwacji." }, { status: 404 });
+    return json({ error: "Nie znaleziono rezerwacji." }, { status: 404 });
   }
 
   // Wartość employee_payment zachowujemy w bazie dla kompatybilności wstecznej,
   // ale od v4.1 w UI oznacza ona po prostu PŁATNOŚĆ ONLINE FIRMY.
   if (booking.payment_method !== "employee_payment") {
-    return NextResponse.json(
+    return json(
       { error: "Ta rezerwacja jest rozliczana przelewem firmowym." },
       { status: 400 }
     );
@@ -57,7 +62,7 @@ export async function POST(
 
   if (!paymentCanStart(booking)) {
     const payment = String(booking.payment_status || "pending");
-    return NextResponse.json(
+    return json(
       {
         error:
           payment === "paid"
@@ -74,7 +79,7 @@ export async function POST(
   const amount = Math.round(payableAmount * 100);
 
   if (!Number.isFinite(amount) || amount <= 0) {
-    return NextResponse.json({ error: "Nieprawidłowa kwota płatności." }, { status: 400 });
+    return json({ error: "Nieprawidłowa kwota płatności." }, { status: 400 });
   }
 
   try {
@@ -93,6 +98,7 @@ export async function POST(
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
+      locale: resolveCustomerLocale(booking.customer_locale),
       client_reference_id: String(booking.id),
       line_items: [
         {
@@ -112,8 +118,8 @@ export async function POST(
       ],
       metadata,
       payment_intent_data: { metadata },
-      success_url: `${base}/firma/rezerwacje/${booking.id}?payment=success`,
-      cancel_url: `${base}/firma/rezerwacje/${booking.id}?payment=cancelled`
+      success_url: `${base}/firma/rezerwacje/${booking.id}?lang=${resolveCustomerLocale(booking.customer_locale)}&payment=success`,
+      cancel_url: `${base}/firma/rezerwacje/${booking.id}?lang=${resolveCustomerLocale(booking.customer_locale)}&payment=cancelled`
     });
 
     await admin
@@ -136,7 +142,7 @@ export async function POST(
       created_by: user.id
     });
 
-    return NextResponse.json({ ok: true, url: session.url });
+    return json({ ok: true, url: session.url });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Nie udało się uruchomić płatności.";
     await admin
@@ -144,6 +150,6 @@ export async function POST(
       .update({ payment_last_error: message, updated_at: new Date().toISOString() })
       .eq("id", booking.id);
 
-    return NextResponse.json({ error: message }, { status: 500 });
+    return json({ error: message }, { status: 500 });
   }
 }

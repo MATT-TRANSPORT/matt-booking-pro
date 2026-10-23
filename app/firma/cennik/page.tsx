@@ -1,3 +1,4 @@
+import { companyLanguage, type CompanySearchParams } from "@/lib/companyLanguage";
 import CompanyNav from "@/components/CompanyNav";
 import CompanyTermsSummaryCard from "@/components/CompanyTermsSummaryCard";
 import { companyClient } from "@/lib/company";
@@ -8,8 +9,9 @@ function money(value: unknown) {
   return Number(value ?? 0).toFixed(2);
 }
 
-export default async function Page() {
-  const { s, company } = await companyClient();
+export default async function Page({searchParams}:{searchParams:Promise<CompanySearchParams>}) {
+  const {locale,t,href}=await companyLanguage(searchParams);
+  const { s, company } = await companyClient(locale);
   const admin = createAdminClient();
   const airportCatalog = await getAirportCatalog(admin);
   const today = new Date().toISOString().slice(0, 10);
@@ -64,10 +66,10 @@ export default async function Page() {
   return (
     <main className="container">
       <span className="badge">MATT BOOKING PRO · B2B PRO</span>
-      <h1>Cennik i warunki handlowe</h1>
-      <CompanyNav />
+      <h1>{t("Cennik i warunki handlowe")}</h1>
+      <CompanyNav customerLocale={locale} />
 
-      <CompanyTermsSummaryCard
+      <CompanyTermsSummaryCard customerLocale={locale}
         companyName={company.name}
         terms={current}
         nextTerms={nextTerms}
@@ -76,24 +78,23 @@ export default async function Page() {
       <div className="card" style={{ marginTop: 18 }}>
         <div className="company-section-head">
           <div>
-            <span className="badge">CENY NETTO</span>
-            <h2>Transfery lotniskowe</h2>
+            <span className="badge">{t("CENY NETTO")}</span>
+            <h2>{t("Transfery lotniskowe")}</h2>
             <p className="muted">
-              Cena bazowa za przejazd w jedną stronę. W obie strony system liczy 2× cenę bazową oraz 2× ewentualną dopłatę za kilometry.
-            </p>
+               {t("Cena bazowa za przejazd w jedną stronę. W obie strony system liczy 2× cenę bazową oraz 2× ewentualną dopłatę za kilometry.")} </p>
           </div>
-          <a className="btn" href="/firma/nowa-rezerwacja">+ ZAMÓW TRANSPORT</a>
+          <a className="btn" href={href("/firma/nowa-rezerwacja")}>{t("+ ZAMÓW TRANSPORT")}</a>
         </div>
 
         <div className="company-bookings-table">
           <table className="table b2b-price-table">
             <thead>
               <tr>
-                <th>Lotnisko</th>
-                <th>Samochód NETTO</th>
-                <th>Samochód BRUTTO</th>
-                <th>Bus NETTO</th>
-                <th>Bus BRUTTO</th>
+                <th>{t("Lotnisko")}</th>
+                <th>{t("Samochód NETTO")}</th>
+                <th>{t("Samochód BRUTTO")}</th>
+                <th>{t("Bus NETTO")}</th>
+                <th>{t("Bus BRUTTO")}</th>
               </tr>
             </thead>
             <tbody>
@@ -103,14 +104,14 @@ export default async function Page() {
                   <td>
                     <strong>{money(row.car)} zł</strong>
                     <small className={`pricing-source-tag ${row.carCustom ? "custom" : "standard"}`}>
-                      {row.carCustom ? "INDYWIDUALNA" : "STANDARD MATT"}
+                      {row.carCustom ? t("INDYWIDUALNA") : t("STANDARD MATT")}
                     </small>
                   </td>
                   <td>{money(row.car * 1.08)} zł</td>
                   <td>
                     <strong>{money(row.bus)} zł</strong>
                     <small className={`pricing-source-tag ${row.busCustom ? "custom" : "standard"}`}>
-                      {row.busCustom ? "INDYWIDUALNA" : "STANDARD MATT"}
+                      {row.busCustom ? t("INDYWIDUALNA") : t("STANDARD MATT")}
                     </small>
                   </td>
                   <td>{money(row.bus * 1.08)} zł</td>
@@ -126,19 +127,19 @@ export default async function Page() {
               <h3>{row.label}</h3>
               <div className="b2b-price-card-grid">
                 <div>
-                  <span>Samochód</span>
-                  <strong>{money(row.car)} zł netto</strong>
-                  <small>{money(row.car * 1.08)} zł brutto</small>
+                  <span>{t("Samochód")}</span>
+                  <strong>{money(row.car)}  {t("zł netto")}</strong>
+                  <small>{money(row.car * 1.08)}  {t("zł brutto")}</small>
                   <em className={`pricing-source-tag ${row.carCustom ? "custom" : "standard"}`}>
-                    {row.carCustom ? "INDYWIDUALNA" : "STANDARD MATT"}
+                    {row.carCustom ? t("INDYWIDUALNA") : t("STANDARD MATT")}
                   </em>
                 </div>
                 <div>
-                  <span>Bus</span>
-                  <strong>{money(row.bus)} zł netto</strong>
-                  <small>{money(row.bus * 1.08)} zł brutto</small>
+                  <span>{t("Bus")}</span>
+                  <strong>{money(row.bus)}  {t("zł netto")}</strong>
+                  <small>{money(row.bus * 1.08)}  {t("zł brutto")}</small>
                   <em className={`pricing-source-tag ${row.busCustom ? "custom" : "standard"}`}>
-                    {row.busCustom ? "INDYWIDUALNA" : "STANDARD MATT"}
+                    {row.busCustom ? t("INDYWIDUALNA") : t("STANDARD MATT")}
                   </em>
                 </div>
               </div>
@@ -147,28 +148,25 @@ export default async function Page() {
         </div>
 
         <div className="b2b-pricing-explainer">
-          <h3>Jak liczona jest cena?</h3>
+          <h3>{t("Jak liczona jest cena?")}</h3>
           <p>
-            System mierzy najkrótszą trasę samochodową od siedziby kontrahenta do adresu pasażera. Kilometry mieszczące się w limicie są bez dopłaty. Nadwyżka jest mnożona przez stawkę netto za kilometr i dodawana do ceny bazowej transferu.
-          </p>
+             {t("System mierzy najkrótszą trasę samochodową od siedziby kontrahenta do adresu pasażera. Kilometry mieszczące się w limicie są bez dopłaty. Nadwyżka jest mnożona przez stawkę netto za kilometr i dodawana do ceny bazowej transferu.")} </p>
           <strong>
-            Cena końcowa = cena bazowa NETTO + dopłata za km NETTO + VAT 8%.
-          </strong>
+             {t("Cena końcowa = cena bazowa NETTO + dopłata za km NETTO + VAT 8%.")} </strong>
         </div>
       </div>
 
       <div className="card" style={{ marginTop: 18 }}>
-        <h2>Historia warunków</h2>
+        <h2>{t("Historia warunków")}</h2>
         <p className="muted">
-          Każda rezerwacja zachowuje snapshot warunków obowiązujących w chwili wyceny. Późniejsza zmiana cennika nie zmienia ceny starego kursu.
-        </p>
+           {t("Każda rezerwacja zachowuje snapshot warunków obowiązujących w chwili wyceny. Późniejsza zmiana cennika nie zmienia ceny starego kursu.")} </p>
         <div className="b2b-terms-history">
           {termsRows.map((row: any) => (
             <div key={row.id}>
-              <span>{row.effective_from > today ? "Zaplanowane" : row.id === current?.id ? "Aktualne" : "Historyczne"}</span>
-              <strong>od {row.effective_from}</strong>
+              <span>{row.effective_from > today ? t("Zaplanowane") : row.id === current?.id ? t("Aktualne") : t("Historyczne")}</span>
+              <strong>{t("od")} {row.effective_from}</strong>
               <small>
-                {Number(row.free_km ?? 0).toFixed(1)} km bez dopłaty · {Number(row.extra_km_rate_net ?? 0).toFixed(2)} zł netto/km · {row.use_custom_pricing ? "cennik indywidualny" : "cennik standardowy"}
+                {Number(row.free_km ?? 0).toFixed(1)}  {t("km bez dopłaty ·")} {Number(row.extra_km_rate_net ?? 0).toFixed(2)}  {t("zł netto/km ·")} {row.use_custom_pricing ? t("cennik indywidualny") : t("cennik standardowy")}
               </small>
             </div>
           ))}

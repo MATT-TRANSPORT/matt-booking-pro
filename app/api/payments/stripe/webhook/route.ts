@@ -1,3 +1,4 @@
+import { runPaymentNotificationOutbox } from "@/lib/paymentNotificationOutbox";
 import {
   NextRequest,
   NextResponse
@@ -16,9 +17,11 @@ import {
 import { syncBookingCalendar } from "@/lib/googleCalendar";
 import { sendPaymentReceivedAdminPush } from "@/lib/adminNotifications";
 import { paymentBookingStatusAllowed } from "@/lib/payment";
+import { assertStripeEventMode, claimStripeEvent } from "@/lib/stripeWebhook";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 async function recipientForBooking(
   admin: any,
@@ -29,7 +32,7 @@ async function recipientForBooking(
       .from("companies")
       .select("email")
       .eq("id", booking.company_id)
-      .single();
+      .single().throwOnError();
 
     return company?.email || null;
   }
@@ -42,7 +45,7 @@ async function bookingById(admin: any, id: string) {
     .from("bookings")
     .select("*")
     .eq("id", id)
-    .single();
+    .single().throwOnError();
 
   return data;
 }
@@ -68,11 +71,16 @@ async function markAdminCheckoutSucceeded(
     .from("admin_stripe_payments")
     .select("*")
     .eq("id", paymentId)
-    .single();
+    .single().throwOnError();
 
   if (!payment) return null;
 
-  const paidAmount = Number(session.amount_total || payment.amount_cents || 0);
+  if (payment.status === "refunded") return payment.booking_id || null;
+  const paidAmount = Number(session.amount_total ?? -1);
+  if (String(session.currency || "").toLowerCase() !== "pln" ||
+      paidAmount !== Number(payment.amount_cents)) {
+    throw new Error("Kwota lub waluta płatności administracyjnej jest nieprawidłowa.");
+  }
   const paymentIntentId =
     typeof session.payment_intent === "string"
       ? session.payment_intent
@@ -88,7 +96,7 @@ async function markAdminCheckoutSucceeded(
       paid_at: payment.paid_at || new Date().toISOString(),
       updated_at: new Date().toISOString()
     })
-    .eq("id", payment.id);
+    .eq("id", payment.id).throwOnError();
 
   const bookingId = payment.booking_id || null;
 
@@ -96,12 +104,12 @@ async function markAdminCheckoutSucceeded(
     const booking = await bookingById(admin, bookingId);
 
     if (booking) {
-      await admin.from("booking_history").insert({
+      if (payment.status !== "succeeded") await admin.from("booking_history").insert({
         booking_id: booking.id,
         event:
           `✓ Płatność Stripe z Panelu: ${(paidAmount / 100).toFixed(2)} zł · metoda ${payment.payment_method || "auto"}`,
         created_by: payment.created_by || null
-      });
+      }).throwOnError();
 
       const expectedAmount = Math.round(
         Number(
@@ -131,7 +139,7 @@ async function markAdminCheckoutSucceeded(
             payment_review_reason: null,
             updated_at: new Date().toISOString()
           })
-          .eq("id", booking.id);
+          .eq("id", booking.id).throwOnError();
 
         const recipient = await recipientForBooking(admin, booking);
 
@@ -167,11 +175,12 @@ async function markAdminCheckoutFailed(
 
   const { data: payment } = await admin
     .from("admin_stripe_payments")
-    .select("id,booking_id")
+    .select("id,booking_id,status")
     .eq("id", paymentId)
-    .single();
+    .single().throwOnError();
 
   if (!payment) return null;
+  if (["succeeded", "refunded"].includes(payment.status)) return payment.booking_id || null;
 
   await admin
     .from("admin_stripe_payments")
@@ -180,7 +189,7 @@ async function markAdminCheckoutFailed(
       failure_reason: reason,
       updated_at: new Date().toISOString()
     })
-    .eq("id", payment.id);
+    .eq("id", payment.id).throwOnError();
 
   return payment.booking_id || null;
 }
@@ -193,7 +202,7 @@ async function markAdminRefunded(
     .from("admin_stripe_payments")
     .select("*")
     .eq("payment_intent_id", paymentIntentId)
-    .maybeSingle();
+    .maybeSingle().throwOnError();
 
   if (!payment) return { handled: false, bookingId: null };
 
@@ -204,7 +213,7 @@ async function markAdminRefunded(
       refunded_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     })
-    .eq("id", payment.id);
+    .eq("id", payment.id).throwOnError();
 
   const bookingId = payment.booking_id || null;
 
@@ -216,7 +225,7 @@ async function markAdminRefunded(
       event:
         `↩ Zwrot płatności Stripe z Panelu: ${(Number(payment.amount_cents || 0) / 100).toFixed(2)} zł`,
       created_by: null
-    });
+    }).throwOnError();
 
     if (
       booking &&
@@ -231,7 +240,7 @@ async function markAdminRefunded(
           payment_last_error: null,
           updated_at: new Date().toISOString()
         })
-        .eq("id", booking.id);
+        .eq("id", booking.id).throwOnError();
 
       await syncCalendarAfterPayment(admin, booking.id);
     }
@@ -245,7 +254,7 @@ async function markPaid(
   booking: any,
   session: Stripe.Checkout.Session
 ) {
-  if (!booking) return;
+  if (!booking || booking.payment_status === "refunded") return;
 
   const paidAmount = Number(session.amount_total || 0);
   const expectedAmount = Math.round(
@@ -254,6 +263,7 @@ async function markPaid(
   const status = String(booking.status || "");
 
   const mismatch =
+    String(session.currency || "").toLowerCase() !== "pln" ||
     paidAmount !== expectedAmount ||
     !paymentBookingStatusAllowed(status);
 
@@ -262,9 +272,17 @@ async function markPaid(
       ? session.payment_intent
       : session.payment_intent?.id || null;
 
+  if (booking.payment_status === "paid" &&
+      (booking.payment_checkout_session_id === session.id ||
+       (paymentIntentId && booking.payment_intent_id === paymentIntentId))) {
+    return;
+  }
+
   if (mismatch) {
     const reason =
-      paidAmount !== expectedAmount
+      String(session.currency || "").toLowerCase() !== "pln"
+        ? "Waluta płatności Stripe jest nieprawidłowa."
+        : paidAmount !== expectedAmount
         ? `Kwota Stripe ${paidAmount} gr nie zgadza się z aktualną kwotą rezerwacji ${expectedAmount} gr.`
         : `Rezerwacja ma status ${status}, który nie pozwala na zaksięgowanie płatności online.`;
 
@@ -280,14 +298,14 @@ async function markPaid(
         payment_last_error: null,
         updated_at: new Date().toISOString()
       })
-      .eq("id", booking.id);
+      .eq("id", booking.id).throwOnError();
 
     await admin.from("booking_history").insert({
       booking_id: booking.id,
       event:
         `⚠ Płatność Stripe wymaga weryfikacji: ${reason}`,
       created_by: null
-    });
+    }).throwOnError();
 
     await sendMattEmail({
       to:
@@ -311,54 +329,18 @@ async function markPaid(
     return;
   }
 
-  const wasPaid = booking.payment_status === "paid";
+  // State and audit must commit together. A failed history insert rolls back
+  // payment status, so Stripe can safely retry instead of losing the receipt.
+  const { data: updatedBooking } = await admin.rpc("settle_customer_stripe_payment_with_outbox", {
+    p_booking_id: booking.id,
+    p_checkout_session_id: session.id,
+    p_payment_intent_id: paymentIntentId,
+    p_amount_cents: paidAmount,
+    p_currency: String(session.currency || "").toLowerCase(),
+    p_expected_status: booking.payment_status
+  }).throwOnError();
 
-  await admin
-    .from("bookings")
-    .update({
-      payment_provider: "stripe",
-      payment_checkout_session_id: session.id,
-      payment_intent_id: paymentIntentId,
-      payment_amount_cents: paidAmount,
-      payment_currency:
-        String(session.currency || "pln").toLowerCase(),
-      payment_status: "paid",
-      payment_paid_at:
-        booking.payment_paid_at ||
-        new Date().toISOString(),
-      payment_refunded_at: null,
-      payment_last_error: null,
-      payment_review_reason: null,
-      updated_at: new Date().toISOString()
-    })
-    .eq("id", booking.id);
-
-  if (!wasPaid) {
-    await admin.from("booking_history").insert({
-      booking_id: booking.id,
-      event:
-        `✓ Płatność online Stripe zaksięgowana: ${(paidAmount / 100).toFixed(2)} zł`,
-      created_by: null
-    });
-
-    const recipient =
-      await recipientForBooking(admin, booking);
-
-    if (recipient) {
-      const template = paymentReceivedEmail({
-        ...booking,
-        payment_status: "paid"
-      });
-
-      await sendMattEmail({
-        to: recipient,
-        subject: template.subject,
-        html: template.html
-      }).catch(() => null);
-    }
-
-    await sendPaymentReceivedAdminPush(admin, booking, paidAmount);
-  }
+  if (!updatedBooking) throw new Error("Stan płatności zmienił się podczas przetwarzania. Ponów zdarzenie.");
 
   await syncCalendarAfterPayment(admin, booking.id);
 }
@@ -374,10 +356,11 @@ async function markTerminalPaymentSucceeded(
     .from("driver_card_payments")
     .select("*")
     .eq("id", paymentId)
-    .single();
+    .single().throwOnError();
 
   if (!payment) return null;
 
+  if (payment.status === "refunded") return payment.booking_id;
   const amountMatches = Number(intent.amount) === Number(payment.total_amount_cents);
   const currencyMatches = String(intent.currency || "").toLowerCase() === "pln";
 
@@ -394,13 +377,13 @@ async function markTerminalPaymentSucceeded(
         failure_reason: reason,
         updated_at: new Date().toISOString()
       })
-      .eq("id", payment.id);
+      .eq("id", payment.id).throwOnError();
 
     await admin.from("booking_history").insert({
       booking_id: payment.booking_id,
       event: `⚠ Płatność kierowcy wymaga weryfikacji: ${reason}`,
       created_by: null
-    });
+    }).throwOnError();
 
     return payment.booking_id;
   }
@@ -419,16 +402,16 @@ async function markTerminalPaymentSucceeded(
       paid_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     })
-    .eq("id", payment.id);
+    .eq("id", payment.id).throwOnError();
 
   const { data: booking } = await admin
     .from("bookings")
     .select("*")
     .eq("id", payment.booking_id)
-    .single();
+    .single().throwOnError();
 
   if (booking) {
-    const wasAlreadyPaid = booking.payment_status === "paid";
+    const wasAlreadyPaid = ["paid", "refunded"].includes(booking.payment_status);
 
     const bookingUpdate: Record<string, any> = {
       updated_at: new Date().toISOString()
@@ -448,19 +431,19 @@ async function markTerminalPaymentSucceeded(
     await admin
       .from("bookings")
       .update(bookingUpdate)
-      .eq("id", booking.id);
+      .eq("id", booking.id).throwOnError();
 
     const description = payment.surcharge_amount_cents > 0
       ? `✓ Płatność kartą kierowcy: ${(payment.total_amount_cents / 100).toFixed(2)} zł (dopłata ${(payment.surcharge_amount_cents / 100).toFixed(2)} zł — ${payment.surcharge_reason || "bez podanego powodu"})`
       : `✓ Płatność kartą kierowcy: ${(payment.total_amount_cents / 100).toFixed(2)} zł`;
 
-    await admin.from("booking_history").insert({
+    if (payment.status !== "succeeded") await admin.from("booking_history").insert({
       booking_id: booking.id,
       event: description,
       created_by: null
-    });
+    }).throwOnError();
 
-    await sendPaymentReceivedAdminPush(admin, booking, payment.total_amount_cents, payment.surcharge_amount_cents, payment.surcharge_reason);
+    if (payment.status !== "succeeded") await sendPaymentReceivedAdminPush(admin, booking, payment.total_amount_cents, payment.surcharge_amount_cents, payment.surcharge_reason);
 
     await syncCalendarAfterPayment(admin, booking.id);
   }
@@ -482,11 +465,12 @@ async function markTerminalPaymentFailed(
 
   const { data: payment } = await admin
     .from("driver_card_payments")
-    .select("id,booking_id")
+    .select("id,booking_id,status")
     .eq("id", paymentId)
-    .single();
+    .single().throwOnError();
 
   if (!payment) return null;
+  if (["succeeded", "refunded"].includes(payment.status)) return payment.booking_id;
 
   await admin
     .from("driver_card_payments")
@@ -495,7 +479,7 @@ async function markTerminalPaymentFailed(
       failure_reason: reason,
       updated_at: new Date().toISOString()
     })
-    .eq("id", payment.id);
+    .eq("id", payment.id).throwOnError();
 
   return payment.booking_id;
 }
@@ -505,24 +489,27 @@ async function markFailed(
   booking: any,
   reason: string
 ) {
-  if (!booking || booking.payment_status === "paid") {
+  if (!booking || ["paid", "refunded"].includes(booking.payment_status)) {
     return;
   }
 
-  await admin
+  const { data: updatedBooking } = await admin
     .from("bookings")
     .update({
       payment_status: "failed",
       payment_last_error: reason,
       updated_at: new Date().toISOString()
     })
-    .eq("id", booking.id);
+    .eq("id", booking.id)
+    .eq("payment_status", booking.payment_status)
+    .select("id").maybeSingle().throwOnError();
+  if (!updatedBooking) return;
 
   await admin.from("booking_history").insert({
     booking_id: booking.id,
     event: `Płatność online nieudana: ${reason}`,
     created_by: null
-  });
+  }).throwOnError();
 
   await syncCalendarAfterPayment(admin, booking.id);
 }
@@ -547,6 +534,7 @@ export async function POST(req: NextRequest) {
       signature,
       getStripeWebhookSecret()
     );
+    assertStripeEventMode(event.livemode);
   } catch (error) {
     return NextResponse.json(
       {
@@ -559,30 +547,16 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const admin = createAdminClient();
-
-  const { data: previousEvent } = await admin
-    .from("payment_webhook_events")
-    .select("provider_event_id,processed_at")
-    .eq("provider_event_id", event.id)
-    .maybeSingle();
-
-  if (previousEvent?.processed_at) {
-    return NextResponse.json({ ok: true, duplicate: true });
-  }
-
-  if (!previousEvent) {
-    await admin.from("payment_webhook_events").insert({
-      provider_event_id: event.id,
-      provider: "stripe",
-      event_type: event.type,
-      processing_status: "processing"
-    });
-  }
-
+  let admin: ReturnType<typeof createAdminClient>;
   let bookingId: string | null = null;
+  let claimed = false;
 
   try {
+    admin = createAdminClient();
+    const claim = await claimStripeEvent(admin, event);
+    if (claim === "processed") return NextResponse.json({ ok: true, duplicate: true });
+    if (claim === "busy") return NextResponse.json({ error: "Zdarzenie jest przetwarzane." }, { status: 503 });
+    claimed = true;
     if (
       event.type === "checkout.session.completed" ||
       event.type === "checkout.session.async_payment_succeeded"
@@ -719,7 +693,7 @@ export async function POST(req: NextRequest) {
           .from("driver_card_payments")
           .select("*")
           .eq("payment_intent_id", paymentIntentId)
-          .maybeSingle();
+          .maybeSingle().throwOnError();
 
         if (terminalPayment) {
           await admin
@@ -728,7 +702,7 @@ export async function POST(req: NextRequest) {
               status: "refunded",
               updated_at: new Date().toISOString()
             })
-            .eq("id", terminalPayment.id);
+            .eq("id", terminalPayment.id).throwOnError();
 
           bookingId = terminalPayment.booking_id;
 
@@ -736,7 +710,7 @@ export async function POST(req: NextRequest) {
             booking_id: terminalPayment.booking_id,
             event: `↩ Zwrot płatności kartą kierowcy: ${(terminalPayment.total_amount_cents / 100).toFixed(2)} zł`,
             created_by: null
-          });
+          }).throwOnError();
 
           await syncCalendarAfterPayment(admin, terminalPayment.booking_id);
         } else {
@@ -744,7 +718,7 @@ export async function POST(req: NextRequest) {
             .from("bookings")
             .select("*")
             .eq("payment_intent_id", paymentIntentId)
-            .single();
+            .single().throwOnError();
 
           if (booking) {
           bookingId = booking.id;
@@ -758,13 +732,13 @@ export async function POST(req: NextRequest) {
               payment_last_error: null,
               updated_at: new Date().toISOString()
             })
-            .eq("id", booking.id);
+            .eq("id", booking.id).throwOnError();
 
           await admin.from("booking_history").insert({
             booking_id: booking.id,
             event: "↩ Stripe: zarejestrowano zwrot płatności",
             created_by: null
-          });
+          }).throwOnError();
 
           const recipient =
             await recipientForBooking(admin, booking);
@@ -795,8 +769,12 @@ export async function POST(req: NextRequest) {
         processed_at: new Date().toISOString(),
         error: null
       })
-      .eq("provider_event_id", event.id);
+      .eq("provider_event_id", event.id).throwOnError();
 
+    if (bookingId) {
+      try { await runPaymentNotificationOutbox(admin, bookingId); }
+      catch { console.error("Outbox płatności: ponowienie przejmie cron."); }
+    }
     return NextResponse.json({ ok: true });
   } catch (error) {
     const message =
@@ -804,14 +782,21 @@ export async function POST(req: NextRequest) {
         ? error.message
         : "Błąd przetwarzania webhooka.";
 
-    await admin
-      .from("payment_webhook_events")
-      .update({
-        booking_id: bookingId,
-        processing_status: "error",
-        error: message
-      })
-      .eq("provider_event_id", event.id);
+    if (claimed) {
+      try {
+        await admin!
+          .from("payment_webhook_events")
+          .update({
+            booking_id: bookingId,
+            processing_status: "error",
+            error: message
+          })
+          .eq("provider_event_id", event.id).throwOnError();
+      } catch {
+        // Keep the non-2xx response even if recording the failure also fails.
+        console.error("Stripe webhook: nie można zapisać błędu przetwarzania.");
+      }
+    }
 
     return NextResponse.json(
       { error: message },

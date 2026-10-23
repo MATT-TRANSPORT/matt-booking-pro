@@ -1,3 +1,4 @@
+import { companyLanguage, type CompanySearchParams } from "@/lib/companyLanguage";
 import { notFound } from "next/navigation";
 import CompanyNav from "@/components/CompanyNav";
 import CompanyBookingActions from "@/components/CompanyBookingActions";
@@ -9,12 +10,14 @@ import { companyBookingMoney, companyRouteLabel, companyServiceLabel, companyVeh
 import { statusPl } from "@/lib/status";
 
 export default async function Page({
-  params
+  params, searchParams
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<CompanySearchParams>;
 }) {
+  const {locale,t,href}=await companyLanguage(searchParams);
   const { id } = await params;
-  const { s, company, membership } = await companyClient();
+  const { s, company, membership } = await companyClient(locale);
   const canPayOnline = ["admin", "manager", "accounting"].includes(String(membership.role || ""));
 
   const [{ data: booking }, { data: documents }] = await Promise.all([
@@ -42,71 +45,71 @@ export default async function Page({
 
   return (
     <main className="container">
-      <a className="back-link" href="/firma/rezerwacje">← Wróć do rezerwacji</a>
-      <span className="badge">B2B PRO · NETTO + VAT 8%</span>
+      <a className="back-link" href={href("/firma/rezerwacje")}>{t("← Wróć do rezerwacji")}</a>
+      <span className="badge">B2B PRO · {t("NETTO + VAT 8%")}</span>
       <h1>{booking.booking_number}</h1>
-      <CompanyNav />
+      <CompanyNav customerLocale={locale} />
 
       <div className="reservation-detail-grid">
         <div>
           <div className="card">
             <div className="company-detail-title">
               <div>
-                <h2>Szczegóły przejazdu</h2>
+                <h2>{t("Szczegóły przejazdu")}</h2>
                 <p className="muted">{companyRouteLabel(booking)}</p>
               </div>
-              <span className={`status ${String(booking.status).toLowerCase()}`}>{statusPl(booking.status)}</span>
+              <span className={`status ${String(booking.status).toLowerCase()}`}>{t(statusPl(booking.status))}</span>
             </div>
 
             <div className="detail-list">
-              <div><span>Rodzaj przejazdu</span><strong>{companyServiceLabel(booking.service_type)}</strong></div>
-              <div><span>Pasażer</span><strong>{booking.customer_name}</strong></div>
-              <div><span>Data</span><strong>{booking.travel_date}</strong></div>
-              <div><span>Godzina</span><strong>{String(booking.travel_time || "").slice(0, 5)}</strong></div>
-              {booking.service_type === "roundtrip" && <div><span>Powrót</span><strong>{booking.return_date || "—"} {String(booking.return_time || "").slice(0, 5)}</strong></div>}
-              <div><span>Adres pasażera</span><strong>{booking.pickup_address}</strong></div>
-              <div><span>Lotnisko</span><strong>{booking.airport_label}</strong></div>
-              <div><span>Numer lotu</span><strong>{booking.flight_number || "—"}</strong></div>
-              {booking.return_flight_number && <div><span>Lot powrotny</span><strong>{booking.return_flight_number}</strong></div>}
-              <div><span>Pojazd zamówiony</span><strong>{companyVehicleLabel(booking.vehicle_type)}</strong></div>
-              <div><span>Pasażerowie</span><strong>{booking.passengers}</strong></div>
+              <div><span>{t("Rodzaj przejazdu")}</span><strong>{t(companyServiceLabel(booking.service_type))}</strong></div>
+              <div><span>{t("Pasażer")}</span><strong>{booking.customer_name}</strong></div>
+              <div><span>{t("Data")}</span><strong>{booking.travel_date}</strong></div>
+              <div><span>{t("Godzina")}</span><strong>{String(booking.travel_time || "").slice(0, 5)}</strong></div>
+              {booking.service_type === "roundtrip" && <div><span>{t("Powrót")}</span><strong>{booking.return_date || "—"} {String(booking.return_time || "").slice(0, 5)}</strong></div>}
+              <div><span>{t("Adres pasażera")}</span><strong>{booking.pickup_address}</strong></div>
+              <div><span>{t("Lotnisko")}</span><strong>{booking.airport_label}</strong></div>
+              <div><span>{t("Numer lotu")}</span><strong>{booking.flight_number || "—"}</strong></div>
+              {booking.return_flight_number && <div><span>{t("Lot powrotny")}</span><strong>{booking.return_flight_number}</strong></div>}
+              <div><span>{t("Pojazd zamówiony")}</span><strong>{t(companyVehicleLabel(booking.vehicle_type))}</strong></div>
+              <div><span>{t("Pasażerowie")}</span><strong>{booking.passengers}</strong></div>
             </div>
 
             <div className="b2b-detail-financials">
-              <div><span>NETTO</span><strong>{money.net.toFixed(2)} zł</strong></div>
-              <div><span>VAT {money.vatRate.toFixed(0)}%</span><strong>{money.vat.toFixed(2)} zł</strong></div>
-              <div className="gross"><span>BRUTTO</span><strong>{money.gross.toFixed(2)} zł</strong></div>
+              <div><span>{t("NETTO")}</span><strong>{money.net.toFixed(2)} zł</strong></div>
+              <div><span>{t("VAT")} {money.vatRate.toFixed(0)}%</span><strong>{money.vat.toFixed(2)} zł</strong></div>
+              <div className="gross"><span>{t("BRUTTO")}</span><strong>{money.gross.toFixed(2)} zł</strong></div>
             </div>
             <div className="detail-list" style={{ marginTop: 12 }}>
-              <div><span>Płatność</span><CompanyPaymentCell booking={booking} canPay={canPayOnline} /></div>
-              <div><span>Dokumenty</span><strong>{documents?.length ? `${documents.length} dostępne` : "Brak"}</strong></div>
+              <div><span>{t("Płatność")}</span><CompanyPaymentCell customerLocale={locale} booking={booking} canPay={canPayOnline} /></div>
+              <div><span>{t("Dokumenty")}</span><strong>{documents?.length ? `${documents.length} ${t("dostępne")}` : t("Brak")}</strong></div>
             </div>
-            <p className="muted">Wszystkie ceny B2B są cenami netto. Do ceny doliczany jest VAT 8%.</p>
+            <p className="muted">{t("Wszystkie ceny B2B są cenami netto. Do ceny doliczany jest VAT 8%.")}</p>
 
-            <h2>Obsada</h2>
+            <h2>{t("Obsada")}</h2>
             <div className="company-leg-crew-grid">
               <div className="company-leg-crew">
-                <strong>→ WYJAZD</strong>
-                <span>Kierowca: {driver?.full_name || "Jeszcze nie przypisano"}</span>
-                <span>Telefon: {driver?.phone || "—"}</span>
-                <span>Pojazd: {vehicle ? `${vehicle.name} · ${vehicle.registration}` : "Jeszcze nie przypisano"}</span>
+                <strong>{t("→ WYJAZD")}</strong>
+                <span>{t("Kierowca:")} {driver?.full_name || t("Jeszcze nie przypisano")}</span>
+                <span>{t("Telefon:")} {driver?.phone || "—"}</span>
+                <span>{t("Pojazd:")} {vehicle ? `${vehicle.name} · ${vehicle.registration}` : t("Jeszcze nie przypisano")}</span>
               </div>
               {booking.service_type === "roundtrip" && (
                 <div className="company-leg-crew return">
-                  <strong>↩ POWRÓT</strong>
-                  <span>Kierowca: {returnDriver?.full_name || "Jeszcze nie przypisano"}</span>
-                  <span>Telefon: {returnDriver?.phone || "—"}</span>
-                  <span>Pojazd: {returnVehicle ? `${returnVehicle.name} · ${returnVehicle.registration}` : "Jeszcze nie przypisano"}</span>
+                  <strong>{t("↩ POWRÓT")}</strong>
+                  <span>{t("Kierowca:")} {returnDriver?.full_name || t("Jeszcze nie przypisano")}</span>
+                  <span>{t("Telefon:")} {returnDriver?.phone || "—"}</span>
+                  <span>{t("Pojazd:")} {returnVehicle ? `${returnVehicle.name} · ${returnVehicle.registration}` : t("Jeszcze nie przypisano")}</span>
                 </div>
               )}
             </div>
           </div>
 
-          <B2BPricingSnapshotCard booking={booking} />
-          <BookingDocumentsCard bookingId={booking.id} documents={documents ?? []} />
+          <B2BPricingSnapshotCard customerLocale={locale} booking={booking} />
+          <BookingDocumentsCard customerLocale={locale} bookingId={booking.id} documents={documents ?? []} />
         </div>
 
-        <CompanyBookingActions booking={booking} />
+        <CompanyBookingActions customerLocale={locale} booking={booking} />
       </div>
     </main>
   );

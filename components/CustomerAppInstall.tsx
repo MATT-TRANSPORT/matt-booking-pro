@@ -1,4 +1,6 @@
 "use client";
+import { customerText } from "@/lib/customerCopy";
+import { useCustomerLocale } from "@/lib/useCustomerLocale";
 
 import { useEffect, useState } from "react";
 
@@ -8,6 +10,8 @@ type InstallPromptEvent = Event & {
 };
 
 export default function CustomerAppInstall() {
+  const locale = useCustomerLocale();
+  const t = (key: string) => customerText(key, locale);
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(false);
   const [isIos, setIsIos] = useState(false);
@@ -29,7 +33,7 @@ export default function CustomerAppInstall() {
     const onInstalled = () => {
       setInstalled(true);
       setInstallPrompt(null);
-      setMessage("✓ Zainstalowano");
+      setMessage(t("✓ Zainstalowano"));
     };
 
     window.addEventListener("beforeinstallprompt", onBeforeInstall);
@@ -53,17 +57,17 @@ export default function CustomerAppInstall() {
 
       if (result.outcome === "accepted") {
         setInstalled(true);
-        setMessage("✓ Zainstalowano");
+        setMessage(t("✓ Zainstalowano"));
       }
       return;
     }
 
     if (isIos) {
-      setMessage("Safari → Udostępnij → Do ekranu początkowego");
+      setMessage(t("Safari → Udostępnij → Do ekranu początkowego"));
       return;
     }
 
-    setMessage("Menu przeglądarki → Zainstaluj aplikację");
+    setMessage(t("Menu przeglądarki → Zainstaluj aplikację"));
   }
 
   return (
@@ -71,12 +75,12 @@ export default function CustomerAppInstall() {
       type="button"
       className="customer-quick-card customer-quick-app"
       onClick={install}
-      aria-label="Zainstaluj aplikację MATT TRANSPORT"
+      aria-label={t("Zainstaluj aplikację MATT TRANSPORT")}
     >
       <span className="customer-quick-icon" aria-hidden="true">📲</span>
-      <strong>{installed ? "Aplikacja gotowa" : "Aplikacja"}</strong>
-      <small>{installed ? "MATT TRANSPORT jest na telefonie." : "MATT TRANSPORT na telefonie."}</small>
-      <b>{installed ? "ZAINSTALOWANA ✓" : "INSTALUJ →"}</b>
+      <strong>{installed ? t("Aplikacja gotowa") : t("Aplikacja")}</strong>
+      <small>{installed ? t("MATT TRANSPORT jest na telefonie.") : t("MATT TRANSPORT na telefonie.")}</small>
+      <b>{installed ? t("ZAINSTALOWANA ✓") : t("INSTALUJ →")}</b>
       {message && <em className="customer-quick-message">{message}</em>}
     </button>
   );

@@ -1,3 +1,6 @@
+import { bookingDateTime } from "@/lib/bookingDateTime";
+import { customerJson, requestCustomerLocale, readCustomerBody } from "@/lib/customerErrors";
+import { customerText } from "@/lib/customerCopy";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { calculateQuote } from "@/lib/pricing";
@@ -5,6 +8,7 @@ import { getAirportPricing } from "@/lib/airportPricingServer";
 import { calculateAdditionalStopDetour } from "@/lib/additionalStopServer";
 import { ADDITIONAL_STOP_B2C_KM_RATE, ADDITIONAL_STOP_FEE_B2C, additionalStopDirectionCount } from "@/lib/additionalStopConfig";
 import { sendMattEmail } from "@/lib/email";
+import { localizedReceivedEmail, resolveCustomerLocale } from "@/lib/localizedBookingEmails";
 import { sendBookingNotification } from "@/lib/customerNotifications";
 import { sendNewBookingAdminPush } from "@/lib/adminNotifications";
 import {
@@ -45,7 +49,19 @@ function validFunnelSessionId(value: unknown) {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  let responseLocale=requestCustomerLocale(req);
+  const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
+  const parsed = await readCustomerBody(req);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.body;
+  responseLocale = parsed.locale;
+  const t = (key: string) => customerText(key, body.locale);
+  if (body.paymentMethod && !["cash", "online"].includes(body.paymentMethod)) {
+    return json({ error: "Dla rezerwacji indywidualnych wybierz gotówkę lub płatność online." }, { status: 400 });
+  }
+  if (!Number.isInteger(Number(body.passengers)) || Number(body.passengers) < 1 || Number(body.passengers) > 8) {
+    return json({ error: "Nieprawidłowe dane formularza." }, { status: 400 });
+  }
   const supabase = createAdminClient();
 
   const required = [
@@ -61,8 +77,8 @@ export async function POST(req: NextRequest) {
 
   for (const key of required) {
     if (!body[key]) {
-      return NextResponse.json(
-        { error: "Uzupełnij wymagane pola." },
+      return json(
+        { error: t("Uzupełnij wymagane pola.") },
         { status: 400 }
       );
     }
@@ -71,8 +87,8 @@ export async function POST(req: NextRequest) {
   const airportPricing = await getAirportPricing(supabase, String(body.airport || ""));
 
   if (!airportPricing) {
-    return NextResponse.json(
-      { error: "Nieprawidłowe lub nieaktywne lotnisko." },
+    return json(
+      { error: t("Nieprawidłowe lub nieaktywne lotnisko.") },
       { status: 400 }
     );
   }
@@ -81,45 +97,43 @@ export async function POST(req: NextRequest) {
     Number(body.passengers) > 3 &&
     body.vehicleType !== "bus"
   ) {
-    return NextResponse.json(
-      { error: "Dla więcej niż 3 pasażerów wybierz bus." },
+    return json(
+      { error: t("Dla więcej niż 3 pasażerów wybierz bus.") },
       { status: 400 }
     );
   }
 
-  const when = new Date(
-    `${body.travelDate}T${body.travelTime}`
-  );
+  const when = bookingDateTime(body.travelDate, body.travelTime);
 
-  if (!Number.isFinite(when.getTime())) {
-    return NextResponse.json(
-      { error: "Podaj prawidłowy termin wyjazdu." },
+  if (!when) {
+    return json(
+      { error: t("Podaj prawidłowy termin wyjazdu.") },
       { status: 400 }
     );
   }
 
   if (body.serviceType === "roundtrip") {
     if (!body.returnDate || !body.returnTime) {
-      return NextResponse.json(
-        { error: "Dla przejazdu w obie strony podaj datę i godzinę powrotu." },
+      return json(
+        { error: t("Dla przejazdu w obie strony podaj datę i godzinę powrotu.") },
         { status: 400 }
       );
     }
 
-    const back = new Date(`${body.returnDate}T${body.returnTime}`);
-    if (!Number.isFinite(back.getTime()) || back.getTime() <= when.getTime()) {
-      return NextResponse.json(
-        { error: "Termin powrotu musi być późniejszy niż wyjazd." },
+    const back = bookingDateTime(body.returnDate, body.returnTime);
+    if (!back || back.getTime() <= when.getTime()) {
+      return json(
+        { error: t("Termin powrotu musi być późniejszy niż wyjazd.") },
         { status: 400 }
       );
     }
   }
 
   if (when.getTime() - Date.now() < 24 * 3600 * 1000) {
-    return NextResponse.json(
+    return json(
       {
         error:
-          "Rezerwacja online wymaga minimum 24 godzin wyprzedzenia. W pilnej sprawie zadzwoń: +48 691 242 691"
+          t("Rezerwacja online wymaga minimum 24 godzin wyprzedzenia. W pilnej sprawie zadzwoń: +48 691 242 691")
       },
       { status: 400 }
     );
@@ -155,7 +169,7 @@ export async function POST(req: NextRequest) {
         airportAddress: airportPricing.route_address
       });
     } catch (error) {
-      return NextResponse.json(
+      return json(
         { error: error instanceof Error ? error.message : "Nie udało się obliczyć dodatkowego przystanku." },
         { status: 400 }
       );
@@ -197,7 +211,7 @@ export async function POST(req: NextRequest) {
   const notificationChannel = "email";
 
   const requestedPaymentMethod = String(body.paymentMethod || "");
-  const paymentMethod = ["cash", "bank_transfer", "online"].includes(requestedPaymentMethod)
+  const paymentMethod = ["cash", "online"].includes(requestedPaymentMethod)
     ? requestedPaymentMethod
     : body.onlinePaymentRequested
     ? "online"
@@ -241,6 +255,7 @@ export async function POST(req: NextRequest) {
       total_price: quote.totalPrice,
       status: "pending",
       booking_source: "public",
+      customer_locale: resolveCustomerLocale(body.locale),
       ...growth,
       payment_method: paymentMethod,
       online_payment_requested: paymentMethod === "online",
@@ -254,7 +269,7 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) {
-    return NextResponse.json(
+    return json(
       { error: error.message },
       { status: 500 }
     );
@@ -297,7 +312,9 @@ export async function POST(req: NextRequest) {
   let emailWarning: string | null = null;
 
   try {
-    const customerMail = receivedEmail(data);
+    const customerMail = resolveCustomerLocale(body.locale) === "pl"
+      ? receivedEmail(data)
+      : localizedReceivedEmail({ ...data, locale: resolveCustomerLocale(body.locale) });
 
     const customerResult = await sendMattEmail({
       to: body.email,
@@ -387,7 +404,7 @@ export async function POST(req: NextRequest) {
     created_by: null
   });
 
-  return NextResponse.json({
+  return json({
     ...data,
     email_sent: customerEmailSent,
     admin_email_sent: adminEmailSent,

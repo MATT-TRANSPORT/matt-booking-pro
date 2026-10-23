@@ -1,3 +1,4 @@
+import { companyLanguage, type CompanySearchParams } from "@/lib/companyLanguage";
 import CompanyNav from "@/components/CompanyNav";
 import CompanyPaymentCell from "@/components/CompanyPaymentCell";
 import { companyClient } from "@/lib/company";
@@ -10,8 +11,9 @@ import {
 } from "@/lib/companyPortal";
 import { statusPl } from "@/lib/status";
 
-export default async function Page() {
-  const { s, company, membership } = await companyClient();
+export default async function Page({searchParams}:{searchParams:Promise<CompanySearchParams>}) {
+  const {locale,t,href}=await companyLanguage(searchParams);
+  const { s, company, membership } = await companyClient(locale);
   const canPayOnline = ["admin", "manager", "accounting"].includes(String(membership.role || ""));
   const [{ data }, { data: documents }] = await Promise.all([
     s
@@ -44,7 +46,7 @@ export default async function Page() {
     const docs = docMap.get(b.id);
     return (
       <tr key={b.id} className={archived ? "company-booking-row-archive" : undefined}>
-        <td><a href={`/firma/rezerwacje/${b.id}`}><strong>{b.booking_number}</strong></a></td>
+        <td><a href={href(`/firma/rezerwacje/${b.id}`)}><strong>{b.booking_number}</strong></a></td>
         <td>{b.customer_name}</td>
         <td>{b.travel_date}<br />{String(b.travel_time || "").slice(0, 5)}</td>
         <td className="company-route-cell">{companyRouteLabel(b)}</td>
@@ -52,7 +54,7 @@ export default async function Page() {
         <td>{money.gross.toFixed(2)} zł</td>
         <td>{docs ? <span className={`document-status ${docs.invoice ? "invoice" : "other"}`}>{docs.invoice ? "FAKTURA" : "DOKUMENT"} · {docs.count}</span> : <span className="muted">—</span>}</td>
         <td><CompanyPaymentCell booking={b} canPay={canPayOnline} /></td>
-        <td><span className={`status ${String(b.status).toLowerCase()}`}>{statusPl(b.status)}</span></td>
+        <td><span className={`status ${String(b.status).toLowerCase()}`}>{t(statusPl(b.status))}</span></td>
       </tr>
     );
   };
@@ -64,49 +66,49 @@ export default async function Page() {
     return (
       <article className={`company-booking-card${archived ? " company-booking-card-archive" : ""}`} key={b.id}>
         <div className="company-card-head">
-          <a href={`/firma/rezerwacje/${b.id}`}><strong>{b.booking_number}</strong></a>
-          <span className={`status ${String(b.status).toLowerCase()}`}>{statusPl(b.status)}</span>
+          <a href={href(`/firma/rezerwacje/${b.id}`)}><strong>{b.booking_number}</strong></a>
+          <span className={`status ${String(b.status).toLowerCase()}`}>{t(statusPl(b.status))}</span>
         </div>
         <div className="company-card-data">
-          <div><span>Pasażer</span><strong>{b.customer_name}</strong></div>
-          <div><span>Termin</span><strong>{b.travel_date} {String(b.travel_time || "").slice(0, 5)}</strong></div>
-          <div className="wide"><span>Trasa</span><strong>{companyRouteLabel(b)}</strong></div>
-          <div><span>Netto</span><strong>{money.net.toFixed(2)} zł</strong></div>
-          <div><span>Brutto</span><strong>{money.gross.toFixed(2)} zł</strong></div>
-          <div><span>Dokument</span><strong>{docs ? `${docs.invoice ? "Faktura" : "Dokument"} · ${docs.count}` : "—"}</strong></div>
-          <div className="wide"><span>Płatność</span><CompanyPaymentCell booking={b} canPay={canPayOnline} /></div>
+          <div><span>{t("Pasażer")}</span><strong>{b.customer_name}</strong></div>
+          <div><span>{t("Termin")}</span><strong>{b.travel_date} {String(b.travel_time || "").slice(0, 5)}</strong></div>
+          <div className="wide"><span>{t("Trasa")}</span><strong>{companyRouteLabel(b)}</strong></div>
+          <div><span>{t("Netto")}</span><strong>{money.net.toFixed(2)} zł</strong></div>
+          <div><span>{t("Brutto")}</span><strong>{money.gross.toFixed(2)} zł</strong></div>
+          <div><span>{t("Dokument")}</span><strong>{docs ? `${docs.invoice ? t("Faktura") : t("Dokument")} · ${docs.count}` : "—"}</strong></div>
+          <div className="wide"><span>{t("Płatność")}</span><CompanyPaymentCell booking={b} canPay={canPayOnline} /></div>
         </div>
-        {schedule.reason === "expired" && <div className="company-expired-note">Termin przejazdu minął</div>}
-        <a className="company-card-open" href={`/firma/rezerwacje/${b.id}`}>OTWÓRZ REZERWACJĘ →</a>
+        {schedule.reason === "expired" && <div className="company-expired-note">{t("Termin przejazdu minął")}</div>}
+        <a className="company-card-open" href={href(`/firma/rezerwacje/${b.id}`)}>{t("OTWÓRZ REZERWACJĘ →")}</a>
       </article>
     );
   };
 
   return (
     <main className="container">
-      <h1>Rezerwacje firmy</h1>
-      <CompanyNav />
+      <h1>{t("Rezerwacje firmy")}</h1>
+      <CompanyNav customerLocale={locale} />
 
       <div className="card">
         <div className="company-section-head">
           <div>
-            <span className="badge">NETTO + VAT 8%</span>
-            <h2>Historia przejazdów</h2>
-            <p className="muted">Najbliższy aktywny termin jest zawsze najwyżej. Historia znajduje się pod separatorem na dole.</p>
+            <span className="badge">{t("NETTO + VAT 8%")}</span>
+            <h2>{t("Historia przejazdów")}</h2>
+            <p className="muted">{t("Najbliższy aktywny termin jest zawsze najwyżej. Historia znajduje się pod separatorem na dole.")}</p>
           </div>
-          <a className="btn" href="/firma/nowa-rezerwacja">+ NOWA REZERWACJA</a>
+          <a className="btn" href={href("/firma/nowa-rezerwacja")}>{t("+ NOWA REZERWACJA")}</a>
         </div>
 
         <div className="company-bookings-table">
           <table className="table company-table b2b-bookings-pro-table">
             <thead>
-              <tr><th>Numer</th><th>Pasażer</th><th>Termin</th><th>Trasa</th><th>Netto</th><th>Brutto</th><th>Dokument</th><th>Płatność</th><th>Status</th></tr>
+              <tr><th>{t("Numer")}</th><th>{t("Pasażer")}</th><th>{t("Termin")}</th><th>{t("Trasa")}</th><th>{t("Netto")}</th><th>{t("Brutto")}</th><th>{t("Dokument")}</th><th>{t("Płatność")}</th><th>{t("Status")}</th></tr>
             </thead>
             <tbody>
               {activeRows.map((b: any) => bookingRow(b))}
               {archiveRows.length > 0 && (
                 <tr className="company-booking-archive-divider">
-                  <td colSpan={9}>HISTORIA · ZAKOŃCZONE / ANULOWANE / TERMIN MINĄŁ</td>
+                  <td colSpan={9}>{t("HISTORIA · ZAKOŃCZONE / ANULOWANE / TERMIN MINĄŁ")}</td>
                 </tr>
               )}
               {archiveRows.map((b: any) => bookingRow(b, true))}
@@ -117,11 +119,11 @@ export default async function Page() {
         <div className="company-bookings-cards">
           {activeRows.map((b: any) => bookingCard(b))}
           {archiveRows.length > 0 && (
-            <div className="company-booking-cards-divider">HISTORIA · ZAKOŃCZONE / ANULOWANE / TERMIN MINĄŁ</div>
+            <div className="company-booking-cards-divider">{t("HISTORIA · ZAKOŃCZONE / ANULOWANE / TERMIN MINĄŁ")}</div>
           )}
           {archiveRows.map((b: any) => bookingCard(b, true))}
         </div>
-        <p className="muted" style={{ marginTop: 12 }}>Wszystkie ceny B2B są cenami netto. Do kwoty doliczany jest VAT 8%.</p>
+        <p className="muted" style={{ marginTop: 12 }}>{t("Wszystkie ceny B2B są cenami netto. Do kwoty doliczany jest VAT 8%.")}</p>
       </div>
     </main>
   );

@@ -3,3 +3,10 @@ node_modules
 .env
 .env.local
 .vercel
+
+# Generated validation output
+tsconfig.tsbuildinfo
+test-results/
+playwright-report/
+supabase/.temp/
+.env.test.local

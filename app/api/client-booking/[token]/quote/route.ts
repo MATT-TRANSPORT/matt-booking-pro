@@ -1,3 +1,5 @@
+import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
+import { localizedQuoteEmail } from "@/lib/quoteEmails";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMattEmail } from "@/lib/email";
@@ -38,8 +40,11 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
+  let responseLocale=requestCustomerLocale(req);
+  const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
   const { token } = await params;
   const body = await req.json();
+ responseLocale=requestCustomerLocale(req,body?.locale);
   const action = String(body.action || "");
   const admin = createAdminClient();
 
@@ -48,9 +53,10 @@ export async function POST(
     .select("*")
     .eq("customer_access_token", token)
     .maybeSingle();
+ responseLocale=requestCustomerLocale(req,booking?.customer_locale);
 
   if (!booking) {
-    return NextResponse.json(
+    return json(
       { error: "Rezerwacja nie istnieje lub link wygasł." },
       { status: 404 }
     );
@@ -61,7 +67,7 @@ export async function POST(
     booking.booking_source === "public_general";
 
   if (!general || !booking.quote_required) {
-    return NextResponse.json(
+    return json(
       { error: "Ta rezerwacja nie wymaga indywidualnej wyceny." },
       { status: 409 }
     );
@@ -69,25 +75,25 @@ export async function POST(
 
   if (String(booking.quote_status) !== "priced") {
     if (booking.quote_status === "accepted") {
-      return NextResponse.json(
+      return json(
         { error: "Ta wycena została już zaakceptowana." },
         { status: 409 }
       );
     }
     if (booking.quote_status === "rejected") {
-      return NextResponse.json(
+      return json(
         { error: "Z tej wyceny już zrezygnowano." },
         { status: 409 }
       );
     }
-    return NextResponse.json(
+    return json(
       { error: "Wycena nie jest jeszcze gotowa do decyzji." },
       { status: 409 }
     );
   }
 
   if (!booking.quote_expires_at) {
-    return NextResponse.json(
+    return json(
       {
         error:
           "Ta wycena pochodzi ze starszej wersji systemu. Poproś MATT TRANSPORT o ponowne wysłanie aktualnej wyceny."
@@ -98,7 +104,7 @@ export async function POST(
 
   const expiresAt = new Date(booking.quote_expires_at).getTime();
   if (!Number.isFinite(expiresAt) || Date.now() > expiresAt) {
-    return NextResponse.json(
+    return json(
       {
         error:
           "Termin ważności wyceny minął. Skontaktuj się z MATT TRANSPORT, aby otrzymać aktualną cenę."
@@ -130,7 +136,7 @@ export async function POST(
       .single();
 
     if (error || !updated) {
-      return NextResponse.json(
+      return json(
         { error: error?.message || "Nie udało się zaakceptować wyceny." },
         { status: 500 }
       );
@@ -152,27 +158,7 @@ export async function POST(
 
     await Promise.allSettled([
       updated.email
-        ? sendMattEmail({
-            to: updated.email,
-            subject: `Potwierdzenie zamówienia · ${updated.booking_number}`,
-            html: `
-              <div style="font-family:Arial,sans-serif;background:#0b0e13;color:#fff;padding:28px">
-                <div style="max-width:650px;margin:auto;background:#151923;border:1px solid #d5ae5d;border-radius:16px;padding:28px">
-                  <h2 style="color:#f1d28b">MATT TRANSPORT</h2>
-                  <h1>Wycena zaakceptowana</h1>
-                  <p>Dziękujemy. Twoje zamówienie zostało przyjęte do realizacji.</p>
-                  <p>Trasa: <strong>${esc(updated.pickup_address)} → ${esc(updated.destination_address || updated.airport_label)}</strong></p>
-                  <p>Termin: <strong>${esc(updated.travel_date)} · ${esc(String(updated.travel_time || "").slice(0, 5))}</strong></p>
-                  <p style="font-size:22px">Cena: <strong style="color:#f1d28b">${amount} zł</strong></p>
-                  <p>Sposób płatności: <strong>${paymentLabel(updated.payment_method)}</strong></p>
-                  ${updated.payment_method === "online"
-                    ? "<p>Płatność online jest dostępna w portalu rezerwacji.</p>"
-                    : ""}
-                  <p>Kontakt: +48 691 242 691</p>
-                </div>
-              </div>
-            `
-          })
+        ? sendMattEmail({to: updated.email, ...localizedQuoteEmail("accepted", updated)})
         : Promise.resolve(),
       sendMattEmail({
         to: process.env.ADMIN_EMAIL || "kontakt@matt-transport.pl",
@@ -199,7 +185,7 @@ export async function POST(
       })
     ]);
 
-    return NextResponse.json({
+    return json({
       ok: true,
       action: "accepted",
       booking: updated
@@ -228,7 +214,7 @@ export async function POST(
       .single();
 
     if (error || !updated) {
-      return NextResponse.json(
+      return json(
         { error: error?.message || "Nie udało się zapisać rezygnacji." },
         { status: 500 }
       );
@@ -261,20 +247,7 @@ export async function POST(
 
     await Promise.allSettled([
       updated.email
-        ? sendMattEmail({
-            to: updated.email,
-            subject: `Rezygnacja z wyceny · ${updated.booking_number}`,
-            html: `
-              <div style="font-family:Arial,sans-serif;background:#0b0e13;color:#fff;padding:28px">
-                <div style="max-width:650px;margin:auto;background:#151923;border:1px solid #343b49;border-radius:16px;padding:28px">
-                  <h2 style="color:#f1d28b">MATT TRANSPORT</h2>
-                  <h1>Potwierdzamy rezygnację z wyceny</h1>
-                  <p>Wycena ${amount} zł nie została zaakceptowana i zlecenie nie będzie realizowane.</p>
-                  <p>Jeśli zmienisz zdanie, skontaktuj się z nami: +48 691 242 691.</p>
-                </div>
-              </div>
-            `
-          })
+        ? sendMattEmail({to: updated.email, ...localizedQuoteEmail("rejected", updated)})
         : Promise.resolve(),
       sendMattEmail({
         to: process.env.ADMIN_EMAIL || "kontakt@matt-transport.pl",
@@ -298,14 +271,14 @@ export async function POST(
       })
     ]);
 
-    return NextResponse.json({
+    return json({
       ok: true,
       action: "rejected",
       booking: updated
     });
   }
 
-  return NextResponse.json(
+  return json(
     { error: "Nieznana decyzja dotycząca wyceny." },
     { status: 400 }
   );

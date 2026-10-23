@@ -1,3 +1,4 @@
+import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMattEmail } from "@/lib/email";
@@ -57,14 +58,16 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
+  let responseLocale=requestCustomerLocale(_req);
+  const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
   const { token } = await params;
   const booking = await getBooking(token);
 
   if (!booking) {
-    return NextResponse.json({ error: "Rezerwacja nie istnieje lub link wygasł." }, { status: 404 });
+    return json({ error: "Rezerwacja nie istnieje lub link wygasł." }, { status: 404 });
   }
 
-  return NextResponse.json({
+  return json({
     booking,
     editable: EDITABLE_STATUSES.includes(booking.status),
     cancellable: EDITABLE_STATUSES.includes(booking.status)
@@ -75,22 +78,25 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
+  let responseLocale=requestCustomerLocale(req);
+  const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
   const { token } = await params;
   const admin = createAdminClient();
   const booking = await getBooking(token);
 
   if (!booking) {
-    return NextResponse.json({ error: "Rezerwacja nie istnieje lub link wygasł." }, { status: 404 });
+    return json({ error: "Rezerwacja nie istnieje lub link wygasł." }, { status: 404 });
   }
 
   if (!EDITABLE_STATUSES.includes(booking.status)) {
-    return NextResponse.json(
+    return json(
       { error: "Ta rezerwacja jest już w realizacji i nie może być samodzielnie edytowana." },
       { status: 409 }
     );
   }
 
   const body = await req.json();
+ responseLocale=requestCustomerLocale(req,body?.locale);
   const wasPaid = booking.payment_status === "paid";
   const isB2B = Boolean(booking.company_id);
   const passengers = Math.max(1, Math.min(8, Number(body.passengers ?? booking.passengers)));
@@ -101,13 +107,13 @@ export async function PATCH(
   const nip = !isB2B && invoiceRequired ? cleanNip(body.companyNip) : booking.company_nip ?? null;
 
   if (!isB2B && invoiceRequired && nip?.length !== 10) {
-    return NextResponse.json({ error: "Podaj poprawny 10-cyfrowy NIP." }, { status: 400 });
+    return json({ error: "Podaj poprawny 10-cyfrowy NIP." }, { status: 400 });
   }
 
   const airport = String(booking.airport_key);
   const airportPricing = await getAirportPricing(admin, airport, { includeInactive: true });
   if (!airportPricing) {
-    return NextResponse.json({ error: "Nie udało się odczytać cennika tej rezerwacji. Skontaktuj się z MATT TRANSPORT." }, { status: 400 });
+    return json({ error: "Nie udało się odczytać cennika tej rezerwacji. Skontaktuj się z MATT TRANSPORT." }, { status: 400 });
   }
 
   const routeChanged = pickupAddress !== String(booking.pickup_address ?? "").trim();
@@ -137,7 +143,7 @@ export async function PATCH(
       const oldGross = Number(booking.price_gross ?? booking.total_price ?? 0);
       priceChanged = Math.round(oldGross * 100) !== Math.round(total * 100);
     } catch (error) {
-      return NextResponse.json(
+      return json(
         { error: error instanceof Error ? error.message : "Nie udało się przeliczyć wyceny B2B." },
         { status: 400 }
       );
@@ -257,7 +263,7 @@ export async function PATCH(
     .single();
 
   if (error || !updated) {
-    return NextResponse.json({ error: error?.message || "Błąd zapisu." }, { status: 500 });
+    return json({ error: error?.message || "Błąd zapisu." }, { status: 500 });
   }
 
   const oldDisplayed = Number(isB2B ? (booking.price_gross ?? booking.total_price) : booking.total_price || 0);
@@ -374,7 +380,7 @@ export async function PATCH(
     console.error("E-mail po edycji klienta:", mailError);
   }
 
-  return NextResponse.json({
+  return json({
     booking: updated,
     requiresReconfirmation
   });
@@ -418,19 +424,21 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
+  let responseLocale=requestCustomerLocale(_req);
+  const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
   const { token } = await params;
   const admin = createAdminClient();
   const booking = await getBooking(token);
 
   if (!booking) {
-    return NextResponse.json(
+    return json(
       { error: "Rezerwacja nie istnieje lub link wygasł." },
       { status: 404 }
     );
   }
 
   if (!EDITABLE_STATUSES.includes(booking.status)) {
-    return NextResponse.json(
+    return json(
       {
         error:
           booking.status === "cancelled"
@@ -480,7 +488,7 @@ export async function DELETE(
     .single();
 
   if (error || !updated) {
-    return NextResponse.json(
+    return json(
       { error: error?.message ?? "Nie udało się anulować rezerwacji." },
       { status: 500 }
     );
@@ -605,7 +613,7 @@ export async function DELETE(
     created_by: null
   });
 
-  return NextResponse.json({
+  return json({
     ok: true,
     booking: updated,
     payment_requires_review: wasPaid,

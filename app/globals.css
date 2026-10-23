@@ -1561,7 +1561,7 @@
 
 
 /* v2.8.2.2 — B2C payment method selector */
-.payment-method-section{margin-top:16px}.payment-method-section h3{margin:0 0 10px}.payment-method-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.payment-method-choice{display:flex;gap:10px;align-items:flex-start;padding:14px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.02);cursor:pointer}.payment-method-choice.selected{border-color:#d5ae5d;background:rgba(213,174,93,.08)}.payment-method-choice input{margin-top:3px;accent-color:#d5ae5d}.payment-method-choice span{display:flex;flex-direction:column;gap:5px}.payment-method-choice strong{font-size:13px}.payment-method-choice small{color:var(--muted);font-size:11px;line-height:1.4}@media(max-width:900px){.payment-method-grid{grid-template-columns:1fr}.payment-method-choice{min-height:70px}}
+.payment-method-section{margin-top:16px}.payment-method-section h3{margin:0 0 10px}.payment-method-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.payment-method-choice{display:flex;gap:10px;align-items:flex-start;padding:14px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.02);cursor:pointer}.payment-method-choice.selected{border-color:#d5ae5d;background:rgba(213,174,93,.08)}.payment-method-choice input{margin-top:3px;accent-color:#d5ae5d}.payment-method-choice span{display:flex;flex-direction:column;gap:5px}.payment-method-choice strong{font-size:13px}.payment-method-choice small{color:var(--muted);font-size:11px;line-height:1.4}@media(max-width:900px){.payment-method-grid{grid-template-columns:1fr}.payment-method-choice{min-height:70px}}
 
 
 /* v2.8.2.4 — reservation detail overlap fix */
@@ -2631,4 +2631,104 @@
   .wedding-admin-actions-row .btn{width:100%}
   .admin-stripe-actions .btn{width:100%;text-align:center}
   .admin-stripe-history-list>div{align-items:flex-start}
+}
+
+
+/* Dispatcher pending inbox and layout containment */
+.dispatcher-new-requests{margin:18px 0;border:2px solid #b7832e;min-width:0;background:linear-gradient(130deg,#302617,#211d1b)}
+.dispatcher-new-head{display:flex;justify-content:space-between;align-items:center;gap:14px;min-width:0}
+.dispatcher-new-head>div{min-width:0}
+.dispatcher-new-head h2{margin:9px 0 4px;font-size:clamp(19px,2.5vw,25px);overflow-wrap:anywhere}
+.dispatcher-new-head p{margin:0;color:var(--muted);font-size:13px}
+.dispatcher-new-heading{display:inline-block;padding:5px 10px;border-radius:7px;background:#b45309;color:white;font-weight:900;font-size:11px;letter-spacing:.06em}
+.dispatcher-new-count{flex:none;min-width:55px;min-height:55px;display:grid;place-items:center;background:#db9b35;color:#1b1713;font-size:25px;border-radius:13px}
+.dispatcher-new-list{display:grid;gap:9px;margin-top:15px;min-width:0}
+.dispatcher-new-item{display:flex;align-items:center;gap:12px;min-width:0;padding:12px;border:1px solid rgba(213,174,93,.38);border-radius:11px;background:rgba(255,255,255,.04);color:var(--text)}
+.dispatcher-new-item:hover,.dispatcher-new-item:focus-visible{border-color:var(--gold2);background:rgba(213,174,93,.12)}
+.dispatcher-new-sticker{flex:none;padding:5px 8px;border-radius:6px;background:#c32424;color:#fff;font-size:11px;font-weight:900;letter-spacing:.04em}
+.dispatcher-new-details{display:flex;flex:1;min-width:0;flex-direction:column;gap:4px;overflow-wrap:anywhere}
+.dispatcher-new-details strong{color:var(--gold2);font-size:14px}
+.dispatcher-new-details span,.dispatcher-new-details small{color:var(--muted);font-size:12px}
+.dispatcher-new-open{flex:none;white-space:nowrap;font-size:12px;font-weight:900;color:var(--gold2)}
+.dispatcher-new-empty{margin:14px 0 0;color:var(--muted)}
+/* Contain long addresses and controls; switch to cards before the dispatcher table overflows. */
+.dispatcher-command-center,.dispatcher-new-requests,.dispatcher-mobile-list,.dispatcher-card{max-width:100%;min-width:0}
+.dispatcher-attention-item>div,.dispatcher-card-head>div,.dispatcher-card-route{min-width:0;overflow-wrap:anywhere}
+.dispatcher-table td,.dispatcher-table th{overflow-wrap:anywhere}
+.dispatcher-table select{min-width:0;max-width:100%;width:100%}
+@media(max-width:1200px){
+  .dispatcher-desktop{display:none}
+  .dispatcher-mobile-list{display:grid;gap:10px}
+  .dispatcher-card{padding:14px;border:1px solid var(--line);border-left-width:5px;border-radius:14px;background:rgba(255,255,255,.02)}
+  .dispatcher-card-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+  .dispatcher-card-head>div{display:flex;flex-direction:column;gap:3px}
+  .dispatcher-card-route{display:flex;flex-direction:column;gap:4px;margin:10px 0}
+  .dispatcher-card-selects{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}
+}
+@media(max-width:620px){
+  .dispatcher-new-item{flex-wrap:wrap;align-items:flex-start}
+  .dispatcher-new-details{flex-basis:calc(100% - 80px)}
+  .dispatcher-new-open{margin-left:auto}
+  .dispatcher-card-selects{grid-template-columns:minmax(0,1fr)}
+}
+
+/* History cards have an icon, route and actions; keep actions out of the icon column. */
+.dashboard-feed-card.booking-stage-card.dispatcher-history-card{grid-template-columns:46px minmax(0,1fr) auto}
+.dispatcher-history-card .dashboard-feed-meta{min-width:0;gap:10px}
+.dispatcher-history-card a,.dispatcher-history-card .origin-badge{overflow-wrap:anywhere;max-width:100%}
+@media(max-width:800px){
+ .dashboard-feed-card.booking-stage-card.dispatcher-history-card{grid-template-columns:38px minmax(0,1fr)}
+ .dispatcher-history-card .dashboard-feed-meta{grid-column:2/-1;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between}
+}
+
+/* Keep archived bookings readable on narrow phones without horizontal overflow. */
+.dispatcher-history-card{
+  min-width:0;
+  max-width:100%;
+}
+.dispatcher-history-card>div:nth-child(2),
+.dispatcher-history-card .booking-origin,
+.dispatcher-history-card .dispatcher-flight-stack{
+  min-width:0;
+  max-width:100%;
+  overflow-wrap:anywhere;
+}
+.dispatcher-history-card .dashboard-feed-meta>.status,
+.dispatcher-history-card .dashboard-feed-meta>.btn{
+  max-width:100%;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+@media(max-width:800px){
+  .dispatcher-history-card .dashboard-feed-meta{
+    min-width:0;
+    max-width:100%;
+    gap:8px;
+  }
+  .dispatcher-history-card .dashboard-feed-meta>.btn{
+    text-align:center;
+  }
+}
+@media(max-width:520px){
+  .dashboard-feed-card.booking-stage-card.dispatcher-history-card{
+    grid-template-columns:32px minmax(0,1fr);
+    gap:8px;
+    padding:10px;
+  }
+  .dispatcher-history-card .feed-icon{
+    font-size:20px;
+  }
+  .dispatcher-history-card .dashboard-feed-meta{
+    grid-column:2/-1;
+    justify-content:flex-start;
+    align-items:center;
+  }
+  .dispatcher-history-card .dashboard-feed-meta>.status,
+  .dispatcher-history-card .dashboard-feed-meta>.btn{
+    flex:0 1 auto;
+    min-width:0;
+  }
+  .dispatcher-history-card .dashboard-feed-meta>.btn{
+    margin-left:0;
+  }
 }

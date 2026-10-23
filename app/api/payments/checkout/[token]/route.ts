@@ -1,3 +1,6 @@
+import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
+import { customerText } from "@/lib/customerCopy";
+import { resolveCustomerLocale } from "@/lib/bookingLocale";
 import {
   NextRequest,
   NextResponse
@@ -16,6 +19,8 @@ export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
+  let responseLocale=requestCustomerLocale(_req);
+  const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
   const { token } = await params;
   const admin = createAdminClient();
 
@@ -24,23 +29,26 @@ export async function POST(
     .select("*")
     .eq("customer_access_token", token)
     .single();
+ responseLocale=requestCustomerLocale(_req,booking?.customer_locale);
+
+  const t = (key: string) => customerText(key, booking?.customer_locale);
 
   if (!booking) {
-    return NextResponse.json(
-      { error: "Nie znaleziono rezerwacji." },
+    return json(
+      { error: t("Nie znaleziono rezerwacji.") },
       { status: 404 }
     );
   }
 
   if (booking.company_id) {
-    return NextResponse.json(
-      { error: "Płatność B2B uruchamia administrator firmy bezpośrednio w portalu firmowym." },
+    return json(
+      { error: t("Płatność B2B uruchamia administrator firmy bezpośrednio w portalu firmowym.") },
       { status: 400 }
     );
   }
 
   if (!onlinePaymentEligible(booking)) {
-    return NextResponse.json(
+    return json(
       {
         error: booking.company_id
           ? "Ta rezerwacja jest rozliczana przelewem firmowym."
@@ -51,37 +59,37 @@ export async function POST(
   }
 
   if (booking.payment_status === "paid") {
-    return NextResponse.json(
-      { error: "Ta rezerwacja jest już opłacona." },
+    return json(
+      { error: t("Ta rezerwacja jest już opłacona.") },
       { status: 409 }
     );
   }
 
   if (booking.payment_status === "refunded") {
-    return NextResponse.json(
+    return json(
       {
         error:
-          "Dla tej rezerwacji wykonano zwrot. Skontaktuj się z MATT TRANSPORT."
+          t("Dla tej rezerwacji wykonano zwrot. Skontaktuj się z MATT TRANSPORT.")
       },
       { status: 409 }
     );
   }
 
   if (booking.payment_status === "review") {
-    return NextResponse.json(
+    return json(
       {
         error:
-          "Płatność wymaga weryfikacji przez MATT TRANSPORT."
+          t("Płatność wymaga weryfikacji przez MATT TRANSPORT.")
       },
       { status: 409 }
     );
   }
 
   if (!paymentCanStart(booking)) {
-    return NextResponse.json(
+    return json(
       {
         error:
-          "Płatność online będzie dostępna po potwierdzeniu rezerwacji przez MATT TRANSPORT."
+          t("Płatność online będzie dostępna po potwierdzeniu rezerwacji przez MATT TRANSPORT.")
       },
       { status: 409 }
     );
@@ -96,8 +104,8 @@ export async function POST(
   const amount = Math.round(payableAmount * 100);
 
   if (!Number.isFinite(amount) || amount <= 0) {
-    return NextResponse.json(
-      { error: "Nieprawidłowa kwota płatności." },
+    return json(
+      { error: t("Nieprawidłowa kwota płatności.") },
       { status: 400 }
     );
   }
@@ -117,6 +125,7 @@ export async function POST(
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
+      locale: resolveCustomerLocale(booking.customer_locale),
       client_reference_id: String(booking.id),
       customer_email: booking.email || undefined,
       line_items: [
@@ -141,9 +150,9 @@ export async function POST(
       },
       success_url:
         `${base}/rezerwacja/${token}` +
-        `?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+        `?lang=${resolveCustomerLocale(booking.customer_locale)}&payment=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url:
-        `${base}/rezerwacja/${token}?payment=cancelled`
+        `${base}/rezerwacja/${token}?lang=${resolveCustomerLocale(booking.customer_locale)}&payment=cancelled`
     });
 
     await admin
@@ -167,7 +176,7 @@ export async function POST(
       created_by: null
     });
 
-    return NextResponse.json({
+    return json({
       ok: true,
       url: session.url,
       session_id: session.id
@@ -186,7 +195,7 @@ export async function POST(
       })
       .eq("id", booking.id);
 
-    return NextResponse.json(
+    return json(
       { error: message },
       { status: 500 }
     );

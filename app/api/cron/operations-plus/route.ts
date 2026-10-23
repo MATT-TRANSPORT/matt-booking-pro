@@ -1,3 +1,6 @@
+export const maxDuration = 300;
+
+import { runPaymentNotificationOutbox } from "@/lib/paymentNotificationOutbox";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendBookingNotification } from "@/lib/customerNotifications";
@@ -320,6 +323,10 @@ export async function POST(req: NextRequest) {
   if (!received || received !== expected) return NextResponse.json({ error: "Brak dostępu." }, { status: 401 });
 
   const admin = createAdminClient();
+  const paymentNotifications = await runPaymentNotificationOutbox(admin).catch(() => {
+    console.error("Outbox płatności: błąd przejęcia kolejki.");
+    return { errors: 1 };
+  });
   const from = dateText(0);
   const to = dateText(1);
   const [customerReminders, driverReminder, reviewRequests, adminEscalations] = await Promise.all([
@@ -329,14 +336,14 @@ export async function POST(req: NextRequest) {
     runAdminPendingEscalations(admin)
   ]);
 
-  return NextResponse.json({ ok: true, customer_reminders: customerReminders, driver_reminder_60: driverReminder, review_requests: reviewRequests, admin_pending_escalations: adminEscalations });
+  return NextResponse.json({ ok: true, payment_notifications: paymentNotifications, customer_reminders: customerReminders, driver_reminder_60: driverReminder, review_requests: reviewRequests, admin_pending_escalations: adminEscalations });
 }
 
 export async function GET() {
   return NextResponse.json({
     ok: true,
     service: "MATT Operations+ v4.4.0.1",
-    jobs: ["customer_reminder_24h", "customer_reminder_120", "driver_reminder_60", "post_trip_rating", "admin_pending_20m"],
+    jobs: ["payment_notifications", "customer_reminder_24h", "customer_reminder_120", "driver_reminder_60", "post_trip_rating", "admin_pending_20m"],
     method: "POST"
   });
 }

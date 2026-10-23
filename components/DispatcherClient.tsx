@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { addDays, statusStageClass, warsawToday } from "@/lib/bookingOps";
 import { statusPl } from "@/lib/status";
 import {
@@ -36,18 +36,29 @@ type AttentionItem = {
 export default function DispatcherClient({
   bookings,
   drivers,
-  vehicles
+  vehicles,
+  seenNewIds,
+  readStateUnavailable = false
 }: {
   bookings: any[];
   drivers: any[];
   vehicles: any[];
+  seenNewIds: string[];
+  readStateUnavailable?: boolean;
 }) {
+  useEffect(() => {
+    // Back/forward cache restores the old document without fetching server read receipts.
+    const refreshRestoredPage = (event: PageTransitionEvent) => {
+      if (event.persisted) window.location.reload();
+    };
+    window.addEventListener("pageshow", refreshRestoredPage);
+    return () => window.removeEventListener("pageshow", refreshRestoredPage);
+  }, []);
   const [rows, setRows] = useState(bookings);
   const [scope, setScope] = useState<Scope>("all");
   const [filter, setFilter] = useState<Filter>("all");
   const [message, setMessage] = useState("");
   const [savingId, setSavingId] = useState("");
-
   const today = warsawToday();
   const tomorrow = addDays(today, 1);
   const weekEnd = addDays(today, 6);
@@ -228,12 +239,43 @@ export default function DispatcherClient({
     }
   }
 
+  const newRequests = useMemo(() => activeRows
+    .filter((booking) => booking.status === "pending" && !seenNewIds.includes(String(booking.id)))
+    .sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || ""))), [activeRows, seenNewIds]);
+
   const overdueCount = activeRows.filter((x) => isDispatcherOverdue(x, nowKey)).length;
   const next3hCount = activeRows.filter((x) => bookingInNextMinutes(x, 180, nowKey)).length;
   const unassignedCount = activeRows.filter((x) => bookingHasMissingAssignment(x)).length;
 
   return (
     <>
+      <section className="dispatcher-new-requests card" aria-label="Nowe rezerwacje">
+        <div className="dispatcher-new-head">
+          <div>
+            <span className="dispatcher-new-heading">NOWE ZGŁOSZENIA</span>
+            <h2>Nowe rezerwacje do obsługi</h2>
+            <p>Oczekujące na potwierdzenie, od najnowszej rezerwacji.</p>
+          </div>
+          <strong className="dispatcher-new-count" aria-label={`Nowe rezerwacje: ${newRequests.length}`}>{newRequests.length}</strong>
+        </div>
+        {readStateUnavailable && <p role="alert">Nie udało się odczytać oznaczeń. Lista może zawierać wcześniej otwarte rezerwacje. Odśwież stronę.</p>}
+        {newRequests.length ? (
+          <div className="dispatcher-new-list">
+            {newRequests.slice(0, 12).map((booking) => (
+              <a className="dispatcher-new-item" key={booking.id} href={`/panel/rezerwacje/${booking.id}`}>
+                <span className="dispatcher-new-sticker">NOWA!</span>
+                <span className="dispatcher-new-details">
+                  <strong>{booking.booking_number} · {booking.customer_name}</strong>
+                  <span>{booking.company_id ? "B2B" : "INDYWIDUALNA"} · {booking.travel_date} {String(booking.travel_time || "").slice(0, 5)} {booking.quote_required ? "· WYMAGA WYCENY" : ""}</span>
+                  <small>{booking.pickup_address || "Sprawdź trasę w szczegółach"}</small>
+                </span>
+                <span className="dispatcher-new-open">OTWÓRZ →</span>
+              </a>
+            ))}
+            {newRequests.length > 12 && <p className="muted">Pozostałe {newRequests.length - 12} rezerwacje znajdziesz na liście kursów poniżej.</p>}
+          </div>
+        ) : <p className="dispatcher-new-empty">✓ Brak nowych, nieodczytanych rezerwacji.</p>}
+      </section>
       <section className={`dispatcher-command-center card ${attention.length ? "has-attention" : "is-clear"}`}>
         <div className="dispatcher-command-head">
           <div>

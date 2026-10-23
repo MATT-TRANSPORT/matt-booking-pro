@@ -1,3 +1,4 @@
+import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -6,12 +7,14 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string; documentId: string }> }
 ) {
+  let responseLocale=requestCustomerLocale(_req);
+  const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
   const { id, documentId } = await params;
   const auth = await createClient();
   const { data: { user } } = await auth.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Brak autoryzacji." }, { status: 401 });
+    return json({ error: "Brak autoryzacji." }, { status: 401 });
   }
 
   const { data: membership } = await auth
@@ -22,7 +25,7 @@ export async function GET(
     .single();
 
   if (!membership) {
-    return NextResponse.json({ error: "Brak firmy." }, { status: 403 });
+    return json({ error: "Brak firmy." }, { status: 403 });
   }
 
   const admin = createAdminClient();
@@ -36,7 +39,7 @@ export async function GET(
     .single();
 
   if (!document?.file_path) {
-    return NextResponse.json({ error: "Dokument nie jest dostępny." }, { status: 404 });
+    return json({ error: "Dokument nie jest dostępny." }, { status: 404 });
   }
 
   const { data, error } = await admin.storage
@@ -44,7 +47,7 @@ export async function GET(
     .createSignedUrl(document.file_path, 60);
 
   if (error || !data?.signedUrl) {
-    return NextResponse.json({ error: error?.message || "Błąd pliku." }, { status: 500 });
+    return json({ error: error?.message || "Błąd pliku." }, { status: 500 });
   }
 
   return NextResponse.redirect(data.signedUrl);

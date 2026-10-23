@@ -1,3 +1,4 @@
+import BookingReadMarker from "@/components/BookingReadMarker";
 import PaymentLinkBox from "@/components/PaymentLinkBox";
 import { notFound } from "next/navigation";
 import PanelNav from "@/components/PanelNav";
@@ -82,6 +83,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const displayAmount = Number(booking.company_id ? (booking.price_gross ?? booking.total_price) : booking.total_price || 0);
 
   return <main className="container">
+    <BookingReadMarker bookingId={booking.id} />
     <a href="/panel/dyspozytor" className="back-link">← Wróć do Planu kursów</a>
     <h1>{booking.booking_number}</h1>
     <PanelNav />

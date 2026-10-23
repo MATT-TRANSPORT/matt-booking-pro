@@ -1,3 +1,7 @@
+import { bookingDateTime } from "@/lib/bookingDateTime";
+import { customerJson, requestCustomerLocale, readCustomerBody } from "@/lib/customerErrors";
+import { resolveCustomerLocale } from "@/lib/bookingLocale";
+import { localizedReceivedEmail } from "@/lib/localizedBookingEmails";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -9,11 +13,13 @@ import { sendNewBookingAdminPush } from "@/lib/adminNotifications";
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
+  let responseLocale=requestCustomerLocale(req);
+  const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
   const auth = await createClient();
   const { data: { user } } = await auth.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Brak autoryzacji." }, { status: 401 });
+    return json({ error: "Brak autoryzacji." }, { status: 401 });
   }
 
   const { data: membership } = await auth
@@ -24,10 +30,32 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (!membership) {
-    return NextResponse.json({ error: "Brak przypisanej firmy." }, { status: 403 });
+    return json({ error: "Brak przypisanej firmy." }, { status: 403 });
   }
 
-  const body = await req.json();
+  const parsed = await readCustomerBody(req);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.body;
+  responseLocale = parsed.locale;
+  if (!body.address || !body.airport || !body.travelDate || !body.travelTime) {
+    return json({ error: "Uzupełnij wymagane pola." }, { status: 400 });
+  }
+  const departure = bookingDateTime(body.travelDate, body.travelTime);
+  if (!departure) {
+    return json({ error: "Podaj prawidłowy termin wyjazdu." }, { status: 400 });
+  }
+  if (body.serviceType === "roundtrip") {
+    if (!body.returnDate || !body.returnTime) {
+      return json({ error: "Dla przejazdu w obie strony podaj datę i godzinę powrotu." }, { status: 400 });
+    }
+    const back = bookingDateTime(body.returnDate, body.returnTime);
+    if (!back || back.getTime() <= departure.getTime()) {
+      return json({ error: "Termin powrotu musi być późniejszy niż wyjazd." }, { status: 400 });
+    }
+  }
+  if (body.passengers !== undefined && (!Number.isInteger(Number(body.passengers)) || Number(body.passengers) < 1 || Number(body.passengers) > 8)) {
+    return json({ error: "Nieprawidłowe dane formularza." }, { status: 400 });
+  }
   const admin = createAdminClient();
 
   let employee: any = null;
@@ -45,7 +73,7 @@ export async function POST(req: NextRequest) {
     const n = body.newEmployee;
 
     if (!n.firstName || !n.lastName) {
-      return NextResponse.json(
+      return json(
         { error: "Podaj imię i nazwisko nowego pracownika." },
         { status: 400 }
       );
@@ -90,14 +118,14 @@ export async function POST(req: NextRequest) {
         .single();
 
       if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return json({ error: error.message }, { status: 500 });
       }
       employee = data;
     }
   }
 
   if (!employee) {
-    return NextResponse.json(
+    return json(
       { error: "Nie udało się ustalić pasażera." },
       { status: 400 }
     );
@@ -107,7 +135,7 @@ export async function POST(req: NextRequest) {
   const passengers = Math.max(1, Math.min(8, Number(body.passengers || 1)));
 
   if (passengers > 3 && vehicle !== "bus") {
-    return NextResponse.json(
+    return json(
       { error: "Dla więcej niż 3 pasażerów wybierz bus." },
       { status: 400 }
     );
@@ -128,7 +156,7 @@ export async function POST(req: NextRequest) {
       additionalStopReturn: Boolean(body.additionalStopReturn)
     });
   } catch (error) {
-    return NextResponse.json(
+    return json(
       {
         error:
           error instanceof Error
@@ -153,6 +181,7 @@ export async function POST(req: NextRequest) {
       company_employee_id: employee.id,
       ordered_by_user_id: user.id,
       booking_source: "b2b_portal",
+      customer_locale: resolveCustomerLocale(body.locale),
       acquisition_source: "b2b_portal",
       utm_source: "company_portal",
       utm_medium: "owned",
@@ -182,7 +211,7 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error || !data) {
-    return NextResponse.json(
+    return json(
       { error: error?.message || "Nie udało się zapisać rezerwacji." },
       { status: 500 }
     );
@@ -215,7 +244,9 @@ export async function POST(req: NextRequest) {
     const companyAdminEmail = companyForMail?.email || user.email || null;
 
     if (companyAdminEmail) {
-      const customerMail = receivedEmail(data);
+      const customerMail = resolveCustomerLocale(data.customer_locale) === "pl"
+        ? receivedEmail(data)
+        : localizedReceivedEmail({ ...data, locale: resolveCustomerLocale(data.customer_locale) });
       const customerResult = await sendMattEmail({
         to: companyAdminEmail,
         subject: customerMail.subject,
@@ -280,7 +311,7 @@ export async function POST(req: NextRequest) {
     created_by: null
   });
 
-  return NextResponse.json({
+  return json({
     ...data,
     quote,
     email_sent: emailSent,

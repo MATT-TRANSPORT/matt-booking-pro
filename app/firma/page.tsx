@@ -1,3 +1,4 @@
+import { companyLanguage, type CompanySearchParams } from "@/lib/companyLanguage";
 import CompanyPaymentCell from "@/components/CompanyPaymentCell";
 import DashboardPaymentBadge from "@/components/DashboardPaymentBadge";
 import CompanyNav from "@/components/CompanyNav";
@@ -11,8 +12,9 @@ import {
 } from "@/lib/companyPortal";
 import { statusPl } from "@/lib/status";
 
-export default async function Page() {
-  const { s, company, membership } = await companyClient();
+export default async function Page({searchParams}:{searchParams:Promise<CompanySearchParams>}) {
+  const {locale,t,href}=await companyLanguage(searchParams);
+  const { s, company, membership } = await companyClient(locale);
   const canPayOnline = ["admin", "manager", "accounting"].includes(String(membership.role || ""));
   const { data } = await s.from("bookings").select("*,drivers:drivers!bookings_driver_id_fkey(full_name,color),return_drivers:drivers!bookings_return_driver_id_fkey(full_name,color)").eq("company_id", company.id).order("travel_date", { ascending: true }).limit(500);
 
@@ -36,14 +38,14 @@ export default async function Page() {
     const money = companyBookingMoney(b);
     const driver = companyDriver(b);
     return <tr key={b.id} className={archived ? "company-booking-row-archive" : undefined}>
-      <td><a href={`/firma/rezerwacje/${b.id}`}><strong>{b.booking_number}</strong></a></td>
+      <td><a href={href(`/firma/rezerwacje/${b.id}`)}><strong>{b.booking_number}</strong></a></td>
       <td>{b.travel_date}<br />{String(b.travel_time || "").slice(0, 5)}</td>
       <td>{b.customer_name}</td>
       <td>{driver.name || "—"}</td>
       <td className="company-route-cell">{companyRouteLabel(b)}</td>
       <td>{money.net.toFixed(2)} zł</td>
       <td><CompanyPaymentCell booking={b} canPay={canPayOnline} /></td>
-      <td><span className={`status ${String(b.status).toLowerCase()}`}>{statusPl(b.status)}</span></td>
+      <td><span className={`status ${String(b.status).toLowerCase()}`}>{t(statusPl(b.status))}</span></td>
     </tr>;
   };
 
@@ -52,36 +54,36 @@ export default async function Page() {
     const schedule = companyBookingScheduleInfo(b, nowKey);
     const driver = companyDriver(b);
     return <article className={`company-booking-card${archived ? " company-booking-card-archive" : ""}`} key={b.id}>
-      <div className="company-card-head"><a href={`/firma/rezerwacje/${b.id}`}><strong>{b.booking_number}</strong></a></div>
+      <div className="company-card-head"><a href={href(`/firma/rezerwacje/${b.id}`)}><strong>{b.booking_number}</strong></a></div>
       <div className="company-card-data">
-        <div><span>Pasażer</span><strong>{b.customer_name}</strong></div>
-        <div><span>Termin</span><strong>{b.travel_date} {String(b.travel_time || "").slice(0, 5)}</strong></div>
-        <div className="wide"><span>Trasa</span><strong>{companyRouteLabel(b)}</strong></div>
-        <div><span>Netto</span><strong>{money.net.toFixed(2)} zł</strong></div>
-        <div><span>Brutto</span><strong>{money.gross.toFixed(2)} zł</strong></div>
-        <div className="wide"><span>Płatność</span><CompanyPaymentCell booking={b} canPay={canPayOnline} /></div>
+        <div><span>{t("Pasażer")}</span><strong>{b.customer_name}</strong></div>
+        <div><span>{t("Termin")}</span><strong>{b.travel_date} {String(b.travel_time || "").slice(0, 5)}</strong></div>
+        <div className="wide"><span>{t("Trasa")}</span><strong>{companyRouteLabel(b)}</strong></div>
+        <div><span>{t("Netto")}</span><strong>{money.net.toFixed(2)} zł</strong></div>
+        <div><span>{t("Brutto")}</span><strong>{money.gross.toFixed(2)} zł</strong></div>
+        <div className="wide"><span>{t("Płatność")}</span><CompanyPaymentCell booking={b} canPay={canPayOnline} /></div>
       </div>
-      {schedule.reason === "expired" && <div className="company-expired-note">Termin przejazdu minął</div>}
+      {schedule.reason === "expired" && <div className="company-expired-note">{t("Termin przejazdu minął")}</div>}
       <div className="company-dashboard-footer">
-        {driver.name ? <span className="driver-color-badge" style={{ borderColor: driver.color }}><i style={{ background: driver.color }} />{driver.name}</span> : <span className="dashboard-driver-empty">— bez kierowcy</span>}
-        <DashboardPaymentBadge booking={b} />
-        <span className={`status ${String(b.status).toLowerCase()}`}>{statusPl(b.status)}</span>
+        {driver.name ? <span className="driver-color-badge" style={{ borderColor: driver.color }}><i style={{ background: driver.color }} />{driver.name}</span> : <span className="dashboard-driver-empty">{t("— bez kierowcy")}</span>}
+        <DashboardPaymentBadge customerLocale={locale} booking={b} />
+        <span className={`status ${String(b.status).toLowerCase()}`}>{t(statusPl(b.status))}</span>
       </div>
-      <a className="company-card-open" href={`/firma/rezerwacje/${b.id}`}>OTWÓRZ REZERWACJĘ →</a>
+      <a className="company-card-open" href={href(`/firma/rezerwacje/${b.id}`)}>{t("OTWÓRZ REZERWACJĘ →")}</a>
     </article>;
   };
 
   return <main className="container">
-    <span className="badge">MATT BOOKING PRO · B2B PRO</span><h1>{company.name}</h1><CompanyNav />
+    <span className="badge">MATT BOOKING PRO · B2B PRO</span><h1>{company.name}</h1><CompanyNav customerLocale={locale} />
     <div className="card company-dashboard-transport-card">
-      <div className="company-section-head"><div><span className="badge">ZAMÓWIONE TRANSPORTY</span><h2>Nadchodzące i aktywne</h2><p className="muted">Najbliższy termin jest zawsze najwyżej. Zakończone, anulowane i minione przejazdy pozostają poniżej w historii.</p></div><a className="btn" href="/firma/nowa-rezerwacja">+ ZAMÓW TRANSPORT</a></div>
-      {!rows.length ? <div className="company-dashboard-empty"><strong>Brak zamówionych transportów.</strong><span>Nową rezerwację możesz utworzyć przyciskiem powyżej.</span></div> : <>
-        <div className="company-bookings-table"><table className="table company-table"><thead><tr><th>Numer</th><th>Termin</th><th>Pasażer</th><th>Kierowca</th><th>Trasa</th><th>Netto</th><th>Płatność</th><th>Status</th></tr></thead><tbody>
+      <div className="company-section-head"><div><span className="badge">{t("ZAMÓWIONE TRANSPORTY")}</span><h2>{t("Nadchodzące i aktywne")}</h2><p className="muted">{t("Najbliższy termin jest zawsze najwyżej. Zakończone, anulowane i minione przejazdy pozostają poniżej w historii.")}</p></div><a className="btn" href={href("/firma/nowa-rezerwacja")}>{t("+ ZAMÓW TRANSPORT")}</a></div>
+      {!rows.length ? <div className="company-dashboard-empty"><strong>{t("Brak zamówionych transportów.")}</strong><span>{t("Nową rezerwację możesz utworzyć przyciskiem powyżej.")}</span></div> : <>
+        <div className="company-bookings-table"><table className="table company-table"><thead><tr><th>{t("Numer")}</th><th>{t("Termin")}</th><th>{t("Pasażer")}</th><th>{t("Kierowca")}</th><th>{t("Trasa")}</th><th>{t("Netto")}</th><th>{t("Płatność")}</th><th>{t("Status")}</th></tr></thead><tbody>
           {activeRows.map((b:any)=>bookingRow(b))}
-          {archiveRows.length>0&&<tr className="company-booking-archive-divider"><td colSpan={8}>HISTORIA · ZAKOŃCZONE / ANULOWANE / TERMIN MINĄŁ</td></tr>}
+          {archiveRows.length>0&&<tr className="company-booking-archive-divider"><td colSpan={8}>{t("HISTORIA · ZAKOŃCZONE / ANULOWANE / TERMIN MINĄŁ")}</td></tr>}
           {archiveRows.map((b:any)=>bookingRow(b,true))}
         </tbody></table></div>
-        <div className="company-bookings-cards">{activeRows.map((b:any)=>bookingCard(b))}{archiveRows.length>0&&<div className="company-booking-cards-divider">HISTORIA · ZAKOŃCZONE / ANULOWANE / TERMIN MINĄŁ</div>}{archiveRows.map((b:any)=>bookingCard(b,true))}</div>
+        <div className="company-bookings-cards">{activeRows.map((b:any)=>bookingCard(b))}{archiveRows.length>0&&<div className="company-booking-cards-divider">{t("HISTORIA · ZAKOŃCZONE / ANULOWANE / TERMIN MINĄŁ")}</div>}{archiveRows.map((b:any)=>bookingCard(b,true))}</div>
       </>}
     </div>
   </main>;

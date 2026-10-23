@@ -1,11 +1,13 @@
+import { companyLanguage, type CompanySearchParams } from "@/lib/companyLanguage";
 import CompanyNav from "@/components/CompanyNav";
 import CompanyBookingTemplates from "@/components/CompanyBookingTemplates";
 import { companyClient } from "@/lib/company";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { airportPriceMap, getAirportCatalog } from "@/lib/airportPricingServer";
 
-export default async function CompanyTemplatesPage() {
-  const { company } = await companyClient();
+export default async function CompanyTemplatesPage({searchParams}:{searchParams:Promise<CompanySearchParams>}) {
+  const {locale,t,href}=await companyLanguage(searchParams);
+  const { company } = await companyClient(locale);
   const admin = createAdminClient();
   const [{ data: templates }, { data: employees }, { data: bookings }, airportRows] = await Promise.all([
     admin.from("company_booking_templates").select("*").eq("company_id", company.id).eq("active", true).order("name"),
@@ -20,8 +22,8 @@ export default async function CompanyTemplatesPage() {
 
   return <main className="container">
     <span className="badge">MATT BOOKING PRO · B2B PRO</span>
-    <h1>Szablony i rezerwacje cykliczne</h1>
-    <CompanyNav />
+    <h1>{t("Szablony i rezerwacje cykliczne")}</h1>
+    <CompanyNav customerLocale={locale} />
     <CompanyBookingTemplates
       templates={templates ?? []}
       employees={employees ?? []}

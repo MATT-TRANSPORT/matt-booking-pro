@@ -1,4 +1,7 @@
 "use client";
+import { customerFetch } from "@/lib/customerFetch";
+import { customerText } from "@/lib/customerCopy";
+import { useCustomerLocale } from "@/lib/useCustomerLocale";
 
 import { useEffect, useState } from "react";
 import { useAirportPricing } from "@/lib/useAirportPricing";
@@ -41,6 +44,9 @@ export default function CompanyBookingForm({
   commercialTerms?: any | null;
   addresses?: any[];
 }) {
+ const fetchCustomer=(input:RequestInfo|URL,init?:RequestInit)=>customerFetch(locale,input,init);
+  const locale = useCustomerLocale();
+  const t = (key: string) => customerText(key, locale);
   const { airports } = useAirportPricing();
   const employeeRows = Array.isArray(employees) ? employees : [];
   const [passengerMode, setPassengerMode] = useState<"existing" | "new">(
@@ -110,7 +116,7 @@ export default function CompanyBookingForm({
 
     const timer = setTimeout(async () => {
       try {
-        const response = await fetch(`/api/places?q=${encodeURIComponent(address)}`);
+        const response = await fetchCustomer(`/api/places?q=${encodeURIComponent(address)}`);
         const data = await response.json();
         setSuggestions(data.suggestions ?? []);
       } catch {
@@ -138,7 +144,7 @@ export default function CompanyBookingForm({
     }
     const timer = setTimeout(async () => {
       try {
-        const response = await fetch(`/api/places?q=${encodeURIComponent(additionalStopAddress)}`);
+        const response = await fetchCustomer(`/api/places?q=${encodeURIComponent(additionalStopAddress)}`);
         const data = await response.json();
         setAdditionalStopSuggestions(data.suggestions ?? []);
       } catch {
@@ -168,10 +174,10 @@ export default function CompanyBookingForm({
     setQuoteError("");
 
     try {
-      const response = await fetch("/api/company/quote", {
+      const response = await fetchCustomer("/api/company/quote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: JSON.stringify({ locale,
           address: value,
           airport,
           vehicleType: vehicle,
@@ -185,7 +191,7 @@ export default function CompanyBookingForm({
 
       if (!response.ok) {
         setQuote(null);
-        setQuoteError(data.error ?? "Nie udało się przygotować wyceny.");
+        setQuoteError(data.error ?? t("Nie udało się przygotować wyceny."));
       } else {
         setQuote(normalizeQuote(data));
         if (!paymentInitialized) {
@@ -195,7 +201,7 @@ export default function CompanyBookingForm({
       }
     } catch {
       setQuote(null);
-      setQuoteError("Nie udało się połączyć z kalkulatorem B2B.");
+      setQuoteError(t("Nie udało się połączyć z kalkulatorem B2B."));
     }
 
     setQuoteBusy(false);
@@ -205,7 +211,7 @@ export default function CompanyBookingForm({
     if (saving) return;
 
     if (passengerMode === "existing" && !employeeId) {
-      setMessage("Wybierz pracownika.");
+      setMessage(t("Wybierz pracownika."));
       return;
     }
 
@@ -213,32 +219,32 @@ export default function CompanyBookingForm({
       passengerMode === "new" &&
       (!newEmployee.firstName || !newEmployee.lastName)
     ) {
-      setMessage("Podaj imię i nazwisko nowego pracownika.");
+      setMessage(t("Podaj imię i nazwisko nowego pracownika."));
       return;
     }
 
     if (!address || !travelDate || !travelTime) {
-      setMessage("Uzupełnij adres oraz termin.");
+      setMessage(t("Uzupełnij adres oraz termin."));
       return;
     }
 
     if (additionalStopEnabled && (!additionalStopAddress.trim() || (!additionalStopPrimary && !(serviceType === "roundtrip" && additionalStopReturn)))) {
-      setMessage("Uzupełnij dodatkowy adres i wybierz kierunek przystanku.");
+      setMessage(t("Uzupełnij dodatkowy adres i wybierz kierunek przystanku."));
       return;
     }
 
     if (!quote) {
-      setMessage("Poczekaj na poprawną wycenę B2B.");
+      setMessage(t("Poczekaj na poprawną wycenę B2B."));
       return;
     }
 
     setSaving(true);
-    setMessage("Zapisywanie rezerwacji i ponowne przeliczanie ceny na serwerze...");
+    setMessage(t("Zapisywanie rezerwacji i ponowne przeliczanie ceny na serwerze..."));
 
-    const response = await fetch("/api/company/bookings", {
+    const response = await fetchCustomer("/api/company/bookings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+      body: JSON.stringify({ locale,
         employeeId: passengerMode === "existing" ? employeeId : null,
         newEmployee: passengerMode === "new" ? newEmployee : null,
         serviceType,
@@ -263,7 +269,7 @@ export default function CompanyBookingForm({
     const data = await response.json();
 
     if (!response.ok) {
-      setMessage(data.error ?? "Nie udało się zapisać rezerwacji.");
+      setMessage(data.error ?? t("Nie udało się zapisać rezerwacji."));
       setSaving(false);
       return;
     }
@@ -284,28 +290,27 @@ export default function CompanyBookingForm({
       <div className="booking-success-card">
         <div className="success-check">✓</div>
         <span className="badge">MATT BOOKING PRO · B2B PRO</span>
-        <h1>Transport zamówiony</h1>
-        <p className="success-lead">Rezerwacja firmowa została przyjęta.</p>
+        <h1>{t("Transport zamówiony")}</h1>
+        <p className="success-lead">{t("Rezerwacja firmowa została przyjęta.")}</p>
 
         <div className="success-number">
-          <span>Numer rezerwacji</span>
+          <span>{t("Numer rezerwacji")}</span>
           <strong>{success.booking_number}</strong>
         </div>
 
         <div className="success-details">
-          <div><span>Pasażer</span><strong>{success.customer_name}</strong></div>
-          <div><span>Netto</span><strong>{net.toFixed(2)} zł</strong></div>
-          <div><span>VAT 8%</span><strong>{vat.toFixed(2)} zł</strong></div>
-          <div><span>Brutto</span><strong>{gross.toFixed(2)} zł</strong></div>
+          <div><span>{t("Pasażer")}</span><strong>{success.customer_name}</strong></div>
+          <div><span>{t("Netto")}</span><strong>{net.toFixed(2)} zł</strong></div>
+          <div><span>{t("VAT")} 8%</span><strong>{vat.toFixed(2)} zł</strong></div>
+          <div><span>{t("Brutto")}</span><strong>{gross.toFixed(2)} zł</strong></div>
         </div>
 
         <p className="muted">
-          Wszystkie ceny B2B są cenami netto. Do ceny doliczany jest VAT 8%.
-        </p>
+          {t("Wszystkie ceny B2B są cenami netto. Do ceny doliczany jest VAT 8%.")}</p>
 
         <div className="success-actions">
-          <a className="btn" href="/firma/nowa-rezerwacja">NOWA REZERWACJA</a>
-          <a className="btn secondary" href="/firma/rezerwacje">MOJE REZERWACJE</a>
+          <a className="btn" href="/firma/nowa-rezerwacja">{t("NOWA REZERWACJA")}</a>
+          <a className="btn secondary" href="/firma/rezerwacje">{t("MOJE REZERWACJE")}</a>
         </div>
       </div>
     );
@@ -315,25 +320,25 @@ export default function CompanyBookingForm({
     <div className="layout">
       <div className="card">
         <span className="badge">B2B PRO</span>
-        <h1>Nowy transport</h1>
+        <h1>{t("Nowy transport")}</h1>
 
         <div className="b2b-booking-terms-banner">
           <div>
-            <small>WARUNKI {companyName ? companyName.toUpperCase() : "KONTRAHENTA"}</small>
+            <small>{t("WARUNKI")}{companyName ? companyName.toUpperCase() : t("KONTRAHENTA")}</small>
             <strong>
               {commercialTerms
                 ? `${Number(commercialTerms.free_km ?? 0).toFixed(1)} km bez dopłaty · ${Number(commercialTerms.extra_km_rate_net ?? 0).toFixed(2)} zł netto/km ponad limit`
-                : "Warunki handlowe zostaną pobrane przy wycenie"}
+                : t("Warunki handlowe zostaną pobrane przy wycenie")}
             </strong>
             <span>
-              {commercialTerms?.use_custom_pricing ? "Cennik indywidualny" : "Cennik standardowy MATT / indywidualny fallback"}
+              {commercialTerms?.use_custom_pricing ? t("Cennik indywidualny") : t("Cennik standardowy MATT / indywidualny fallback")}
               {commercialTerms?.effective_from ? ` · ważny od ${commercialTerms.effective_from}` : ""}
             </span>
           </div>
-          <a href="/firma/cennik">ZOBACZ CENNIK →</a>
+          <a href="/firma/cennik">{t("ZOBACZ CENNIK →")}</a>
         </div>
 
-        <h3>Pasażer</h3>
+        <h3>{t("Pasażer")}</h3>
         <div className="passenger-mode">
           <button
             type="button"
@@ -341,22 +346,19 @@ export default function CompanyBookingForm({
             onClick={() => setPassengerMode("existing")}
             disabled={!employeeRows.length}
           >
-            Z listy pracowników
-          </button>
+            {t("Z listy pracowników")}</button>
           <button
             type="button"
             className={passengerMode === "new" ? "active" : ""}
             onClick={() => setPassengerMode("new")}
           >
-            + Nowy pracownik
-          </button>
+            {t("+ Nowy pracownik")}</button>
         </div>
 
         {passengerMode === "existing" ? (
           <label>
-            Pracownik
-            <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
-              <option value="">— Wybierz pracownika —</option>
+            {t("Pracownik")}<select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
+              <option value="">{t("— Wybierz pracownika —")}</option>
               {employeeRows.filter((x) => x?.active !== false).map((x) => (
                 <option key={x.id} value={x.id}>{x.first_name} {x.last_name}</option>
               ))}
@@ -364,27 +366,26 @@ export default function CompanyBookingForm({
           </label>
         ) : (
           <div className="grid new-employee-inline">
-            <label>Imię<input value={newEmployee.firstName} onChange={(e) => setNewEmployee({ ...newEmployee, firstName: e.target.value })} /></label>
-            <label>Nazwisko<input value={newEmployee.lastName} onChange={(e) => setNewEmployee({ ...newEmployee, lastName: e.target.value })} /></label>
-            <label>Telefon<input value={newEmployee.phone} onChange={(e) => setNewEmployee({ ...newEmployee, phone: e.target.value })} /></label>
-            <label>E-mail<input type="email" value={newEmployee.email} onChange={(e) => setNewEmployee({ ...newEmployee, email: e.target.value })} /></label>
-            <label>Domyślny adres<input value={newEmployee.defaultAddress} onChange={(e) => setNewEmployee({ ...newEmployee, defaultAddress: e.target.value })} /></label>
-            <label>Dział<input value={newEmployee.department} onChange={(e) => setNewEmployee({ ...newEmployee, department: e.target.value })} /></label>
+            <label>{t("Imię")}<input value={newEmployee.firstName} onChange={(e) => setNewEmployee({ ...newEmployee, firstName: e.target.value })} /></label>
+            <label>{t("Nazwisko")}<input value={newEmployee.lastName} onChange={(e) => setNewEmployee({ ...newEmployee, lastName: e.target.value })} /></label>
+            <label>{t("Telefon")}<input value={newEmployee.phone} onChange={(e) => setNewEmployee({ ...newEmployee, phone: e.target.value })} /></label>
+            <label>{t("E-mail")}<input type="email" value={newEmployee.email} onChange={(e) => setNewEmployee({ ...newEmployee, email: e.target.value })} /></label>
+            <label>{t("Domyślny adres")}<input value={newEmployee.defaultAddress} onChange={(e) => setNewEmployee({ ...newEmployee, defaultAddress: e.target.value })} /></label>
+            <label>{t("Dział")}<input value={newEmployee.department} onChange={(e) => setNewEmployee({ ...newEmployee, department: e.target.value })} /></label>
           </div>
         )}
 
-        <h3>Rodzaj przejazdu</h3>
+        <h3>{t("Rodzaj przejazdu")}</h3>
         <div className="choice-grid">
-          <button type="button" className={`choice ${serviceType === "to_airport" ? "active" : ""}`} onClick={() => setServiceType("to_airport")}><strong>🛫 Na lotnisko</strong></button>
-          <button type="button" className={`choice ${serviceType === "from_airport" ? "active" : ""}`} onClick={() => setServiceType("from_airport")}><strong>🛬 Z lotniska</strong></button>
-          <button type="button" className={`choice ${serviceType === "roundtrip" ? "active" : ""}`} onClick={() => setServiceType("roundtrip")}><strong>🔁 W obie strony</strong></button>
+          <button type="button" className={`choice ${serviceType === "to_airport" ? "active" : ""}`} onClick={() => setServiceType("to_airport")}><strong>{t("🛫 Na lotnisko")}</strong></button>
+          <button type="button" className={`choice ${serviceType === "from_airport" ? "active" : ""}`} onClick={() => setServiceType("from_airport")}><strong>{t("🛬 Z lotniska")}</strong></button>
+          <button type="button" className={`choice ${serviceType === "roundtrip" ? "active" : ""}`} onClick={() => setServiceType("roundtrip")}><strong>{t("🔁 W obie strony")}</strong></button>
         </div>
 
-        <h3>{serviceType === "from_airport" ? "Skąd odbieramy pasażera?" : "Dokąd jedziemy?"}</h3>
+        <h3>{serviceType === "from_airport" ? t("Skąd odbieramy pasażera?") : t("Dokąd jedziemy?")}</h3>
         {addresses.length > 0 && (
           <label className="company-saved-address-select">
-            Zapisane adresy firmy
-            <select
+            {t("Zapisane adresy firmy")}<select
               value=""
               onChange={(e) => {
                 const selected = addresses.find((item: any) => String(item.id) === e.target.value);
@@ -396,7 +397,7 @@ export default function CompanyBookingForm({
                 }
               }}
             >
-              <option value="">— Wybierz zapisane miejsce —</option>
+              <option value="">{t("— Wybierz zapisane miejsce —")}</option>
               {addresses.map((item: any) => (
                 <option key={item.id} value={item.id}>{item.label} · {item.address}</option>
               ))}
@@ -405,7 +406,7 @@ export default function CompanyBookingForm({
         )}
         <div className="grid">
           <label className={serviceType === "from_airport" ? "route-address second" : "route-address first"}>
-            {serviceType === "from_airport" ? "Adres docelowy" : "Adres odbioru"}
+            {serviceType === "from_airport" ? t("Adres docelowy") : t("Adres odbioru")}
             <input value={address} onChange={(e) => setAddress(e.target.value)} autoComplete="off" />
             {suggestions.length > 0 && (
               <div className="address-suggestions">
@@ -422,7 +423,7 @@ export default function CompanyBookingForm({
           </label>
 
           <label className={serviceType === "from_airport" ? "route-airport first" : "route-airport second"}>
-            {serviceType === "from_airport" ? "Z jakiego lotniska?" : "Lotnisko"}
+            {serviceType === "from_airport" ? t("Z jakiego lotniska?") : t("Lotnisko")}
             <select value={airport} onChange={(e) => setAirport(e.target.value)}>
               {Object.entries(airports).map(([key, value]) => (
                 <option key={key} value={key}>{value.label}</option>
@@ -433,16 +434,14 @@ export default function CompanyBookingForm({
 
         {!additionalStopEnabled ? (
           <button type="button" className="btn secondary additional-stop-toggle" onClick={() => setAdditionalStopEnabled(true)}>
-            + DODAJ DODATKOWY ADRES / PRZYSTANEK
-          </button>
+            {t("+ DODAJ DODATKOWY ADRES / PRZYSTANEK")}</button>
         ) : (
           <div className="additional-stop-box">
             <div className="additional-stop-head">
-              <div><strong>Dodatkowy adres / przystanek</strong><small>+20,00 zł netto za każdy użyty kierunek. Kilometry doliczamy tylko za faktyczny objazd poza normalną trasę.</small></div>
-              <button type="button" className="btn secondary" onClick={() => { setAdditionalStopEnabled(false); setAdditionalStopAddress(""); setAdditionalStopPrimary(true); setAdditionalStopReturn(false); setAdditionalStopSuggestions([]); }}>USUŃ</button>
+              <div><strong>{t("Dodatkowy adres / przystanek")}</strong><small>{t("+20,00 zł netto za każdy użyty kierunek. Kilometry doliczamy tylko za faktyczny objazd poza normalną trasę.")}</small></div>
+              <button type="button" className="btn secondary" onClick={() => { setAdditionalStopEnabled(false); setAdditionalStopAddress(""); setAdditionalStopPrimary(true); setAdditionalStopReturn(false); setAdditionalStopSuggestions([]); }}>{t("USUŃ")}</button>
             </div>
-            <label>Adres dodatkowego przystanku
-              <input value={additionalStopAddress} onChange={(e) => setAdditionalStopAddress(e.target.value)} autoComplete="off" placeholder="Wpisz drugi adres" />
+            <label>{t("Adres dodatkowego przystanku")}<input value={additionalStopAddress} onChange={(e) => setAdditionalStopAddress(e.target.value)} autoComplete="off" placeholder={t("Wpisz drugi adres")} />
               {additionalStopSuggestions.length > 0 && (
                 <div className="address-suggestions">
                   {additionalStopSuggestions.slice(0, 5).map((item: any, i: number) => (
@@ -453,17 +452,17 @@ export default function CompanyBookingForm({
             </label>
             {serviceType === "roundtrip" ? (
               <div className="additional-stop-directions">
-                <label><input type="checkbox" checked={additionalStopPrimary} onChange={(e) => setAdditionalStopPrimary(e.target.checked)} /> Wyjazd na lotnisko (+20 zł netto)</label>
-                <label><input type="checkbox" checked={additionalStopReturn} onChange={(e) => setAdditionalStopReturn(e.target.checked)} /> Powrót z lotniska (+20 zł netto)</label>
+                <label><input type="checkbox" checked={additionalStopPrimary} onChange={(e) => setAdditionalStopPrimary(e.target.checked)} /> {t("Wyjazd na lotnisko (+20 zł netto)")}</label>
+                <label><input type="checkbox" checked={additionalStopReturn} onChange={(e) => setAdditionalStopReturn(e.target.checked)} /> {t("Powrót z lotniska (+20 zł netto)")}</label>
               </div>
             ) : (
-              <p className="muted">Przystanek dotyczy tego przejazdu · +20,00 zł netto.</p>
+              <p className="muted">{t("Przystanek dotyczy tego przejazdu · +20,00 zł netto.")}</p>
             )}
             {quote?.additionalStopAddress && (
               <div className="route-status ok">
                 {Number(quote.additionalStopExtraKm || 0) > 0
                   ? `Objazd poza normalną trasę: ${fixed(quote.additionalStopExtraKm, 1)} km · dopłata ${fixed(quote.additionalStopExtraPriceNet, 2)} zł netto`
-                  : "✓ Przystanek jest na trasie — bez dopłaty kilometrowej."}
+                  : t("✓ Przystanek jest na trasie — bez dopłaty kilometrowej.")}
               </div>
             )}
           </div>
@@ -471,76 +470,75 @@ export default function CompanyBookingForm({
 
         <div className={`route-status ${quote ? "ok" : ""}`}>
           {quoteBusy
-            ? "Obliczanie odległości od siedziby kontrahenta i wyceny..."
+            ? t("Obliczanie odległości od siedziby kontrahenta i wyceny...")
             : quote
             ? `✓ ${fixed(quote.distanceKm, 1)} km od siedziby kontrahenta · ${fixed(quote.billableKm, 1)} km płatne`
-            : quoteError || "Wybierz dokładny adres, aby pobrać indywidualną wycenę."}
+            : quoteError || t("Wybierz dokładny adres, aby pobrać indywidualną wycenę.")}
         </div>
 
-        <h3>Termin</h3>
-        <p className="muted flight-time-hint">Dla wyjazdu na lotnisko podaj godzinę wyjazdu spod wskazanego adresu. Przy odbiorze z lotniska podaj godzinę przylotu z rozkładu lotu.</p>
+        <h3>{t("Termin")}</h3>
+        <p className="muted flight-time-hint">{t("Dla wyjazdu na lotnisko podaj godzinę wyjazdu spod wskazanego adresu. Przy odbiorze z lotniska podaj godzinę przylotu z rozkładu lotu.")}</p>
         <div className="grid">
-          <label>Data<input type="date" value={travelDate} onChange={(e) => setTravelDate(e.target.value)} /></label>
-          <label>{serviceType === "from_airport" ? "Godzina przylotu" : "Godzina wyjazdu na lotnisko"}<input type="time" value={travelTime} onChange={(e) => setTravelTime(e.target.value)} /></label>
-          <label>Numer lotu<input value={flightNumber} onChange={(e) => setFlightNumber(e.target.value)} /></label>
-          <label>Pasażerowie<select value={passengers} onChange={(e) => setPassengers(Number(e.target.value))}>{[1,2,3,4,5,6,7,8].map((x) => <option key={x}>{x}</option>)}</select></label>
+          <label>{t("Data")}<input type="date" value={travelDate} onChange={(e) => setTravelDate(e.target.value)} /></label>
+          <label>{serviceType === "from_airport" ? t("Godzina przylotu") : t("Godzina wyjazdu na lotnisko")}<input type="time" value={travelTime} onChange={(e) => setTravelTime(e.target.value)} /></label>
+          <label>{t("Numer lotu")}<input value={flightNumber} onChange={(e) => setFlightNumber(e.target.value)} /></label>
+          <label>{t("Pasażerowie")}<select value={passengers} onChange={(e) => setPassengers(Number(e.target.value))}>{[1,2,3,4,5,6,7,8].map((x) => <option key={x}>{x}</option>)}</select></label>
           {serviceType === "roundtrip" && (
             <>
-              <label>Data powrotu<input type="date" value={returnDate} onChange={(e) => setReturnDate(e.target.value)} /></label>
-              <label>Godzina przylotu powrotnego<input type="time" value={returnTime} onChange={(e) => setReturnTime(e.target.value)} /></label>
-              <label>Lot powrotny<input value={returnFlightNumber} onChange={(e) => setReturnFlightNumber(e.target.value)} /></label>
+              <label>{t("Data powrotu")}<input type="date" value={returnDate} onChange={(e) => setReturnDate(e.target.value)} /></label>
+              <label>{t("Godzina przylotu powrotnego")}<input type="time" value={returnTime} onChange={(e) => setReturnTime(e.target.value)} /></label>
+              <label>{t("Lot powrotny")}<input value={returnFlightNumber} onChange={(e) => setReturnFlightNumber(e.target.value)} /></label>
             </>
           )}
         </div>
 
-        <h3>Pojazd</h3>
+        <h3>{t("Pojazd")}</h3>
         <div className="choice-grid vehicle-grid">
-          <button type="button" className={`choice ${vehicle === "car" ? "active" : ""}`} disabled={passengers > 3} onClick={() => setVehicle("car")}><strong>Samochód osobowy</strong><small>Do 3 pasażerów</small></button>
-          <button type="button" className={`choice ${vehicle === "bus" ? "active" : ""}`} onClick={() => setVehicle("bus")}><strong>Bus do 8 osób</strong><small>Grupy / większy bagaż</small></button>
+          <button type="button" className={`choice ${vehicle === "car" ? "active" : ""}`} disabled={passengers > 3} onClick={() => setVehicle("car")}><strong>{t("Samochód osobowy")}</strong><small>{t("Do 3 pasażerów")}</small></button>
+          <button type="button" className={`choice ${vehicle === "bus" ? "active" : ""}`} onClick={() => setVehicle("bus")}><strong>{t("Bus do 8 osób")}</strong><small>{t("Grupy / większy bagaż")}</small></button>
         </div>
 
-        <h3>Płatność</h3>
+        <h3>{t("Płatność")}</h3>
         <div className="choice-grid">
-          <button type="button" className={`choice ${paymentMethod === "company_transfer" ? "active" : ""}`} onClick={() => { setPaymentMethod("company_transfer"); setPaymentInitialized(true); }}><strong>🏢 Przelew firmowy</strong><small>Rozliczenie zgodnie z warunkami firmy</small></button>
-          <button type="button" className={`choice ${paymentMethod === "employee_payment" ? "active" : ""}`} onClick={() => { setPaymentMethod("employee_payment"); setPaymentInitialized(true); }}><strong>💳 Płatność online firmy</strong><small>Administrator firmy płaci kartą / Stripe kwotę BRUTTO</small></button>
+          <button type="button" className={`choice ${paymentMethod === "company_transfer" ? "active" : ""}`} onClick={() => { setPaymentMethod("company_transfer"); setPaymentInitialized(true); }}><strong>{t("🏢 Przelew firmowy")}</strong><small>{t("Rozliczenie zgodnie z warunkami firmy")}</small></button>
+          <button type="button" className={`choice ${paymentMethod === "employee_payment" ? "active" : ""}`} onClick={() => { setPaymentMethod("employee_payment"); setPaymentInitialized(true); }}><strong>{t("💳 Płatność online firmy")}</strong><small>{t("Administrator firmy płaci kartą / Stripe kwotę BRUTTO")}</small></button>
         </div>
 
-        <label style={{ marginTop: 18 }}>Uwagi<textarea rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} /></label>
+        <label style={{ marginTop: 18 }}>{t("Uwagi")}<textarea rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} /></label>
       </div>
 
       <aside className="card summary">
-        <span className="badge">TWOJE WARUNKI</span>
-        <h3>Podsumowanie B2B</h3>
-        <div className="row"><span>Pasażer</span><strong>{passengerMode === "existing" ? (employee ? `${employee.first_name} ${employee.last_name}` : "—") : `${newEmployee.firstName} ${newEmployee.lastName}`.trim() || "—"}</strong></div>
+        <span className="badge">{t("TWOJE WARUNKI")}</span>
+        <h3>{t("Podsumowanie B2B")}</h3>
+        <div className="row"><span>{t("Pasażer")}</span><strong>{passengerMode === "existing" ? (employee ? `${employee.first_name} ${employee.last_name}` : "—") : `${newEmployee.firstName} ${newEmployee.lastName}`.trim() || "—"}</strong></div>
 
         {quote ? (
           <>
-            <div className="row"><span>Warunki ważne od</span><strong>{quote.effectiveFrom || "—"}</strong></div>
-            <div className="row"><span>Siedziba kontrahenta</span><strong style={{ textAlign: "right", maxWidth: "60%" }}>{quote.originAddress}</strong></div>
-            <div className="row"><span>Odległość od siedziby</span><strong>{fixed(quote.distanceKm, 1)} km</strong></div>
-            <div className="row"><span>Limit bez dopłaty</span><strong>{fixed(quote.freeKm, 1)} km</strong></div>
-            <div className="row"><span>Km płatne</span><strong>{fixed(quote.billableKm, 1)} km</strong></div>
-            <div className="row"><span>Stawka ponad limit</span><strong>{fixed(quote.extraKmRateNet, 2)} zł netto/km</strong></div>
-            <div className="row"><span>Cena 1 strony</span><strong>{fixed(quote.baseOneWayNet, 2)} zł netto</strong></div>
-            {quote.multiplier > 1 && <div className="row"><span>Mnożnik przejazdu</span><strong>× {quote.multiplier}</strong></div>}
-            <div className="row"><span>Cena bazowa</span><strong>{fixed(quote.basePriceNet, 2)} zł netto</strong></div>
-            <div className="row"><span>Dopłata km</span><strong>{fixed(quote.extraPriceNet, 2)} zł netto</strong></div>
-            {quote.additionalStopAddress && <div className="row"><span>Dodatkowy przystanek</span><strong>{fixed(quote.additionalStopFeeNet, 2)} zł netto</strong></div>}
-            {quote.additionalStopAddress && <div className="row"><span>Objazd przystanku</span><strong>{fixed(quote.additionalStopExtraKm, 1)} km · {fixed(quote.additionalStopExtraPriceNet, 2)} zł netto</strong></div>}
-            <div className="row total"><span>RAZEM NETTO</span><strong>{fixed(quote.net, 2)} zł</strong></div>
-            <div className="row"><span>VAT {fixed(quote.vatRate, 0)}%</span><strong>{fixed(quote.vat, 2)} zł</strong></div>
-            <div className="row total"><span>RAZEM BRUTTO</span><strong>{fixed(quote.gross, 2)} zł</strong></div>
+            <div className="row"><span>{t("Warunki ważne od")}</span><strong>{quote.effectiveFrom || "—"}</strong></div>
+            <div className="row"><span>{t("Siedziba kontrahenta")}</span><strong style={{ textAlign: "right", maxWidth: "60%" }}>{quote.originAddress}</strong></div>
+            <div className="row"><span>{t("Odległość od siedziby")}</span><strong>{fixed(quote.distanceKm, 1)} km</strong></div>
+            <div className="row"><span>{t("Limit bez dopłaty")}</span><strong>{fixed(quote.freeKm, 1)} km</strong></div>
+            <div className="row"><span>{t("Km płatne")}</span><strong>{fixed(quote.billableKm, 1)} km</strong></div>
+            <div className="row"><span>{t("Stawka ponad limit")}</span><strong>{fixed(quote.extraKmRateNet, 2)} {t("zł netto/km")}</strong></div>
+            <div className="row"><span>{t("Cena 1 strony")}</span><strong>{fixed(quote.baseOneWayNet, 2)} {t("zł netto")}</strong></div>
+            {quote.multiplier > 1 && <div className="row"><span>{t("Mnożnik przejazdu")}</span><strong>× {quote.multiplier}</strong></div>}
+            <div className="row"><span>{t("Cena bazowa")}</span><strong>{fixed(quote.basePriceNet, 2)} {t("zł netto")}</strong></div>
+            <div className="row"><span>{t("Dopłata km")}</span><strong>{fixed(quote.extraPriceNet, 2)} {t("zł netto")}</strong></div>
+            {quote.additionalStopAddress && <div className="row"><span>{t("Dodatkowy przystanek")}</span><strong>{fixed(quote.additionalStopFeeNet, 2)} {t("zł netto")}</strong></div>}
+            {quote.additionalStopAddress && <div className="row"><span>{t("Objazd przystanku")}</span><strong>{fixed(quote.additionalStopExtraKm, 1)} km · {fixed(quote.additionalStopExtraPriceNet, 2)} {t("zł netto")}</strong></div>}
+            <div className="row total"><span>{t("RAZEM NETTO")}</span><strong>{fixed(quote.net, 2)} zł</strong></div>
+            <div className="row"><span>{t("VAT")} {fixed(quote.vatRate, 0)}%</span><strong>{fixed(quote.vat, 2)} zł</strong></div>
+            <div className="row total"><span>{t("RAZEM BRUTTO")}</span><strong>{fixed(quote.gross, 2)} zł</strong></div>
             <p className="muted" style={{ marginTop: 12 }}>
-              {quote.pricingSource === "custom" ? "Indywidualny cennik kontrahenta." : "Cena standardowa MATT dla tej pozycji."}<br />
-              Wszystkie ceny B2B są cenami NETTO + 8% VAT.
-            </p>
+              {quote.pricingSource === "custom" ? t("Indywidualny cennik kontrahenta.") : t("Cena standardowa MATT dla tej pozycji.")}<br />
+              {t("Wszystkie ceny B2B są cenami NETTO + 8% VAT.")}</p>
           </>
         ) : (
-          <p className="muted">Wycena pojawi się po wskazaniu dokładnego adresu pasażera.</p>
+          <p className="muted">{t("Wycena pojawi się po wskazaniu dokładnego adresu pasażera.")}</p>
         )}
 
         <button className="btn" style={{ width: "100%", marginTop: 16 }} disabled={saving || quoteBusy || !quote} onClick={submit}>
-          {saving ? "ZAMAWIANIE..." : "ZAMÓW TRANSPORT"}
+          {saving ? t("ZAMAWIANIE...") : t("ZAMÓW TRANSPORT")}
         </button>
         {message && <div className="admin-save-message">{message}</div>}
       </aside>

@@ -1,12 +1,19 @@
-export default function CompanyNav() {
-  return <nav className="nav company-nav">
-    <a href="/firma">Dashboard</a>
-    <a href="/firma/nowa-rezerwacja">+ Nowa rezerwacja</a>
-    <a href="/firma/szablony">Szablony i cykliczne</a>
-    <a href="/firma/kalendarz">Kalendarz</a>
-    <a href="/firma/cennik">Cennik i warunki</a>
-    <a href="/firma/pracownicy">Pracownicy</a>
-    <a href="/firma/faktury">Rozliczenia</a>
-    <a href="/firma/ustawienia">Dane firmy</a>
-  </nav>;
+"use client";
+import { useCustomerLocale } from "@/lib/useCustomerLocale";
+import { withCustomerLocale } from "@/lib/bookingLocale";
+import { customerText } from "@/lib/customerCopy";
+
+const links = [
+  ["/firma","Dashboard"],
+  ["/firma/nowa-rezerwacja","+ Nowa rezerwacja"],
+  ["/firma/szablony","Szablony i cykliczne"],
+  ["/firma/kalendarz","Kalendarz"],
+  ["/firma/cennik","Cennik i warunki"],
+  ["/firma/pracownicy","Pracownicy"],
+  ["/firma/faktury","Rozliczenia"],
+  ["/firma/ustawienia","Dane firmy"]
+] as const;
+export default function CompanyNav({ customerLocale }: { customerLocale?: unknown } = {}) {
+  const locale=useCustomerLocale(customerLocale);
+  return <nav className="nav company-nav">{links.map(([path,label])=><a key={path} href={withCustomerLocale(path,locale)}>{customerText(label,locale)}</a>)}</nav>;
 }

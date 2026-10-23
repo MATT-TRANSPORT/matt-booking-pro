@@ -1,3 +1,4 @@
+import TestEnvironmentNotice from "@/components/TestEnvironmentNotice";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./v45.css";
@@ -20,7 +21,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pl">
-      <body><GrowthTracker />{children}</body>
+      <body>{process.env.MATT_TEST_MODE === "1" && process.env.VERCEL_ENV !== "production" && <TestEnvironmentNotice />}<GrowthTracker />{children}</body>
     </html>
   );
 }

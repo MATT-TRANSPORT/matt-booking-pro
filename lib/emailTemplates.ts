@@ -1,3 +1,7 @@
+import { bookingOrigin, panelOrigin } from "@/lib/bookingOrigin";
+import { localizedStatusEmail } from "@/lib/localizedStatusEmails";
+import { resolveCustomerLocale } from "@/lib/localizedBookingEmails";
+import { travelGuideHtml } from "@/lib/travelGuide";
 const esc = (value: unknown) =>
   String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -14,6 +18,8 @@ type BookingMail = {
   pickup_address: string;
   airport_label: string;
   service_type: string;
+  booking_source?: string | null;
+  destination_address?: string | null;
   travel_date: string;
   travel_time: string;
   return_date?: string | null;
@@ -37,37 +43,18 @@ type BookingMail = {
   company_id?: string | null;
   payment_method?: string | null;
   payment_status?: string | null;
+  customer_locale?: string | null;
   payment_link?: string | null;
   online_payment_requested?: boolean | null;
 };
 
-function customerBaseUrl() {
-  const configured = String(
-    process.env.NEXT_PUBLIC_BOOKING_URL || ""
-  ).trim().replace(/\/$/, "");
+function customerBaseUrl() { return bookingOrigin(); }
 
-  if (configured && !configured.includes("vercel.app")) {
-    return configured;
-  }
-
-  return "https://booking.matt-transport.pl";
-}
-
-function panelBaseUrl() {
-  const configured = String(
-    process.env.NEXT_PUBLIC_PANEL_URL || ""
-  ).trim().replace(/\/$/, "");
-
-  if (configured && !configured.includes("vercel.app")) {
-    return configured;
-  }
-
-  return "https://panel.matt-transport.pl";
-}
+function panelBaseUrl() { return panelOrigin(); }
 
 function clientUrl(b: BookingMail) {
   return b.customer_access_token
-    ? `${customerBaseUrl()}/rezerwacja/${b.customer_access_token}`
+    ? `${customerBaseUrl()}/rezerwacja/${b.customer_access_token}?lang=${resolveCustomerLocale(b.customer_locale)}`
     : null;
 }
 
@@ -235,6 +222,7 @@ export function receivedEmail(b: BookingMail) {
 }
 
 export function confirmedEmail(b: BookingMail) {
+  if (resolveCustomerLocale(b.customer_locale) !== "pl") return localizedStatusEmail("confirmed", b);
   return {
     subject: `Rezerwacja ${b.booking_number} została potwierdzona`,
     html: shell(
@@ -253,6 +241,7 @@ export function confirmedEmail(b: BookingMail) {
 }
 
 export function assignedEmail(b: BookingMail) {
+  if (resolveCustomerLocale(b.customer_locale) !== "pl") return localizedStatusEmail("assigned", b, {guideHtml:travelGuideHtml(b.service_type,b.customer_locale, !b.destination_address && b.booking_source !== "public_general")});
   return {
     subject: `Kierowca został przydzielony – ${b.booking_number}`,
     html: shell(
@@ -261,6 +250,7 @@ export function assignedEmail(b: BookingMail) {
         Przydzieliliśmy obsadę do Twojego transferu.
       </p>
       ${details(b)}
+      ${travelGuideHtml(b.service_type, b.customer_locale, !b.destination_address && b.booking_source !== "public_general")}
       <div style="margin-top:18px;background:#10141b;border:1px solid #343b49;border-radius:14px;padding:18px;line-height:1.8">
         <div style="font-weight:900;color:#f1d28b;margin-bottom:6px">→ WYJAZD</div>
         <div><span style="color:#aab1bc">Kierowca:</span> <strong>${esc(b.driver_name || "—")}</strong></div>
@@ -282,6 +272,7 @@ export function assignedEmail(b: BookingMail) {
 }
 
 export function completedEmail(b: BookingMail) {
+  if (resolveCustomerLocale(b.customer_locale) !== "pl") return localizedStatusEmail("completed", b);
   return {
     subject: `Dziękujemy za przejazd – ${b.booking_number}`,
     html: shell(
@@ -296,6 +287,7 @@ export function completedEmail(b: BookingMail) {
 }
 
 export function cancelledEmail(b: BookingMail) {
+  if (resolveCustomerLocale(b.customer_locale) !== "pl") return localizedStatusEmail("cancelled", b);
   const paidNotice =
     b.payment_status === "paid" ||
     b.payment_status === "review"
@@ -326,6 +318,7 @@ export function cancelledEmail(b: BookingMail) {
 
 
 export function paymentReceivedEmail(b: BookingMail) {
+  if (resolveCustomerLocale(b.customer_locale) !== "pl") return localizedStatusEmail("paymentReceived", b);
   return {
     subject: `Płatność zaksięgowana – ${b.booking_number}`,
     html: shell(
@@ -343,6 +336,7 @@ export function paymentReceivedEmail(b: BookingMail) {
 }
 
 export function paymentRefundedEmail(b: BookingMail) {
+  if (resolveCustomerLocale(b.customer_locale) !== "pl") return localizedStatusEmail("paymentRefunded", b);
   return {
     subject: `Zwrot płatności – ${b.booking_number}`,
     html: shell(
@@ -406,6 +400,7 @@ export function adminNewBookingEmail(b: BookingMail, customerEmail: string, cust
 }
 
 export function reviewRequestEmail(b: BookingMail, reviewUrl: string) {
+  if (resolveCustomerLocale(b.customer_locale) !== "pl") return localizedStatusEmail("review", b, {reviewUrl});
   return {
     subject: `Jak minęła podróż? – ${b.booking_number}`,
     html: shell(

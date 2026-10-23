@@ -1,4 +1,7 @@
 "use client";
+import { customerFetch } from "@/lib/customerFetch";
+import { customerText } from "@/lib/customerCopy";
+import { useCustomerLocale } from "@/lib/useCustomerLocale";
 
 import { useEffect, useMemo, useState } from "react";
 
@@ -62,6 +65,9 @@ function paymentLabel(b: any) {
 }
 
 export default function CustomerTripsPortal() {
+ const fetchCustomer=(input:RequestInfo|URL,init?:RequestInit)=>customerFetch(locale,input,init);
+  const locale = useCustomerLocale();
+  const t = (key: string) => customerText(key, locale);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
   const [email, setEmail] = useState("");
@@ -72,16 +78,16 @@ export default function CustomerTripsPortal() {
   async function load() {
     setLoading(true);
     try {
-      const response = await fetch("/api/customer-account/me", { cache: "no-store" });
+      const response = await fetchCustomer("/api/customer-account/me", { cache: "no-store" });
       if (response.status === 401) {
         setData(null);
       } else {
         const body = await response.json();
-        if (!response.ok) throw new Error(body.error || "Nie udało się pobrać przejazdów.");
+        if (!response.ok) throw new Error(body.error || t("Nie udało się pobrać przejazdów."));
         setData(body);
       }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Nie udało się pobrać przejazdów.");
+      setMessage(error instanceof Error ? error.message : t("Nie udało się pobrać przejazdów."));
     }
     setLoading(false);
   }
@@ -89,8 +95,8 @@ export default function CustomerTripsPortal() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const error = params.get("error");
-    if (error === "link") setMessage("Link logowania jest nieprawidłowy, został już użyty albo wygasł. Poproś o nowy link.");
-    if (error === "session") setMessage("Nie udało się utworzyć sesji. Poproś o nowy link logowania.");
+    if (error === "link") setMessage(t("Link logowania jest nieprawidłowy, został już użyty albo wygasł. Poproś o nowy link."));
+    if (error === "session") setMessage(t("Nie udało się utworzyć sesji. Poproś o nowy link logowania."));
     load();
   }, []);
 
@@ -99,25 +105,25 @@ export default function CustomerTripsPortal() {
     setSending(true);
     setMessage("");
     try {
-      const response = await fetch("/api/customer-account/request-link", {
+      const response = await fetchCustomer("/api/customer-account/request-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email, locale })
       });
       const body = await response.json();
-      setMessage(body.message || "Sprawdź swoją skrzynkę e-mail.");
+      setMessage(body.message || t("Sprawdź swoją skrzynkę e-mail."));
     } catch {
-      setMessage("Nie udało się wysłać linku. Spróbuj ponownie za chwilę.");
+      setMessage(t("Nie udało się wysłać linku. Spróbuj ponownie za chwilę."));
     }
     setSending(false);
   }
 
   async function logout() {
     setLoggingOut(true);
-    await fetch("/api/customer-account/logout", { method: "POST" }).catch(() => null);
+    await fetchCustomer("/api/customer-account/logout", { method: "POST" }).catch(() => null);
     setData(null);
     setLoggingOut(false);
-    setMessage("Wylogowano z Moich przejazdów.");
+    setMessage(t("Wylogowano z Moich przejazdów."));
   }
 
   const entries = useMemo(() => {
@@ -155,6 +161,7 @@ export default function CustomerTripsPortal() {
     if (entry.type === "wedding") {
       const w = entry.item;
       sessionStorage.setItem("matt_customer_repeat", JSON.stringify({
+        locale,
         kind: "wedding",
         customerName: w.customer_name || "",
         restaurantName: w.restaurant_name || "",
@@ -164,7 +171,7 @@ export default function CustomerTripsPortal() {
         email: w.email || data?.email || "",
         notes: w.notes || ""
       }));
-      window.location.href = "/wesele?repeat=1";
+      window.location.href = `/wesele?repeat=1&lang=${locale}`;
       return;
     }
 
@@ -172,6 +179,7 @@ export default function CustomerTripsPortal() {
     const general = Boolean(b.destination_address) || b.booking_source === "public_general";
     if (general) {
       sessionStorage.setItem("matt_customer_repeat", JSON.stringify({
+        locale,
         kind: "general",
         origin: b.pickup_address || "",
         destination: b.destination_address || b.airport_label || "",
@@ -185,11 +193,12 @@ export default function CustomerTripsPortal() {
         invoiceRequired: Boolean(b.invoice_required),
         notes: b.notes || ""
       }));
-      window.location.href = "/transport?repeat=1";
+      window.location.href = `/transport?repeat=1&lang=${locale}`;
       return;
     }
 
     sessionStorage.setItem("matt_customer_repeat", JSON.stringify({
+      locale,
       kind: "airport",
       serviceType: b.service_type || "to_airport",
       address: b.pickup_address || "",
@@ -207,80 +216,79 @@ export default function CustomerTripsPortal() {
       additionalStopPrimary: Boolean(b.additional_stop_primary),
       additionalStopReturn: Boolean(b.additional_stop_return)
     }));
-    window.location.href = "/booking?service=airport&repeat=1";
+    window.location.href = `/booking?service=airport&repeat=1&lang=${locale}`;
   }
 
   function renderEntry(entry: any, next = false) {
     const isWedding = entry.type === "wedding";
     const item = entry.item;
-    const title = isWedding ? "Transport weselny" : bookingKind(item);
+    const title = isWedding ? t("Transport weselny") : bookingKind(item);
     const route = isWedding
-      ? `${item.restaurant_name || "Wesele"} · ${item.restaurant_address || ""}`
+      ? `${item.restaurant_name || t("Wesele")} · ${item.restaurant_address || ""}`
       : bookingRoute(item);
     const number = item.booking_number || "—";
     const pastWithoutFinalStatus = entry.sortKey < now && !["completed", "cancelled"].includes(entry.status);
-    const status = pastWithoutFinalStatus ? "Termin minął" : (STATUS[entry.status] || entry.status || "—");
+    const status = pastWithoutFinalStatus ? t("Termin minął") : (STATUS[entry.status] || entry.status || "—");
 
     return <article key={`${entry.type}-${entry.id}`} className={`customer-trip-card${next ? " is-next" : ""}`}>
       <div className="customer-trip-topline">
         <div>
-          <span className="customer-trip-kind">{isWedding ? "💍" : "🚐"} {title}</span>
+          <span className="customer-trip-kind">{isWedding ? "💍" : "🚐"} {t(title)}</span>
           <strong>{dateLabel(entry.date)} · {timeLabel(entry.time)}</strong>
         </div>
-        <span className={`customer-trip-status ${entry.status || "pending"}`}>{status}</span>
+        <span className={`customer-trip-status ${entry.status || "pending"}`}>{t(status)}</span>
       </div>
       <div className="customer-trip-route">{route}</div>
       <div className="customer-trip-meta">
-        <span>Nr: <strong>{number}</strong></span>
-        {!isWedding && <span>Pasażerowie: <strong>{item.passengers || "—"}</strong></span>}
-        {!isWedding && <span>Płatność: <strong>{paymentLabel(item)}</strong></span>}
+        <span>{t("Nr:")}<strong>{number}</strong></span>
+        {!isWedding && <span>{t("Pasażerowie:")}<strong>{item.passengers || "—"}</strong></span>}
+        {!isWedding && <span>{t("Płatność:")}<strong>{t(paymentLabel(item))}</strong></span>}
       </div>
       <div className="customer-trip-actions">
-        {!isWedding && item.customer_access_token && <a className="btn secondary" href={`/rezerwacja/${item.customer_access_token}`}>SZCZEGÓŁY</a>}
-        <button type="button" className="btn" onClick={() => repeat(entry)}>ZAMÓW PONOWNIE</button>
+        {!isWedding && item.customer_access_token && <a className="btn secondary" href={`/rezerwacja/${item.customer_access_token}?lang=${locale}`}>{t("SZCZEGÓŁY")}</a>}
+        <button type="button" className="btn" onClick={() => repeat(entry)}>{t("ZAMÓW PONOWNIE")}</button>
       </div>
     </article>;
   }
 
   if (loading) {
-    return <main className="container customer-trips-page"><section className="card customer-trips-login"><span className="badge">MATT TRANSPORT</span><h1>Moje przejazdy</h1><p className="muted">Ładowanie…</p></section></main>;
+    return <main className="container customer-trips-page"><section className="card customer-trips-login"><span className="badge">MATT TRANSPORT</span><h1>{t("Moje przejazdy")}</h1><p className="muted">{t("Ładowanie…")}</p></section></main>;
   }
 
   if (!data) {
     return <main className="container customer-trips-page">
-      <a className="back-link" href="/booking">← Wróć do rezerwacji</a>
+      <a className="back-link" href={`/booking?lang=${locale}`}>{t("← Wróć do rezerwacji")}</a>
       <section className="card customer-trips-login">
         <span className="badge">MATT CUSTOMER</span>
-        <h1>Moje przejazdy</h1>
-        <p className="muted">Bez hasła. Podaj e-mail użyty przy prywatnej rezerwacji, a wyślemy jednorazowy link do Twoich przejazdów.</p>
-        <label>Adres e-mail
-          <input type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => { if (e.key === "Enter") requestLink(); }} placeholder="np. jan@firma.pl" />
+        <h1>{t("Moje przejazdy")}</h1>
+        <p className="muted">{t("Bez hasła. Podaj e-mail użyty przy prywatnej rezerwacji, a wyślemy jednorazowy link do Twoich przejazdów.")}</p>
+        <label>{t("Adres e-mail")}<input type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => { if (e.key === "Enter") requestLink(); }} placeholder={t("np. jan@firma.pl")} />
         </label>
-        <button className="btn" disabled={sending || !email.trim()} onClick={requestLink}>{sending ? "WYSYŁANIE…" : "WYŚLIJ LINK DO LOGOWANIA"}</button>
-        {message && <div className="customer-trips-message">{message}</div>}
-        <small className="muted">Dla bezpieczeństwa link działa tylko raz i wygasa po 15 minutach. Konto pokazuje wyłącznie prywatne rezerwacje B2C — rezerwacje firmowe B2B pozostają w panelu firmy.</small>
+        <button className="btn" disabled={sending || !email.trim()} onClick={requestLink}>{sending ? t("WYSYŁANIE…") : t("WYŚLIJ LINK DO LOGOWANIA")}</button>
+        {message && <div className="customer-trips-message">{t(message)}</div>}
+        <small className="muted">{t("Dla bezpieczeństwa link działa tylko raz i wygasa po 15 minutach. Konto pokazuje wyłącznie prywatne rezerwacje B2C — rezerwacje firmowe B2B pozostają w panelu firmy.")}</small>
       </section>
     </main>;
   }
 
   return <main className="container customer-trips-page">
     <div className="customer-trips-header">
-      <div><span className="badge">MATT CUSTOMER</span><h1>Moje przejazdy</h1><p className="muted">{data.email}</p></div>
-      <div className="customer-trips-header-actions"><a className="btn secondary" href="/booking">+ NOWA REZERWACJA</a><button className="btn secondary" disabled={loggingOut} onClick={logout}>{loggingOut ? "…" : "WYLOGUJ"}</button></div>
+      <div><span className="badge">MATT CUSTOMER</span><h1>{t("Moje przejazdy")}</h1><p className="muted">{data.email}</p></div>
+      <div className="customer-trips-header-actions"><a className="btn secondary" href={`/booking?lang=${locale}`}>{t("+ NOWA REZERWACJA")}</a><button className="btn secondary" disabled={loggingOut} onClick={logout}>{loggingOut ? "…" : t("WYLOGUJ")}</button></div>
     </div>
 
-    {message && <div className="customer-trips-message">{message}</div>}
+    {message && <div className="customer-trips-message">{t(message)}</div>}
 
     {active.length > 0 && <section className="customer-trips-section">
-      <div className="customer-trips-section-head"><div><span className="badge">NAJBLIŻSZY TRANSPORT</span><h2>Twój następny przejazd</h2></div><span>{active.length} aktywne</span></div>
+      <div className="customer-trips-section-head"><div><span className="badge">{t("NAJBLIŻSZY TRANSPORT")}</span><h2>{t("Twój następny przejazd")}</h2></div><span>{active.length} {t("aktywne")}</span></div>
       {renderEntry(active[0], true)}
       {active.length > 1 && <div className="customer-trips-list">{active.slice(1).map((entry: any) => renderEntry(entry))}</div>}
     </section>}
 
-    {active.length === 0 && <section className="card customer-trips-empty"><h2>Brak zaplanowanych przejazdów</h2><p className="muted">Możesz od razu zamówić kolejny transport.</p><a className="btn" href="/booking">ZAMÓW TRANSPORT</a></section>}
+    {active.length === 0 && <section className="card customer-trips-empty"><h2>{t("Brak zaplanowanych przejazdów")}</h2><p className="muted">{t("Możesz od razu zamówić kolejny transport.")}</p><a className="btn" href={`/booking?lang=${locale}`}>{t("ZAMÓW TRANSPORT")}</a></section>}
 
     {history.length > 0 && <section className="customer-trips-section customer-trips-history">
-      <div className="customer-trips-history-separator"><span>HISTORIA · ZAKOŃCZONE / ANULOWANE / TERMIN MINĄŁ</span></div>
+      <div className="customer-trips-history-separator"><span>{t("HISTORIA · ZAKOŃCZONE / ANULOWANE / TERMIN MINĄŁ")}</span></div>
       <div className="customer-trips-list">{history.map((entry: any) => renderEntry(entry))}</div>
     </section>}
   </main>;

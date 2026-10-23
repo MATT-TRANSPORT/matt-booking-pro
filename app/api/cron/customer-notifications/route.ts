@@ -1,3 +1,6 @@
+export const maxDuration = 300;
+
+import { runPaymentNotificationOutbox } from "@/lib/paymentNotificationOutbox";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendBookingNotification } from "@/lib/customerNotifications";
@@ -357,6 +360,10 @@ export async function POST(req: NextRequest) {
   }
 
   const admin = createAdminClient();
+  const paymentNotifications = await runPaymentNotificationOutbox(admin).catch(() => {
+    console.error("Outbox płatności: błąd przejęcia kolejki.");
+    return { errors: 1 };
+  });
   const from = dateText(0);
   const to = dateText(1);
 
@@ -368,6 +375,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     ok: true,
+    payment_notifications: paymentNotifications,
     customer_reminder_120: customerReminder,
     driver_reminder_60: driverReminder,
     review_requests: reviewRequests
@@ -378,7 +386,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     service: "MATT Production Notifications v4.1",
-    jobs: ["customer_reminder_120", "driver_reminder_60", "post_trip_review"],
+    jobs: ["payment_notifications", "customer_reminder_120", "driver_reminder_60", "post_trip_review"],
     method: "POST"
   });
 }

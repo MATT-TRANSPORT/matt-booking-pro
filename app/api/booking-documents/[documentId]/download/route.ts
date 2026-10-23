@@ -53,5 +53,7 @@ export async function GET(
     return NextResponse.json({ error: error?.message || "Błąd pliku." }, { status: 500 });
   }
 
-  return NextResponse.redirect(data.signedUrl);
+  return NextResponse.redirect(data.signedUrl, {
+    headers: { "Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer" }
+  });
 }

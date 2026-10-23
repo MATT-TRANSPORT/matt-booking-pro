@@ -1,151 +1,63 @@
 import { appBaseUrl } from "@/lib/payment";
+import { resolveCustomerLocale } from "@/lib/bookingLocale";
+import { customerText } from "@/lib/customerCopy";
+import { travelGuideHtml } from "@/lib/travelGuide";
 
-const esc = (value: unknown) =>
-  String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-
-function shortTime(value: unknown) {
-  return String(value || "").slice(0, 5);
-}
-
-function routeText(b: any) {
-  if (b.service_type === "from_airport") {
-    return `${b.airport_label} → ${b.pickup_address}`;
+const copy = {
+  pl: {
+    confirmed:"Transport został potwierdzony",assigned:"Dane kierowcy i pojazdu",
+    confirmedIntro:"Dzień dobry, transport zamówiony przez Twoją firmę został potwierdzony przez MATT TRANSPORT.",
+    assignedIntro:"Poniżej znajdziesz aktualne dane operacyjne Twojego przejazdu. Jeśli obsada została zmieniona, ta wiadomość zastępuje wcześniejsze dane.",
+    gross:"Kwota brutto",private:"Link jest indywidualny dla tej rezerwacji. Nie udostępniaj go osobom trzecim.",
+    outbound:"WYJAZD",back:"POWRÓT",registration:"Nr rejestracyjny",unassigned:"Jeszcze nie przypisano",phone:"Telefon",driver:"Kierowca",vehicle:"Pojazd"
+  },
+  en: {
+    confirmed:"Your transport has been confirmed",assigned:"Driver and vehicle details",
+    confirmedIntro:"Hello, the transport booked by your company has been confirmed by MATT TRANSPORT.",
+    assignedIntro:"Below are the current operational details of your trip. If the assignment has changed, this message replaces the previous details.",
+    gross:"Gross amount",private:"This link is unique to this booking. Do not share it with third parties.",
+    outbound:"OUTBOUND",back:"RETURN",registration:"Registration",unassigned:"Not assigned yet",phone:"Phone",driver:"Driver",vehicle:"Vehicle"
+  },
+  de: {
+    confirmed:"Ihre Fahrt wurde bestätigt",assigned:"Angaben zu Fahrer und Fahrzeug",
+    confirmedIntro:"Guten Tag, die von Ihrer Firma bestellte Fahrt wurde von MATT TRANSPORT bestätigt.",
+    assignedIntro:"Hier finden Sie die aktuellen Angaben zu Ihrer Fahrt. Bei einer Änderung der Besetzung ersetzt diese Nachricht die bisherigen Angaben.",
+    gross:"Bruttobetrag",private:"Dieser Link gilt nur für diese Buchung. Geben Sie ihn nicht an Dritte weiter.",
+    outbound:"HINFAHRT",back:"RÜCKFAHRT",registration:"Kennzeichen",unassigned:"Noch nicht zugewiesen",phone:"Telefon",driver:"Fahrer",vehicle:"Fahrzeug"
+  },
+  cs: {
+    confirmed:"Vaše doprava byla potvrzena",assigned:"Údaje o řidiči a vozidle",
+    confirmedIntro:"Dobrý den, doprava objednaná vaší firmou byla potvrzena společností MATT TRANSPORT.",
+    assignedIntro:"Níže najdete aktuální údaje o vaší jízdě. Pokud došlo ke změně obsazení, tato zpráva nahrazuje předchozí údaje.",
+    gross:"Částka včetně DPH",private:"Tento odkaz je určen pouze pro tuto rezervaci. Nesdílejte jej s dalšími osobami.",
+    outbound:"ODJEZD",back:"NÁVRAT",registration:"SPZ",unassigned:"Zatím nepřiřazeno",phone:"Telefon",driver:"Řidič",vehicle:"Vozidlo"
   }
-  if (b.service_type === "roundtrip") {
-    return `${b.pickup_address} ↔ ${b.airport_label}`;
+} as const;
+
+const esc=(value:unknown)=>String(value??"").replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]||ch));
+const time=(value:unknown)=>String(value||"").slice(0,5);
+
+function employeeEmail(kind:"confirmed"|"assigned",b:any) {
+  const locale=resolveCustomerLocale(b.customer_locale),t=copy[locale];
+  const label=(key:string)=>customerText(key,locale);
+  const row=(name:string,value:unknown)=>`<div><span style="color:#aab1bc">${esc(name)}:</span> <strong>${esc(value)}</strong></div>`;
+  const route=b.service_type==="from_airport"?`${b.airport_label} → ${b.pickup_address}`:`${b.pickup_address} ${b.service_type==="roundtrip"?"↔":"→"} ${b.destination_address||b.airport_label}`;
+  const details=row(label("Numer rezerwacji"),b.booking_number)+row(label("Pasażer"),b.customer_name||"—")+row(label("Trasa"),route)+row(label("Termin"),`${b.travel_date} · ${time(b.travel_time)}`)+(b.service_type==="roundtrip"&&b.return_date?row(label("Powrót"),`${b.return_date} · ${time(b.return_time)}`):"");
+  const driverBox=(back:boolean)=>`<h3>${back?t.back:t.outbound}</h3>${row(t.driver,(back?b.return_driver_name:b.driver_name)||t.unassigned)}${row(t.phone,(back?b.return_driver_phone:b.driver_phone)||"—")}${row(t.vehicle,(back?b.return_vehicle_name:b.vehicle_name)||t.unassigned)}${row(t.registration,(back?b.return_vehicle_registration:b.vehicle_registration)||"—")}`;
+  let payment="";
+  if(b.payment_method==="employee_payment") {
+    if(b.payment_status==="paid") payment=`<p>${esc(label("✓ Płatność została zaksięgowana."))}</p>`;
+    else if(b.payment_status==="review") payment=`<p>${esc(label("⚠ Płatność wymaga weryfikacji przez MATT TRANSPORT."))}</p>`;
+    else if(b.payment_status==="refunded") payment=`<p>${esc(label("↩ Zarejestrowano zwrot."))}</p>`;
+    else if(b.customer_access_token&&b.status!=="cancelled") {
+      const url=`${appBaseUrl()}/platnosc/${encodeURIComponent(b.customer_access_token)}?lang=${locale}`;
+      payment=`<section style="margin-top:20px;padding:18px;border:1px solid #5d4d2c;border-radius:12px"><h3>${esc(label("Płatność online"))}</h3>${row(t.gross,`${Number(b.price_gross??b.total_price??0).toFixed(2)} PLN`)}<p><a style="color:#f1d28b" href="${esc(url)}">${esc(label("💳 OPŁAĆ ONLINE"))}</a></p><small>${esc(t.private)}</small></section>`;
+    }
   }
-  return `${b.pickup_address} → ${b.airport_label}`;
+  const assignments=kind==="assigned"?`<section style="padding:18px;border:1px solid #343b49;border-radius:12px;margin-top:18px">${driverBox(false)}${b.service_type==="roundtrip"?driverBox(true):""}</section>`:"";
+  const guide=kind==="assigned"?travelGuideHtml(b.service_type,locale,!b.destination_address&&b.booking_source!=="public_general"):"";
+  return {locale,subject:`MATT TRANSPORT · ${t[kind]} · ${b.booking_number}`,html:`<div lang="${locale}" style="padding:28px;background:#10141b;color:#f7f7f7;font-family:Arial,sans-serif;line-height:1.8"><h2 style="color:#f1d28b">MATT TRANSPORT</h2><h1>${t[kind]}</h1><p>${kind==="confirmed"?t.confirmedIntro:t.assignedIntro}</p><section style="padding:18px;border:1px solid #343b49;border-radius:12px">${details}</section>${assignments}${payment}${guide}<p>+48 691 242 691 · kontakt@matt-transport.pl</p></div>`};
 }
 
-function employeePaymentUrl(b: any) {
-  if (!b?.customer_access_token) return null;
-  return `${appBaseUrl()}/platnosc/${b.customer_access_token}`;
-}
-
-function paymentSection(b: any) {
-  if (b.payment_method !== "employee_payment") return "";
-
-  if (b.payment_status === "paid") {
-    return `
-      <div style="margin-top:20px;padding:16px;border-radius:12px;background:#173d2a;border:1px solid #2f7650;color:#d4f5df">
-        <strong>✓ Płatność została zaksięgowana.</strong><br>
-        <span>✓ Payment has been received.</span>
-      </div>`;
-  }
-
-  if (b.payment_status === "review") {
-    return `
-      <div style="margin-top:20px;padding:16px;border-radius:12px;background:#493915;border:1px solid #8b6d28;color:#ffe5a3">
-        <strong>⚠ Płatność wymaga weryfikacji przez MATT TRANSPORT.</strong><br>
-        <span>⚠ The payment requires verification by MATT TRANSPORT.</span>
-      </div>`;
-  }
-
-  const url = employeePaymentUrl(b);
-  if (!url) return "";
-
-  return `
-    <div style="margin-top:20px;padding:18px;border-radius:14px;background:#10141b;border:1px solid #5d4d2c">
-      <div style="font-weight:900;color:#f1d28b;margin-bottom:8px">Płatność online / Online payment</div>
-      <div style="color:#d7dbe1;line-height:1.6;margin-bottom:14px">
-        Kwota brutto / Gross amount: <strong style="color:#fff">${Number(b.price_gross ?? b.total_price ?? 0).toFixed(2)} zł</strong>
-      </div>
-      <a href="${url}" style="display:inline-block;background:#d5ae5d;color:#111;padding:14px 20px;border-radius:11px;text-decoration:none;font-weight:900">
-        OPŁAĆ ONLINE / PAY ONLINE
-      </a>
-      <div style="margin-top:10px;color:#8f98a5;font-size:12px;line-height:1.5">
-        Link jest indywidualny dla tej rezerwacji. Nie udostępniaj go osobom trzecim.<br>
-        This link is unique to this booking. Do not share it with third parties.
-      </div>
-    </div>`;
-}
-
-function shell(titlePl: string, titleEn: string, content: string) {
-  return `
-    <div style="margin:0;padding:32px 14px;background:#0b0e13;font-family:Arial,sans-serif;color:#f7f7f7">
-      <div style="max-width:700px;margin:auto;background:#151923;border:1px solid #343b49;border-radius:18px;overflow:hidden">
-        <div style="padding:24px 28px;background:#10141b;border-bottom:1px solid #343b49">
-          <div style="font-size:20px;font-weight:900;color:#f1d28b">MATT TRANSPORT</div>
-          <div style="margin-top:5px;font-size:12px;color:#aab1bc">Transport zawsze na czas · Always on time</div>
-        </div>
-        <div style="padding:28px">
-          <h1 style="margin:0 0 6px;font-size:27px;color:#fff">${titlePl}</h1>
-          <div style="margin-bottom:20px;font-size:18px;color:#f1d28b">${titleEn}</div>
-          ${content}
-        </div>
-        <div style="padding:20px 28px;background:#10141b;border-top:1px solid #343b49;color:#aab1bc;font-size:13px;line-height:1.7">
-          <strong style="color:#fff">MATT TRANSPORT</strong><br>
-          tel. <a style="color:#f1d28b" href="tel:+48691242691">+48 691 242 691</a><br>
-          <a style="color:#f1d28b" href="mailto:kontakt@matt-transport.pl">kontakt@matt-transport.pl</a><br>
-          <a style="color:#f1d28b" href="https://matt-transport.pl">matt-transport.pl</a>
-        </div>
-      </div>
-    </div>`;
-}
-
-function bookingSummary(b: any) {
-  return `
-    <div style="background:#10141b;border:1px solid #343b49;border-radius:14px;padding:18px;line-height:1.85">
-      <div><span style="color:#aab1bc">Rezerwacja / Booking:</span> <strong style="color:#f1d28b">${esc(b.booking_number)}</strong></div>
-      <div><span style="color:#aab1bc">Pasażer / Passenger:</span> <strong>${esc(b.customer_name || "—")}</strong></div>
-      <div><span style="color:#aab1bc">Trasa / Route:</span> <strong>${esc(routeText(b))}</strong></div>
-      <div><span style="color:#aab1bc">Termin / Date & time:</span> <strong>${esc(b.travel_date)} · ${esc(shortTime(b.travel_time))}</strong></div>
-      ${b.service_type === "roundtrip" && b.return_date ? `<div><span style="color:#aab1bc">Powrót / Return:</span> <strong>${esc(b.return_date)} · ${esc(shortTime(b.return_time))}</strong></div>` : ""}
-    </div>`;
-}
-
-function assignmentBox(b: any) {
-  return `
-    <div style="margin-top:18px;background:#10141b;border:1px solid #343b49;border-radius:14px;padding:18px;line-height:1.85">
-      <div style="font-weight:900;color:#f1d28b;margin-bottom:8px">→ WYJAZD / OUTBOUND</div>
-      <div><span style="color:#aab1bc">Kierowca / Driver:</span> <strong>${esc(b.driver_name || "—")}</strong></div>
-      <div><span style="color:#aab1bc">Telefon / Phone:</span> <strong>${esc(b.driver_phone || "—")}</strong></div>
-      <div><span style="color:#aab1bc">Pojazd / Vehicle:</span> <strong>${esc(b.vehicle_name || "—")}</strong></div>
-      <div><span style="color:#aab1bc">Nr rej. / Registration:</span> <strong>${esc(b.vehicle_registration || "—")}</strong></div>
-      ${b.service_type === "roundtrip" ? `
-        <div style="height:1px;background:#343b49;margin:16px 0"></div>
-        <div style="font-weight:900;color:#f1d28b;margin-bottom:8px">↩ POWRÓT / RETURN</div>
-        <div><span style="color:#aab1bc">Kierowca / Driver:</span> <strong>${esc(b.return_driver_name || "Jeszcze nie przypisano / Not assigned yet")}</strong></div>
-        <div><span style="color:#aab1bc">Telefon / Phone:</span> <strong>${esc(b.return_driver_phone || "—")}</strong></div>
-        <div><span style="color:#aab1bc">Pojazd / Vehicle:</span> <strong>${esc(b.return_vehicle_name || "Jeszcze nie przypisano / Not assigned yet")}</strong></div>
-        <div><span style="color:#aab1bc">Nr rej. / Registration:</span> <strong>${esc(b.return_vehicle_registration || "—")}</strong></div>` : ""}
-    </div>`;
-}
-
-export function b2bEmployeeConfirmedEmail(b: any) {
-  return {
-    subject: `MATT TRANSPORT · Potwierdzenie / Confirmation · ${b.booking_number}`,
-    html: shell(
-      "Transport został potwierdzony",
-      "Your transport has been confirmed",
-      `<p style="color:#d7dbe1;line-height:1.7">
-        Dzień dobry, transport zamówiony przez Twoją firmę został potwierdzony przez MATT TRANSPORT.<br>
-        Hello, the transport booked by your company has been confirmed by MATT TRANSPORT.
-      </p>
-      ${bookingSummary(b)}
-      ${paymentSection(b)}`
-    )
-  };
-}
-
-export function b2bEmployeeAssignedEmail(b: any) {
-  return {
-    subject: `MATT TRANSPORT · Kierowca i pojazd / Driver & vehicle · ${b.booking_number}`,
-    html: shell(
-      "Dane kierowcy i pojazdu",
-      "Driver and vehicle details",
-      `<p style="color:#d7dbe1;line-height:1.7">
-        Poniżej znajdziesz aktualne dane operacyjne Twojego przejazdu. Jeśli obsada została zmieniona, ta wiadomość zastępuje wcześniejsze dane.<br>
-        Below are the current operational details of your trip. If the assignment has changed, this message replaces the previous details.
-      </p>
-      ${bookingSummary(b)}
-      ${assignmentBox(b)}
-      ${paymentSection(b)}`
-    )
-  };
-}
+export function b2bEmployeeConfirmedEmail(b:any) { return employeeEmail("confirmed",b); }
+export function b2bEmployeeAssignedEmail(b:any) { return employeeEmail("assigned",b); }

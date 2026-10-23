@@ -5,7 +5,13 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test:international": "node --test tests/international.test.cjs",
+    "test:international:browser": "playwright test",
+    "test:international:rls": "node --test tests/international-rls.cjs",
+    "test:payments:webhook": "node --test tests/stripe-webhook.test.cjs",
+    "test:bookings:api": "node --test tests/customer-booking-api.test.cjs",
+    "test:payments:outbox": "node --test tests/payment-outbox.test.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
@@ -13,14 +19,15 @@
     "next": "^15.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "web-push": "^3.6.7",
-    "stripe": "^18.5.0"
+    "stripe": "^18.5.0",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
     "@types/node": "^22.13.0",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
-    "typescript": "^5.7.3",
-    "@types/web-push": "^3.6.4"
+    "@types/web-push": "^3.6.4",
+    "typescript": "^5.7.3"
   }
 }

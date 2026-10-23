@@ -1,3 +1,7 @@
+import { bookingDateTime } from "@/lib/bookingDateTime";
+import { bookingOrigin } from "@/lib/bookingOrigin";
+import { customerJson, requestCustomerLocale, readCustomerBody } from "@/lib/customerErrors";
+import { resolveCustomerLocale } from "@/lib/localizedBookingEmails";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { shortestDrivingRouteKm } from "@/lib/routesServer";
@@ -10,13 +14,7 @@ function appBaseUrl() {
   return String(process.env.NEXT_PUBLIC_APP_URL || "https://panel.matt-transport.pl").replace(/\/$/, "");
 }
 
-function customerBaseUrl() {
-  const configured = String(process.env.NEXT_PUBLIC_BOOKING_URL || "").trim();
-  if (configured && !configured.includes("vercel.app")) {
-    return configured.replace(/\/$/, "");
-  }
-  return "https://booking.matt-transport.pl";
-}
+function customerBaseUrl() { return bookingOrigin(); }
 
 function esc(value: unknown) {
   return String(value ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch] || ch));
@@ -30,7 +28,19 @@ function vehicleLabel(value: string) {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  let responseLocale=requestCustomerLocale(req);
+  const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
+  const parsed = await readCustomerBody(req);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.body;
+  responseLocale = parsed.locale;
+  const locale = resolveCustomerLocale(body.locale);
+  const copy = {
+    pl:{subject:"Przyjęliśmy zapytanie o transport",title:"Zapytanie przyjęte",intro:"Dziękujemy. Przygotujemy indywidualną wycenę transportu.",open:"OTWÓRZ REZERWACJĘ",people:"os."},
+    en:{subject:"Transport quote request received",title:"Request received",intro:"Thank you. We will prepare a personalised transport quote.",open:"VIEW BOOKING",people:"passengers"},
+    de:{subject:"Transportanfrage eingegangen",title:"Anfrage eingegangen",intro:"Vielen Dank. Wir erstellen ein individuelles Transportangebot.",open:"BUCHUNG ANSEHEN",people:"Fahrgäste"},
+    cs:{subject:"Poptávka dopravy přijata",title:"Poptávka přijata",intro:"Děkujeme. Připravíme individuální cenovou nabídku.",open:"ZOBRAZIT REZERVACI",people:"cestujících"}
+  }[locale];
   const origin = String(body.origin || "").trim();
   const destination = String(body.destination || "").trim();
   const travelDate = String(body.travelDate || "").trim();
@@ -47,28 +57,31 @@ export async function POST(req: NextRequest) {
   const notes = String(body.notes || "").trim().slice(0, 4000) || null;
 
   if (!origin || !destination || !travelDate || !travelTime || !customerName || !phone || !email) {
-    return NextResponse.json({ error: "Uzupełnij punkt A, punkt B, termin i dane kontaktowe." }, { status: 400 });
+    return json({ error: ({pl:"Uzupełnij punkt A, punkt B, termin i dane kontaktowe.",en:"Please enter both locations, date, time and contact details.",de:"Bitte geben Sie beide Orte, Termin und Kontaktdaten an.",cs:"Zadejte obě místa, termín a kontaktní údaje."}[locale]) }, { status: 400 });
   }
   if (roundtrip && (!returnDate || !returnTime)) {
-    return NextResponse.json({ error: "Podaj datę i godzinę powrotu." }, { status: 400 });
+    return json({ error: ({pl:"Podaj datę i godzinę powrotu.",en:"Please enter your return date and time.",de:"Bitte geben Sie Datum und Uhrzeit der Rückfahrt ein.",cs:"Zadejte datum a čas návratu."}[locale]) }, { status: 400 });
   }
 
-  const when = new Date(`${travelDate}T${travelTime}`);
-  if (!Number.isFinite(when.getTime()) || when.getTime() - Date.now() < 24 * 3600 * 1000) {
-    return NextResponse.json({ error: "Rezerwacja online wymaga minimum 24 godzin wyprzedzenia. W pilnej sprawie zadzwoń: +48 691 242 691" }, { status: 400 });
+  const when = bookingDateTime(travelDate, travelTime);
+  if (!when || when.getTime() - Date.now() < 24 * 3600 * 1000) {
+    return json({ error: ({pl:"Rezerwacja online wymaga minimum 24 godzin wyprzedzenia. W pilnej sprawie zadzwoń: +48 691 242 691",en:"Online requests require at least 24 hours' notice. For urgent bookings call: +48 691 242 691",de:"Online-Anfragen erfordern mindestens 24 Stunden Vorlauf. Bei dringenden Buchungen: +48 691 242 691",cs:"Online poptávky vyžadují alespoň 24 hodin předem. Naléhavé objednávky: +48 691 242 691"}[locale]) }, { status: 400 });
   }
   if (roundtrip) {
-    const back = new Date(`${returnDate}T${returnTime}`);
-    if (!Number.isFinite(back.getTime()) || back.getTime() <= when.getTime()) {
-      return NextResponse.json({ error: "Termin powrotu musi być późniejszy niż wyjazd." }, { status: 400 });
+    const back = bookingDateTime(returnDate, returnTime);
+    if (!back || back.getTime() <= when.getTime()) {
+      return json({ error: ({pl:"Termin powrotu musi być późniejszy niż wyjazd.",en:"Return must be after departure.",de:"Die Rückfahrt muss nach der Hinfahrt liegen.",cs:"Návrat musí být později než odjezd."}[locale]) }, { status: 400 });
     }
   }
 
+  if (body.passengers !== undefined && (!Number.isInteger(Number(body.passengers)) || Number(body.passengers) < 1 || Number(body.passengers) > 30)) {
+    return json({ error: "Nieprawidłowe dane formularza." }, { status: 400 });
+  }
   let route;
   try {
     route = await shortestDrivingRouteKm(origin, destination);
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Nie udało się obliczyć trasy." }, { status: 400 });
+    return json({ error: ({pl:"Nie udało się obliczyć trasy.",en:"Could not calculate the route.",de:"Die Route konnte nicht berechnet werden.",cs:"Trasu se nepodařilo vypočítat."}[locale]) }, { status: 400 });
   }
 
   const admin = createAdminClient();
@@ -77,6 +90,7 @@ export async function POST(req: NextRequest) {
   const serviceType = roundtrip ? "roundtrip" : "point_to_point";
   const { data, error } = await admin.from("bookings").insert({
     service_type: serviceType,
+    customer_locale: locale,
     pickup_address: origin,
     destination_address: destination,
     airport_key: "point_to_point",
@@ -110,7 +124,7 @@ export async function POST(req: NextRequest) {
   }).select("*").single();
 
   if (error || !data) {
-    return NextResponse.json({ error: error?.message || "Nie udało się zapisać zgłoszenia." }, { status: 500 });
+    return json({ error: ({pl:"Nie udało się zapisać zgłoszenia.",en:"Could not save your request.",de:"Die Anfrage konnte nicht gespeichert werden.",cs:"Poptávku se nepodařilo uložit."}[locale]) }, { status: 500 });
   }
 
   await admin.from("booking_history").insert({
@@ -119,7 +133,7 @@ export async function POST(req: NextRequest) {
     created_by: null
   });
 
-  const portalUrl = data.customer_access_token ? `${customerBaseUrl()}/rezerwacja/${data.customer_access_token}` : customerBaseUrl();
+  const portalUrl = data.customer_access_token ? `${customerBaseUrl()}/rezerwacja/${data.customer_access_token}?lang=${locale}` : `${customerBaseUrl()}?lang=${locale}`;
   const details = `${esc(origin)} → ${esc(destination)}${roundtrip ? ` → ${esc(origin)}` : ""}`;
   let customerEmailSent = false;
   let adminEmailSent = false;
@@ -127,8 +141,9 @@ export async function POST(req: NextRequest) {
   try {
     const result = await sendMattEmail({
       to: email,
-      subject: `Przyjęliśmy zapytanie o transport – ${data.booking_number}`,
-      html: `<div style="font-family:Arial,sans-serif;background:#0b0e13;color:#fff;padding:28px"><div style="max-width:650px;margin:auto;background:#151923;border:1px solid #343b49;border-radius:16px;padding:28px"><h2 style="color:#f1d28b">MATT TRANSPORT</h2><h1>Zapytanie przyjęte</h1><p>Dziękujemy. Przygotujemy indywidualną wycenę transportu.</p><p><strong>${esc(data.booking_number)}</strong><br>${details}<br>${esc(travelDate)} · ${esc(travelTime)} · ${passengers} os.</p><p><a href="${portalUrl}" style="display:inline-block;background:#d5ae5d;color:#111;padding:14px 20px;border-radius:11px;text-decoration:none;font-weight:800">OTWÓRZ REZERWACJĘ</a></p></div></div>`
+      locale,
+      subject: `${copy.subject} – ${data.booking_number}`,
+      html: `<div style="font-family:Arial,sans-serif;background:#0b0e13;color:#fff;padding:28px"><div style="max-width:650px;margin:auto;background:#151923;border:1px solid #343b49;border-radius:16px;padding:28px"><h2 style="color:#f1d28b">MATT TRANSPORT</h2><h1>${esc(copy.title)}</h1><p>${esc(copy.intro)}</p><p><strong>${esc(data.booking_number)}</strong><br>${details}<br>${esc(travelDate)} · ${esc(travelTime)} · ${passengers} ${esc(copy.people)}</p><p><a href="${portalUrl}" style="display:inline-block;background:#d5ae5d;color:#111;padding:14px 20px;border-radius:11px;text-decoration:none;font-weight:800">${esc(copy.open)}</a></p></div></div>`
     });
     customerEmailSent = Boolean(result.sent);
   } catch (mailError) {
@@ -159,7 +174,7 @@ export async function POST(req: NextRequest) {
     console.error("General transport admin push:", pushError);
   }
 
-  return NextResponse.json({
+  return json({
     ...data,
     distance_km: route.distanceKm,
     customer_email_sent: customerEmailSent,

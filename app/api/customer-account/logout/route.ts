@@ -1,3 +1,4 @@
+import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -6,6 +7,8 @@ import {
 } from "@/lib/customerAccount";
 
 export async function POST(req: NextRequest) {
+  let responseLocale=requestCustomerLocale(req);
+  const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
   const rawSession = req.cookies.get(CUSTOMER_SESSION_COOKIE)?.value || "";
   if (rawSession) {
     const admin = createAdminClient();
@@ -15,7 +18,7 @@ export async function POST(req: NextRequest) {
       .eq("session_hash", hashCustomerToken(rawSession));
   }
 
-  const response = NextResponse.json({ ok: true });
+  const response = json({ ok: true });
   response.cookies.set(CUSTOMER_SESSION_COOKIE, "", {
     httpOnly: true,
     secure: true,

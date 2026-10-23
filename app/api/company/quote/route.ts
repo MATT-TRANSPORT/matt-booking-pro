@@ -1,3 +1,4 @@
+import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -6,11 +7,13 @@ import { calculateCompanyQuote } from "@/lib/companyPricing";
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
+  let responseLocale=requestCustomerLocale(req);
+  const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
   const auth = await createClient();
   const { data: { user } } = await auth.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Brak autoryzacji." }, { status: 401 });
+    return json({ error: "Brak autoryzacji." }, { status: 401 });
   }
 
   const { data: membership } = await auth
@@ -21,10 +24,11 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (!membership) {
-    return NextResponse.json({ error: "Brak przypisanej firmy." }, { status: 403 });
+    return json({ error: "Brak przypisanej firmy." }, { status: 403 });
   }
 
   const body = await req.json();
+ responseLocale=requestCustomerLocale(req,body?.locale);
 
   try {
     const quote = await calculateCompanyQuote(createAdminClient(), {
@@ -39,9 +43,9 @@ export async function POST(req: NextRequest) {
       additionalStopReturn: Boolean(body.additionalStopReturn)
     });
 
-    return NextResponse.json(quote);
+    return json(quote);
   } catch (error) {
-    return NextResponse.json(
+    return json(
       {
         error:
           error instanceof Error

@@ -1,11 +1,11 @@
 export const PRICES: Record<string, { label: string; car: number; bus: number }> = {
-  pyrzowice: { label: "Katowice-Pyrzowice", car: 260, bus: 360 },
-  balice: { label: "Kraków-Balice", car: 370, bus: 430 },
-  ostrawa: { label: "Ostrawa", car: 260, bus: 360 },
-  wroclaw: { label: "Wrocław", car: 660, bus: 790 },
-  warszawa: { label: "Warszawa", car: 990, bus: 1300 },
-  prague: { label: "Praga", car: 1300, bus: 1650 },
-  vienna: { label: "Wiedeń", car: 1300, bus: 1650 }
+  pyrzowice: { label: "Katowice-Pyrzowice", car: 290, bus: 400 },
+  balice: { label: "Kraków-Balice", car: 390, bus: 500 },
+  ostrawa: { label: "Ostrawa", car: 290, bus: 400 },
+  wroclaw: { label: "Wrocław", car: 690, bus: 890 },
+  warszawa: { label: "Warszawa", car: 1100, bus: 1500 },
+  prague: { label: "Praga", car: 1400, bus: 1700 },
+  vienna: { label: "Wiedeń", car: 1400, bus: 1700 }
 };
 
 export function calculateQuote(input: {
