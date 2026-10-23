@@ -11,7 +11,7 @@ import BookingArchiveActions from "@/components/BookingArchiveActions";
 export default async function Page({ searchParams }: { searchParams: Promise<{ q?: string; view?: string; deletedAt?: string }> }) {
   const { q = "", view = "active", deletedAt = "" } = await searchParams;
   const deletionTimestamp = Number(deletedAt);
-  const justDeleted = /^\\d{13}$/.test(deletedAt) && Number.isFinite(deletionTimestamp) && Math.abs(Date.now() - deletionTimestamp) < 120_000;
+  const justDeleted = /^[0-9]{13}$/.test(deletedAt) && Number.isFinite(deletionTimestamp) && Math.abs(Date.now() - deletionTimestamp) < 120_000;
   const { s } = await panelClient();
   let query = s.from("bookings").select("*,drivers:drivers!bookings_driver_id_fkey(full_name,color)").limit(700);
   if (q.trim()) query = query.or(`booking_number.ilike.%${q}%,customer_name.ilike.%${q}%,phone.ilike.%${q}%,email.ilike.%${q}%`);
