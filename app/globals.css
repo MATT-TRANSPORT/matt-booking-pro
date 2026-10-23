@@ -2732,3 +2732,65 @@
     margin-left:0;
   }
 }
+
+
+/* v5.2 Admin operational ergonomics: use one-screen summaries without hiding alerts. */
+.booking-language-switch{display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap;margin:10px 0 14px}
+.booking-language-button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;padding:6px 9px;border-radius:9px;border:1px solid rgba(180,190,210,.4);background:rgba(255,255,255,.04);color:var(--text);cursor:pointer;font-size:11px;font-weight:800;line-height:1}
+.booking-language-button[aria-pressed="true"]{border-color:var(--gold2);box-shadow:0 0 0 1px rgba(213,174,93,.15) inset;background:rgba(213,174,93,.1)}
+.booking-language-button img{display:block;flex:none;width:28px;height:18px;border-radius:2px;object-fit:cover;box-shadow:0 0 0 1px rgba(255,255,255,.23)}
+.booking-language-button:hover,.booking-language-button:focus-visible{border-color:var(--gold2)}
+@media(max-width:440px){.booking-language-button{padding:6px 8px}.booking-language-switch{gap:6px}}
+
+/* Compact booking details — individual and corporate bookings share the controls. */
+.reservation-admin-compact{min-width:0}
+.reservation-admin-compact>div{min-width:0}
+.reservation-admin-compact .booking-detail-main{padding:18px}
+.reservation-admin-compact .booking-detail-main h2{margin:15px 0 10px}
+.reservation-admin-compact .detail-list>div{min-width:0}
+.reservation-admin-compact .detail-list strong{overflow-wrap:anywhere}
+.reservation-admin-compact .panel-collapsible-card{margin-top:12px;min-width:0;border-color:rgba(150,159,180,.25)}
+.reservation-admin-compact .panel-collapsible-summary{padding:12px 14px}
+.reservation-admin-compact .panel-collapsible-summary>span>strong{font-size:14px}
+.reservation-admin-compact .panel-collapsible-summary>span>small{font-size:11px;color:var(--muted)}
+.reservation-admin-compact .reservation-calendar-fold>.google-calendar-sync-card,
+.reservation-admin-compact .reservation-snapshot-fold>.card{margin:0!important;padding:12px 14px;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none}
+.reservation-admin-compact .reservation-flight-fold>.flight-monitor-card{margin:0!important;padding:12px 14px;border:0;border-top:1px solid var(--line);border-radius:0;box-shadow:none}
+.reservation-admin-compact .reservation-flight-fold{margin:10px 0}
+.reservation-admin-compact .reservation-flight-fold .flight-monitor-head h2{font-size:19px}
+.reservation-admin-compact .reservation-calendar-fold .google-calendar-title h2,
+.reservation-admin-compact .reservation-snapshot-fold h2{font-size:18px}
+.reservation-admin-compact .booking-documents-compact{padding:13px 14px}
+.reservation-admin-compact .booking-documents-compact h2{font-size:18px;margin:0 0 8px}
+.reservation-admin-compact .booking-documents-compact>.muted{font-size:11px;margin:0 0 10px;line-height:1.4}
+.reservation-admin-compact .booking-documents-compact .detail-list>div{padding:8px 10px}
+.reservation-admin-compact .booking-documents-compact .btn{font-size:10px;min-height:32px;padding:7px 10px}
+.reservation-admin-compact .booking-documents-upload>summary{cursor:pointer;color:var(--gold2);font-weight:700;font-size:12px}
+.reservation-admin-compact .booking-documents-upload[open]>summary{margin-bottom:12px}
+.reservation-admin-compact .booking-documents-upload .grid{min-width:0}
+.reservation-is-b2b .booking-detail-main{background:linear-gradient(125deg,rgba(108,96,175,.085),rgba(20,24,31,.0) 55%),var(--panel);border-color:rgba(126,120,193,.38)}
+.reservation-is-b2b .reservation-title-row{border-bottom:1px solid rgba(126,120,193,.25);padding-bottom:12px}
+.reservation-is-b2b .booking-documents-compact{border-color:rgba(126,120,193,.3)}
+.reservation-is-private .booking-detail-main{background:var(--panel)}
+.booking-delete-notice{margin:12px 0;border:1px solid rgba(95,180,130,.45);border-radius:10px;background:rgba(70,150,103,.09);padding:11px 14px;color:#abeac3;font-weight:700;font-size:13px}
+
+/* Dispatcher: keep commands and status labels intact; use cards before table crushes text. */
+.dispatcher-scope,.ops-filters{max-width:100%;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:thin;padding-bottom:5px}
+.dispatcher-scope button,.ops-filters button{flex:none;white-space:nowrap}
+.dispatcher-desktop{max-width:100%;overflow-x:auto}
+.dispatcher-table{min-width:1280px}
+.dispatcher-table .dispatcher-status-next,
+.dispatcher-table .dispatcher-save,
+.dispatcher-table .dispatcher-quick-links a{white-space:nowrap}
+.dispatcher-table .dispatcher-leg-assignment{min-width:0}
+.dispatcher-table .dispatcher-leg-assignment select{width:100%;min-width:0}
+.dispatcher-table tr.dispatcher-b2b{background:rgba(116,103,181,.055)}
+.dispatcher-mobile-list .dispatcher-card.dispatcher-b2b{background:linear-gradient(110deg,rgba(116,103,181,.08),rgba(255,255,255,.015));border-color:rgba(146,135,197,.3)}
+@media(max-width:1440px){.dispatcher-desktop{display:none}.dispatcher-mobile-list{display:grid;gap:10px}.dispatcher-card{padding:14px;border:1px solid var(--line);border-left-width:5px;border-radius:14px;background:rgba(255,255,255,.02)}}
+@media(max-width:620px){.reservation-admin-compact .booking-detail-main{padding:13px}.reservation-admin-compact .panel-collapsible-summary{padding:12px}.dispatcher-scope{margin-left:-6px;margin-right:-6px;padding-left:6px;padding-right:6px}}
+
+/* Driver: display the amount explicitly, not just a generic payment label. */
+.driver-payment-copy{min-width:0;flex:1}
+.driver-payment-copy strong.driver-payment-due{font-size:20px;line-height:1.2;color:#f5cb72;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.driver-payment-copy strong.driver-payment-settlement{font-size:14px;color:#aee9c5;overflow-wrap:anywhere}
+.driver-payment-copy .driver-payment-price{color:#bbc5d4;font-size:12px;font-weight:650;letter-spacing:0}
