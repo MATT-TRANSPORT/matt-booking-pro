@@ -618,8 +618,8 @@ function LegAssignmentControls({ b, drivers, vehicles, driverId, vehicleId, retu
   const selects = (leg: "primary" | "return", d: string, v: string, setD: any, setV: any) => (
     <div className={`dispatcher-leg-assignment ${leg}`}>
       <strong>{leg === "return" ? "↩ POWRÓT" : "→ WYJAZD"}</strong>
-      <select value={d} onChange={(e) => setD(e.target.value)}><option value="">— Kierowca —</option>{drivers.map((x:any)=><option key={x.id} value={x.id}>{x.full_name}</option>)}</select>
-      <select value={v} onChange={(e) => setV(e.target.value)}><option value="">— Pojazd —</option>{vehicles.map((x:any)=><option key={x.id} value={x.id}>{x.name} · {x.registration}</option>)}</select>
+      <select aria-label={`${leg === "return" ? "Powrót" : "Wyjazd"} — kierowca`} title={drivers.find((x:any) => x.id === d)?.full_name || "Wybierz kierowcę"} value={d} onChange={(e) => setD(e.target.value)}><option value="">— Kierowca —</option>{drivers.map((x:any)=><option key={x.id} value={x.id}>{x.full_name}</option>)}</select>
+      <select aria-label={`${leg === "return" ? "Powrót" : "Wyjazd"} — pojazd`} title={vehicles.find((x:any) => x.id === v)?.name || "Wybierz pojazd"} value={v} onChange={(e) => setV(e.target.value)}><option value="">— Pojazd —</option>{vehicles.map((x:any)=><option key={x.id} value={x.id}>{x.name} · {x.registration}</option>)}</select>
     </div>
   );
   return <div className="dispatcher-leg-assignments">{selects("primary",driverId,vehicleId,setDriverId,setVehicleId)}{b.service_type === "roundtrip" && selects("return",returnDriverId,returnVehicleId,setReturnDriverId,setReturnVehicleId)}</div>;
@@ -637,16 +637,49 @@ function DispatchCard({ b, drivers, vehicles, update, saving, conflicts, nowKey 
   const activeVehicle = activeLeg?.kind === "return" ? returnVehicleId : vehicleId;
   async function save(status = b.status, leg?: "primary" | "return") { await update(b.id, driverId, vehicleId, status, returnDriverId, returnVehicleId, leg); }
   const route = b.service_type === "from_airport" ? `${b.airport_label} → ${b.pickup_address}` : b.service_type === "roundtrip" ? `${b.pickup_address} ↔ ${b.airport_label}` : `${b.pickup_address} → ${b.airport_label}`;
+
   return (
-    <article className={`dispatcher-card ${statusStageClass(b.status)} ${b.company_id ? "dispatcher-b2b" : ""} ${overdue ? "booking-overdue" : ""} ${conflicts.length ? "dispatcher-has-conflict" : ""}`}>
-      <div className="dispatcher-card-head"><div><a href={`/panel/rezerwacje/${b.id}`}>{b.booking_number}</a><OperationalLegs b={b} nowKey={nowKey}/></div><span className={`status ${b.status}`}>{statusPl(b.status)}</span></div>
-      {overdue && <div className="overdue-badge">⚠ TERMIN MINĄŁ — status niezamknięty</div>}<ConflictBadges conflicts={conflicts} />
+    <article className={`dispatcher-card dispatcher-trip-card ${statusStageClass(b.status)} ${b.company_id ? "dispatcher-b2b" : ""} ${overdue ? "booking-overdue" : ""} ${conflicts.length ? "dispatcher-has-conflict" : ""}`}>
+      <header className="dispatcher-card-head dispatcher-trip-header">
+        <div className="dispatcher-trip-identity">
+          <span className="booking-origin">{b.company_id ? <span className="origin-badge b2b">🏢 {company?.name ?? "B2B"}</span> : <span className="origin-badge private">👤 INDYWIDUALNY</span>}</span>
+          <a className="dispatcher-trip-number" href={`/panel/rezerwacje/${b.id}`}>{b.booking_number}</a>
+        </div>
+        <div className="dispatcher-trip-status">
+          <span className={`status ${b.status}`}>{statusPl(b.status)}</span>
+          <PaymentSummary b={b} />
+        </div>
+      </header>
+
+      <div className="dispatcher-trip-overview">
+        <section className="dispatcher-trip-dates" aria-label="Terminy kursu">
+          <h3>Termin</h3>
+          <OperationalLegs b={b} nowKey={nowKey} />
+        </section>
+        <section className="dispatcher-card-route dispatcher-trip-route" aria-label="Klient i trasa">
+          <h3>Klient / trasa</h3>
+          <strong>{b.customer_name}</strong>
+          <span>{route}</span>
+          {b.phone && <a className="dispatcher-trip-phone" href={`tel:${b.phone}`}>{b.phone}</a>}
+          <FlightOps b={b} compact />
+        </section>
+      </div>
+
+      {overdue && <div className="overdue-badge">⚠ TERMIN MINĄŁ — status niezamknięty</div>}
+      <ConflictBadges conflicts={conflicts} />
       {bookingHasMissingAssignment({ ...b, driver_id: driverId || null, vehicle_id: vehicleId || null, return_driver_id: returnDriverId || null, return_vehicle_id: returnVehicleId || null }) && <div className="dispatcher-missing-badge">⚠ NIEPEŁNA OBSADA</div>}
-      <div className="booking-origin">{b.company_id ? <span className="origin-badge b2b">🏢 {company?.name ?? "B2B"}</span> : <span className="origin-badge private">👤 INDYWIDUALNY</span>}</div>
-      <div className="dispatcher-card-route"><strong>{b.customer_name}</strong><span>{route}</span></div><PaymentSummary b={b} /><FlightOps b={b}/>
-      <LegAssignmentControls b={b} drivers={drivers} vehicles={vehicles} driverId={driverId} vehicleId={vehicleId} returnDriverId={returnDriverId} returnVehicleId={returnVehicleId} setDriverId={setDriverId} setVehicleId={setVehicleId} setReturnDriverId={setReturnDriverId} setReturnVehicleId={setReturnVehicleId}/>
-      <div className="dispatcher-mobile-actions"><button className="btn secondary" disabled={saving} onClick={() => save()}>{saving ? "ZAPIS..." : "ZAPISZ OBSADĘ"}</button><QuickStatusAction b={b} driverId={activeDriver} vehicleId={activeVehicle} leg={activeLeg?.kind} update={(_id:any,_d:any,_v:any,status:any,leg:any)=>save(status, leg)} saving={saving}/></div>
-      <QuickLinks b={b}/>
+
+      <section className="dispatcher-trip-crew" aria-label="Obsada kursu">
+        <h3>Obsada kursu</h3>
+        <LegAssignmentControls b={b} drivers={drivers} vehicles={vehicles} driverId={driverId} vehicleId={vehicleId} returnDriverId={returnDriverId} returnVehicleId={returnVehicleId} setDriverId={setDriverId} setVehicleId={setVehicleId} setReturnDriverId={setReturnDriverId} setReturnVehicleId={setReturnVehicleId}/>
+      </section>
+      <footer className="dispatcher-trip-footer">
+        <div className="dispatcher-mobile-actions">
+          <button type="button" className="btn secondary" disabled={saving} onClick={() => save()}>{saving ? "ZAPIS..." : "ZAPISZ OBSADĘ"}</button>
+          <QuickStatusAction b={b} driverId={activeDriver} vehicleId={activeVehicle} leg={activeLeg?.kind} update={(_id:any,_d:any,_v:any,status:any,leg:any)=>save(status, leg)} saving={saving}/>
+        </div>
+        <QuickLinks b={b}/>
+      </footer>
     </article>
   );
 }
