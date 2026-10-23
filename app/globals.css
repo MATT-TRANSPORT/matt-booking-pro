@@ -2680,3 +2680,55 @@
  .dashboard-feed-card.booking-stage-card.dispatcher-history-card{grid-template-columns:38px minmax(0,1fr)}
  .dispatcher-history-card .dashboard-feed-meta{grid-column:2/-1;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:space-between}
 }
+
+/* Keep archived bookings readable on narrow phones without horizontal overflow. */
+.dispatcher-history-card{
+  min-width:0;
+  max-width:100%;
+}
+.dispatcher-history-card>div:nth-child(2),
+.dispatcher-history-card .booking-origin,
+.dispatcher-history-card .dispatcher-flight-stack{
+  min-width:0;
+  max-width:100%;
+  overflow-wrap:anywhere;
+}
+.dispatcher-history-card .dashboard-feed-meta>.status,
+.dispatcher-history-card .dashboard-feed-meta>.btn{
+  max-width:100%;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+@media(max-width:800px){
+  .dispatcher-history-card .dashboard-feed-meta{
+    min-width:0;
+    max-width:100%;
+    gap:8px;
+  }
+  .dispatcher-history-card .dashboard-feed-meta>.btn{
+    text-align:center;
+  }
+}
+@media(max-width:520px){
+  .dashboard-feed-card.booking-stage-card.dispatcher-history-card{
+    grid-template-columns:32px minmax(0,1fr);
+    gap:8px;
+    padding:10px;
+  }
+  .dispatcher-history-card .feed-icon{
+    font-size:20px;
+  }
+  .dispatcher-history-card .dashboard-feed-meta{
+    grid-column:2/-1;
+    justify-content:flex-start;
+    align-items:center;
+  }
+  .dispatcher-history-card .dashboard-feed-meta>.status,
+  .dispatcher-history-card .dashboard-feed-meta>.btn{
+    flex:0 1 auto;
+    min-width:0;
+  }
+  .dispatcher-history-card .dashboard-feed-meta>.btn{
+    margin-left:0;
+  }
+}
