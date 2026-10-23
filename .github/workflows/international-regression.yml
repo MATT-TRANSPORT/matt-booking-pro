@@ -49,5 +49,7 @@ jobs:
         run: node --test tests/company-templates-render.test.cjs
       - name: Panel read receipt authorization
         run: node --test tests/panel-booking-reads.test.cjs
+      - name: Dispatcher history responsive rules (static contract)
+        run: node --test tests/dispatcher-history-layout.test.cjs
       - name: TypeScript check
         run: npx tsc --noEmit
