@@ -68,7 +68,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
         <td>{b.travel_date}<br/>{String(b.travel_time||"").slice(0,5)}<br/><small>{bookingRouteText(b,"primary")}</small></td>
         <td>{b.customer_name}<br/>{b.phone||"—"}</td>
         <td>{driver?<span className="driver-color-badge" style={{borderColor:driver.color||"#D6AD55"}}><i style={{background:driver.color||"#D6AD55"}}/>{driver.full_name}</span>:"—"}</td>
-        <td>{price(b)}</td><td><span className={`status ${b.status}`}>{statusPl(b.status)}</span></td><td onClick={(e:any)=>e.stopPropagation()}><BookingArchiveActions booking={b} overdue={overdue} quoteExpired={b.quote_required && b.quote_status === "priced" && Boolean(b.quote_expires_at) && new Date(b.quote_expires_at).getTime() < Date.now()} quoteRejected={b.quote_required && b.quote_status === "rejected"} compact /></td>
+        <td>{price(b)}</td><td><span className={`status ${b.status}`}>{statusPl(b.status)}</span></td><td><BookingArchiveActions booking={b} overdue={overdue} quoteExpired={b.quote_required && b.quote_status === "priced" && Boolean(b.quote_expires_at) && new Date(b.quote_expires_at).getTime() < Date.now()} quoteRejected={b.quote_required && b.quote_status === "rejected"} compact /></td>
       </tr>})}
     </tbody></table></div>
 
