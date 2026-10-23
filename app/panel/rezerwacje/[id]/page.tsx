@@ -156,7 +156,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         </div>
 
         {booking.company_id && <details className="panel-collapsible-card reservation-snapshot-fold"><summary className="panel-collapsible-summary"><span><strong>🔒 Snapshot ceny B2B</strong><small> · {displayAmount.toFixed(2)} zł brutto</small></span><b>ROZWIŃ</b></summary><B2BPricingSnapshotCard booking={booking} /></details>}
-        {booking.company_id && <BookingDocumentsCard bookingId={booking.id} documents={bookingDocuments ?? []} canManage />}
+        {booking.company_id && <BookingDocumentsCard bookingId={booking.id} documents={bookingDocuments ?? []} canManage compact />}
       </div>
 
       <div>
