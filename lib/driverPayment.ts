@@ -1,5 +1,5 @@
 /** Driver-facing collection rules. Company invoices / online transfers are not cash due. */
-export function driverPaymentDue(booking: any) {
+export function driverPaymentDue(booking: any, leg: "primary" | "return" = "primary") {
   const gross = Number(booking?.company_id
     ? booking?.price_gross ?? booking?.total_price ?? 0
     : booking?.total_price ?? 0);
@@ -13,10 +13,12 @@ export function driverPaymentDue(booking: any) {
   const online = method === "online" || method === "employee_payment" || Boolean(booking?.online_payment_requested);
   const transfer = method === "bank_transfer";
   const cash = !company && !online && !transfer && !settled && !review && !refunded && status !== "failed";
-  const collectibleCents = cash ? grossCents : 0;
+  const returnOfRoundtrip = leg === "return" && Boolean(booking?.return_date);
+  const collectibleCents = cash && !returnOfRoundtrip ? grossCents : 0;
   let label = "KWOTA DO POBRANIA";
   let note = "Gotówka od pasażera; potwierdź, czy płatność nie została już rozliczona.";
   if (settled) { label = "OPŁACONO"; note = "Nie pobieraj ponownie ceny przejazdu."; }
+  else if (returnOfRoundtrip && cash) { label = "SPRAWDŹ ROZLICZENIE POWROTU"; note = "Pokazana kwota obejmuje całą rezerwację w obie strony. Nie pobieraj jej ponownie bez potwierdzenia przez dyspozytora."; }
   else if (review || refunded || status === "failed") {
     label = "PŁATNOŚĆ DO WYJAŚNIENIA";
     note = "Skontaktuj się z dyspozytorem przed pobraniem kwoty.";
