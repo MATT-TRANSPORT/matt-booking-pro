@@ -8,8 +8,10 @@ import { isArchivedBooking, isOverdueBooking, sortBookingsChronologically, statu
 import { bookingRouteText } from "@/lib/bookingRoute";
 import BookingArchiveActions from "@/components/BookingArchiveActions";
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ q?: string; view?: string }> }) {
-  const { q = "", view = "active" } = await searchParams;
+export default async function Page({ searchParams }: { searchParams: Promise<{ q?: string; view?: string; deletedAt?: string }> }) {
+  const { q = "", view = "active", deletedAt = "" } = await searchParams;
+  const deletionTimestamp = Number(deletedAt);
+  const justDeleted = /^\\d{13}$/.test(deletedAt) && Number.isFinite(deletionTimestamp) && Math.abs(Date.now() - deletionTimestamp) < 120_000;
   const { s } = await panelClient();
   let query = s.from("bookings").select("*,drivers:drivers!bookings_driver_id_fkey(full_name,color)").limit(700);
   if (q.trim()) query = query.or(`booking_number.ilike.%${q}%,customer_name.ilike.%${q}%,phone.ilike.%${q}%,email.ilike.%${q}%`);
@@ -52,6 +54,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
 
   return <main className="container">
     <h1>Rezerwacje / wyszukiwarka</h1><PanelNav/>
+    {justDeleted && <div role="status" className="booking-delete-notice">✓ Rezerwacja została usunięta. Lista została odświeżona.</div>}
     <div className="booking-view-tabs">
       <a className={view==="active"?"active":""} href={href("active")}>AKTYWNE ({counts.active})</a>
       <a className={view==="completed"?"active":""} href={href("completed")}>ZAKOŃCZONE ({counts.completed})</a>
