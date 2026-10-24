@@ -2941,3 +2941,23 @@ main.container.dispatcher-page{max-width:1760px}
   .dispatcher-page .dispatcher-mobile-list{display:none}
   .dispatcher-page .dispatcher-table{min-width:1480px}
 }
+
+/* MATT Driver: compact installation launcher next to the driver name. */
+.driver-title-row{display:flex;align-items:center;gap:12px;position:relative;min-width:0}
+.driver-title-row h1{min-width:0;overflow-wrap:anywhere}
+.driver-install-menu{flex:none}
+.driver-install-menu summary{list-style:none;display:grid;place-items:center;width:44px;height:44px;border:1px solid rgba(213,174,93,.5);border-radius:12px;background:rgba(213,174,93,.08);cursor:pointer;font-size:23px}
+.driver-install-menu summary::-webkit-details-marker{display:none}
+.driver-install-menu summary:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.driver-install-menu-content{position:absolute;left:0;top:calc(100% + 10px);z-index:40;width:min(440px,calc(100vw - 40px));max-height:min(70vh,560px);overflow-y:auto;box-shadow:0 14px 30px rgba(0,0,0,.5);border-radius:18px}
+.driver-install-menu-content .driver-app-controls{margin:0;align-items:stretch;flex-direction:column}
+.driver-install-menu-content .driver-app-control-actions{justify-content:flex-start}
+.driver-booking-ref{display:block;margin-top:2px;color:var(--muted);font-size:11px;overflow-wrap:anywhere}
+.driver-trip-top>div:first-child{flex:1;min-width:0}
+.driver-trip-top .driver-pro-flight-box{max-width:100%;min-width:0;margin:12px 0 4px}
+.driver-trip-top .driver-pro-flight-box .flight-chip{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+@media(max-width:700px){
+ .driver-title-row{gap:8px}
+ .driver-install-menu-content{width:calc(100vw - 38px)}
+ .driver-trip-top>div:first-child{width:100%}
+}
