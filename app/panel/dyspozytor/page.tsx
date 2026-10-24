@@ -11,8 +11,12 @@ import { bookingRouteText } from "@/lib/bookingRoute";
 
 type DispatcherView = "active" | "all" | "completed" | "cancelled";
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
-  const { view = "active" } = await searchParams;
+type DispatcherScope = "all" | "next3h" | "today" | "tomorrow" | "7d" | "overdue";
+
+export default async function Page({ searchParams }: { searchParams: Promise<{ view?: string; scope?: string }> }) {
+  const { view = "active", scope = "all" } = await searchParams;
+  const allowedScopes: DispatcherScope[] = ["all", "next3h", "today", "tomorrow", "7d", "overdue"];
+  const initialScope: DispatcherScope = allowedScopes.includes(scope as DispatcherScope) ? scope as DispatcherScope : "all";
   const selectedView: DispatcherView = ["all", "completed", "cancelled"].includes(view)
     ? (view as DispatcherView)
     : "active";
@@ -98,13 +102,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ v
     <p className="muted">Główne miejsce do obsługi wszystkich przejazdów. Najbliższe kursy, obsada, konflikty i realne alerty lotnicze są w jednym widoku.</p>
     <PanelNav />
 
-    <div className="dispatcher-archive-tabs">
-      <a className={selectedView === "active" ? "active" : ""} href="/panel/dyspozytor">PLAN BIEŻĄCY</a>
-      <a className={selectedView === "all" ? "active" : ""} href="/panel/dyspozytor?view=all">WSZYSTKIE</a>
-      <a className={selectedView === "completed" ? "active" : ""} href="/panel/dyspozytor?view=completed">✓ ZAKOŃCZONE</a>
-      <a className={selectedView === "cancelled" ? "active" : ""} href="/panel/dyspozytor?view=cancelled">✕ ANULOWANE</a>
-    </div>
-
     {selectedView === "active" && (weddings ?? []).length > 0 && (
       <details className="dispatcher-wedding-strip card">
         <summary className="dispatcher-wedding-summary">
@@ -134,8 +131,27 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ v
       <span className="muted">AirLabs · cache 20 min · maks. 8 zapytań na jedno zbiorcze odświeżenie</span>
     </div>
 
-    {selectedView === "active" ? <DispatcherClient bookings={bookingsWithFlights} drivers={drivers ?? []} vehicles={vehicles ?? []} seenNewIds={(reads ?? []).map((row: any) => row.booking_id)} readStateUnavailable={Boolean(readsError)} /> :
-      <ReadOnlyDispatcherList bookings={bookingsWithFlights} title={readOnlyTitle} />}
+    {selectedView === "active" ? (
+      <DispatcherClient bookings={bookingsWithFlights} drivers={drivers ?? []} vehicles={vehicles ?? []}
+        seenNewIds={(reads ?? []).map((row: any) => row.booking_id)}
+        readStateUnavailable={Boolean(readsError)} initialScope={initialScope} />
+    ) : (
+      <>
+        <nav className="dispatcher-scope" id="kursy" aria-label="Filtry planu kursów">
+          <a href="/panel/dyspozytor#kursy">WSZYSTKIE AKTUALNE</a>
+          <a href="/panel/dyspozytor?scope=next3h#kursy">⏱ NASTĘPNE 3 H</a>
+          <a href="/panel/dyspozytor?scope=today#kursy">DZISIAJ</a>
+          <a href="/panel/dyspozytor?scope=tomorrow#kursy">JUTRO</a>
+          <a href="/panel/dyspozytor?scope=7d#kursy">7 DNI</a>
+          <a href="/panel/dyspozytor?scope=overdue#kursy">⚠ TERMIN MINĄŁ</a>
+          <a className={selectedView === "completed" ? "active" : ""} aria-current={selectedView === "completed" ? "page" : undefined}
+            href="/panel/dyspozytor?view=completed#kursy">✓ ZAKOŃCZONE</a>
+          <a className={selectedView === "cancelled" ? "active" : ""} aria-current={selectedView === "cancelled" ? "page" : undefined}
+            href="/panel/dyspozytor?view=cancelled#kursy">✕ ANULOWANE</a>
+        </nav>
+        <ReadOnlyDispatcherList bookings={bookingsWithFlights} title={readOnlyTitle} />
+      </>
+    )}
   </main>;
 }
 
