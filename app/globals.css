@@ -800,6 +800,7 @@
   margin:12px 0;
 }
 .dispatcher-scope button,
+.dispatcher-scope a,
 .booking-view-tabs a{
   border:1px solid var(--line);
   border-radius:999px;
@@ -812,11 +813,13 @@
   font-weight:800;
 }
 .dispatcher-scope button.active,
+.dispatcher-scope a.active,
 .booking-view-tabs a.active{
   border-color:var(--gold);
   color:var(--gold2);
   background:rgba(213,174,93,.08);
 }
+.dispatcher-scope{scroll-margin-top:16px}
 .dispatcher-scope button.danger{
   border-color:rgba(224,83,83,.45);
   color:#ffb8ba;

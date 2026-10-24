@@ -38,13 +38,15 @@ export default function DispatcherClient({
   drivers,
   vehicles,
   seenNewIds,
-  readStateUnavailable = false
+  readStateUnavailable = false,
+  initialScope = "all"
 }: {
   bookings: any[];
   drivers: any[];
   vehicles: any[];
   seenNewIds: string[];
   readStateUnavailable?: boolean;
+  initialScope?: Scope;
 }) {
   useEffect(() => {
     // Back/forward cache restores the old document without fetching server read receipts.
@@ -55,7 +57,7 @@ export default function DispatcherClient({
     return () => window.removeEventListener("pageshow", refreshRestoredPage);
   }, []);
   const [rows, setRows] = useState(bookings);
-  const [scope, setScope] = useState<Scope>("all");
+  const [scope, setScope] = useState<Scope>(initialScope);
   const [filter, setFilter] = useState<Filter>("all");
   const [message, setMessage] = useState("");
   const [savingId, setSavingId] = useState("");
@@ -326,7 +328,7 @@ export default function DispatcherClient({
         )}
       </section>
 
-      <div className="dispatcher-scope">
+      <nav className="dispatcher-scope" id="kursy" aria-label="Filtry planu kursów">
         <button className={scope === "all" ? "active" : ""} onClick={() => setScope("all")}>
           WSZYSTKIE AKTUALNE ({activeRows.length})
         </button>
@@ -348,7 +350,9 @@ export default function DispatcherClient({
         >
           ⚠ TERMIN MINĄŁ ({overdueCount})
         </button>
-      </div>
+        <a href="/panel/dyspozytor?view=completed#kursy">✓ ZAKOŃCZONE</a>
+        <a href="/panel/dyspozytor?view=cancelled#kursy">✕ ANULOWANE</a>
+      </nav>
 
       <div className="ops-filters">
         <button className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>

@@ -53,3 +53,23 @@ test("UI changes do not include automatic backend booking writes", () => {
   assert.match(dispatcher, /async function update\(/);
   assert.match(dispatcher, /onClick=\{\(\) => save\(\)\}/);
 });
+
+test("dashboard uses only the lower filter bar with completed and cancelled views", () => {
+  assert.doesNotMatch(page, /className="dispatcher-archive-tabs"/);
+  assert.match(dispatcher, /<nav className="dispatcher-scope" id="kursy"/);
+  assert.match(dispatcher, /href="\/panel\/dyspozytor\?view=completed#kursy"/);
+  assert.match(dispatcher, /href="\/panel\/dyspozytor\?view=cancelled#kursy"/);
+  assert.match(page, /selectedView === "completed" \? "active" : ""/);
+  assert.match(page, /selectedView === "cancelled" \? "active" : ""/);
+  assert.match(css, /\.dispatcher-scope a,/);
+  assert.match(css, /\.dispatcher-scope a\.active,/);
+});
+
+test("archived courses return through the same toolbar and keep date selection", () => {
+  assert.match(page, /href="\/panel\/dyspozytor#kursy"/);
+  assert.match(page, /href="\/panel\/dyspozytor\?scope=today#kursy"/);
+  assert.match(page, /href="\/panel\/dyspozytor\?scope=next3h#kursy"/);
+  assert.match(page, /initialScope=\{initialScope\}/);
+  assert.match(dispatcher, /useState<Scope>\(initialScope\)/);
+  assert.match(css, /\.dispatcher-scope\{scroll-margin-top:16px\}/);
+});
