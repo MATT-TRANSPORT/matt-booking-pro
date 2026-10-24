@@ -1,5 +1,4 @@
 import DriverTrips from "@/components/DriverTrips";
-import DriverAppControls from "@/components/DriverAppControls";
 import DriverIssueReporter from "@/components/DriverIssueReporter";
 import { driverClient } from "@/lib/driver";
 import { driverProgressFromHistory } from "@/lib/driverOps";
@@ -66,7 +65,6 @@ export default async function Page() {
   }).filter((booking: any) => booking._assignedToCurrentDriver));
 
   return <main className="container driver-app-shell driver-pro-shell">
-    <DriverAppControls />
     <DriverTrips driver={driver} bookings={bookingsForDriver} />
     <DriverIssueReporter bookings={bookingsForDriver.filter((b:any)=>!["completed","cancelled"].includes(String(b.status||"")))} />
   </main>;

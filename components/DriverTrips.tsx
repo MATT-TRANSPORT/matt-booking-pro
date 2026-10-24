@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { driverPaymentDue, driverPln } from "@/lib/driverPayment";
 import { createClient } from "@/lib/supabase/client";
 import FlightStatusBadge from "@/components/FlightStatusBadge";
+import DriverAppControls from "@/components/DriverAppControls";
 import { displayFlightTime, suggestedPickupTime } from "@/lib/flightDisplay";
 import FlightAlertBadge from "@/components/FlightAlertBadge";
 import {
@@ -328,7 +329,15 @@ export default function DriverTrips({
       <section className="driver-pro-header card">
         <div>
           <span className="badge">MATT DRIVER PRO</span>
-          <h1>{driver.full_name}</h1>
+          <div className="driver-title-row">
+            <h1>{driver.full_name}</h1>
+            <details className="driver-install-menu">
+              <summary aria-label="Instalacja aplikacji i powiadomienia" title="Zainstaluj MATT Driver i ustaw powiadomienia">📲</summary>
+              <div className="driver-install-menu-content">
+                <DriverAppControls />
+              </div>
+            </details>
+          </div>
           <p className="muted">{today} · panel operacyjny kierowcy</p>
         </div>
 
@@ -483,8 +492,29 @@ function DriverTripCard({
           </div>
 
           <h2>{driverLegTime(b, leg)} · {b.customer_name}</h2>
-          <p className="muted">Start operacyjny kierowcy: {driverLegOperationalStartDate(b, leg)} · {driverLegOperationalStartTime(b, leg)}–{driverLegOperationalEndTime(b, leg)} · {b.booking_number}</p>
+          <small className="driver-booking-ref">{b.booking_number}</small>
           <p className="muted driver-flight-scheduled-time">✈ {leg === "return" || b.service_type === "from_airport" ? "Godzina przylotu" : "Godzina wyjazdu na lotnisko"}: {driverLegDate(b, leg)} · {driverLegTime(b, leg)}</p>
+          {flightNumber && (
+            <div className="driver-flight-box driver-pro-flight-box">
+              <div className="driver-flight-title">
+                <strong>✈ {leg === "return" ? "LOT POWROTNY" : "LOT"}</strong>
+                <span>{flightNumber}</span>
+              </div>
+              <FlightStatusBadge flight={flight} flightNumber={flightNumber} />
+
+              {flight?.match_ok !== false && flight?.arr_estimated && (
+                <div className="driver-flight-details">
+                  <span>Aktualne ETA: <strong>{displayFlightTime(flight.arr_estimated)}</strong></span>
+                  {(b.service_type === "from_airport" || leg === "return") && suggestedPickupTime(flight, 25) && (
+                    <span>Sugerowana gotowość: <strong>{suggestedPickupTime(flight, 25)}</strong></span>
+                  )}
+                  {flight.arr_terminal && <span>Terminal przylotu: <strong>{flight.arr_terminal}</strong></span>}
+                  {flight.arr_gate && <span>Gate: <strong>{flight.arr_gate}</strong></span>}
+                  {flight.arr_baggage && <span>Bagaże: <strong>{flight.arr_baggage}</strong></span>}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="driver-status-stack">
@@ -514,28 +544,6 @@ function DriverTripCard({
       {legAlerts.length > 0 && (
         <div className="driver-flight-alerts">
           {legAlerts.map((alert: any) => <FlightAlertBadge key={alert.id} alert={alert} />)}
-        </div>
-      )}
-
-      {flightNumber && (
-        <div className="driver-flight-box driver-pro-flight-box">
-          <div className="driver-flight-title">
-            <strong>✈ {leg === "return" ? "LOT POWROTNY" : "LOT"}</strong>
-            <span>{flightNumber}</span>
-          </div>
-          <FlightStatusBadge flight={flight} flightNumber={flightNumber} />
-
-          {flight?.match_ok !== false && flight?.arr_estimated && (
-            <div className="driver-flight-details">
-              <span>Aktualne ETA: <strong>{displayFlightTime(flight.arr_estimated)}</strong></span>
-              {(b.service_type === "from_airport" || leg === "return") && suggestedPickupTime(flight, 25) && (
-                <span>Sugerowana gotowość: <strong>{suggestedPickupTime(flight, 25)}</strong></span>
-              )}
-              {flight.arr_terminal && <span>Terminal przylotu: <strong>{flight.arr_terminal}</strong></span>}
-              {flight.arr_gate && <span>Gate: <strong>{flight.arr_gate}</strong></span>}
-              {flight.arr_baggage && <span>Bagaże: <strong>{flight.arr_baggage}</strong></span>}
-            </div>
-          )}
         </div>
       )}
 

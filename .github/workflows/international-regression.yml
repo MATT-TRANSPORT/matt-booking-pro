@@ -57,5 +57,7 @@ jobs:
         run: node --test tests/admin-compact-driver-flags.test.cjs
       - name: Dispatcher responsive cards regression
         run: node --test tests/dispatcher-responsive-cards.test.cjs
+      - name: Driver compact header and flight status layout
+        run: node --test tests/driver-compact-install-flight-ui.test.cjs
       - name: TypeScript check
         run: npx tsc --noEmit
