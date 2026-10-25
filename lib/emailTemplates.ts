@@ -252,7 +252,7 @@ function assignedSummary(b: BookingMail) {
   return `
     <div style="margin:18px 0 14px;background:#242d3c;border:1px solid #404858;border-radius:18px;padding:20px">
       <div style="color:#e9c780;font-size:12px;font-weight:800;letter-spacing:1px">TWOJA REZERWACJA</div>
-      <div style="margin:12px 0 8px;color:#ffffff;font-size:23px;font-weight:800;line-height:1.35;overflow-wrap:anywhere">${route}</div>
+      <div style="margin:12px 0 8px;color:#ffffff;font-size:17px;font-weight:750;line-height:1.45;overflow-wrap:anywhere">${route}</div>
       <div style="color:#e9c780;font-size:17px;font-weight:700">${date}</div>
       ${b.service_type === "roundtrip" && b.return_date ? '<div style="margin-top:6px;color:#b9c1cf;font-size:13px">Powrót: '+esc(b.return_date)+' · '+esc(String(b.return_time||"").slice(0,5))+'</div>' : ""}
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:15px;border-top:1px solid #404858"><tr>
