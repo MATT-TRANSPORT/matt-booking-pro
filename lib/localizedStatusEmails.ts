@@ -1,3 +1,4 @@
+import { driverWhatsAppButton } from "@/lib/driverWhatsAppEmail";
 import { bookingOrigin } from "@/lib/bookingOrigin";
 import { customerText } from "@/lib/customerCopy";
 import { withCustomerLocale } from "@/lib/bookingLocale";
@@ -18,7 +19,7 @@ export function localizedStatusEmail(kind:Kind,b:Booking,options?:{reviewUrl?:st
  const portal=b.customer_access_token?bookingOrigin()+"/rezerwacja/"+encodeURIComponent(b.customer_access_token)+"?lang="+locale:null;
  const line=(name:string,value:unknown)=>'<div><span style="color:#aab1bc">'+esc(name)+':</span> <strong>'+esc(value)+'</strong></div>';
  const details=line(l.reference,b.booking_number)+line(l.route,route)+line(b.service_type==="from_airport"?l.arrival:l.departure,b.travel_date+" "+b.travel_time)+(b.return_date?line(l.return,b.return_date+" "+(b.return_time||"")):"")+line(l.passengers,b.passengers)+line(l.vehicle,customerText(b.vehicle_type==="bus"?"Bus do 8 osób":"Samochód osobowy",locale))+line(l.flight,b.flight_number||"—")+line(l.price,Number(b.total_price).toFixed(2)+" PLN");
- const driver=kind==="assigned"?'<div style="margin-top:20px">'+line(l.driver,b.driver_name||l.unassigned)+line(l.phone,b.driver_phone||"—")+line(l.vehicle,b.vehicle_name||"—")+line(l.registration,b.vehicle_registration||"—")+(b.service_type==="roundtrip"?'<h3>'+esc(l.return)+'</h3>'+line(l.driver,b.return_driver_name||l.unassigned)+line(l.phone,b.return_driver_phone||"—")+line(l.vehicle,b.return_vehicle_name||"—")+line(l.registration,b.return_vehicle_registration||"—"):"")+'</div>':"";
+ const driver=kind==="assigned"?'<div style="margin-top:20px">'+line(l.driver,b.driver_name||l.unassigned)+line(l.phone,b.driver_phone||"—")+driverWhatsAppButton(b.driver_phone,b.booking_number,locale)+line(l.vehicle,b.vehicle_name||"—")+line(l.registration,b.vehicle_registration||"—")+(b.service_type==="roundtrip"?'<h3>'+esc(l.return)+'</h3>'+line(l.driver,b.return_driver_name||l.unassigned)+line(l.phone,b.return_driver_phone||"—")+driverWhatsAppButton(b.return_driver_phone,b.booking_number,locale)+line(l.vehicle,b.return_vehicle_name||"—")+line(l.registration,b.return_vehicle_registration||"—"):"")+'</div>':"";
  const button=(url:string,label:string)=>'<p style="margin-top:22px"><a href="'+esc(url)+'" style="background:#d5ae5d;color:#111;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:bold">'+esc(label)+'</a></p>';
  const payment=kind==="confirmed"&&b.payment_link&&b.payment_status!=="paid"?button(b.payment_link,l.payment):"";
  const review=kind==="review"&&options?.reviewUrl?button(withCustomerLocale(options.reviewUrl,locale),l.review):"";
