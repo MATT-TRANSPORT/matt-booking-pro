@@ -1,3 +1,4 @@
+import { driverWhatsAppButton } from "@/lib/driverWhatsAppEmail";
 import { bookingOrigin, panelOrigin } from "@/lib/bookingOrigin";
 import { localizedStatusEmail } from "@/lib/localizedStatusEmails";
 import { resolveCustomerLocale } from "@/lib/localizedBookingEmails";
@@ -90,26 +91,29 @@ function routeText(b: BookingMail) {
 
 function shell(title: string, content: string) {
   return `
-  <div style="margin:0;padding:32px 14px;background:#0b0e13;font-family:Arial,sans-serif;color:#f7f7f7">
-    <div style="max-width:680px;margin:auto;background:#151923;border:1px solid #343b49;border-radius:18px;overflow:hidden">
-      <div style="padding:24px 28px;background:#10141b;border-bottom:1px solid #343b49">
-        <div style="font-size:20px;font-weight:800;color:#f1d28b">MATT TRANSPORT</div>
-        <div style="margin-top:5px;font-size:12px;color:#aab1bc">Transport zawsze na czas</div>
-      </div>
-      <div style="padding:28px">
-        <h1 style="margin:0 0 18px;font-size:28px;color:#f7f7f7">${title}</h1>
+  <div style="margin:0;padding:24px 10px;background:#0b0e13;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:#f7f7f7">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:680px;margin:0 auto;border-collapse:separate;border-spacing:0;background:#151923;border:1px solid #343b49;border-radius:22px;overflow:hidden">
+      <tr><td style="padding:29px 26px;background:#10141b;border-bottom:3px solid #d5ae5d">
+        <div style="font-size:23px;font-weight:800;letter-spacing:1px;color:#f1d28b">MATT TRANSPORT</div>
+        <div style="margin-top:7px;font-size:13px;line-height:1.5;color:#aab1bc">Transport zawsze na czas</div>
+      </td></tr>
+      <tr><td style="padding:28px 24px">
+        <h1 style="margin:0 0 19px;font-size:30px;font-weight:800;line-height:1.23;letter-spacing:-.4px;color:#fff">${title}</h1>
         ${content}
-      </div>
-      <div style="padding:20px 28px;background:#10141b;border-top:1px solid #343b49;color:#aab1bc;font-size:13px;line-height:1.7">
-        MATT TRANSPORT<br>
-        tel. <a style="color:#f1d28b" href="tel:+48691242691">+48 691 242 691</a><br>
+      </td></tr>
+      <tr><td style="padding:22px 24px;background:#10141b;border-top:1px solid #343b49;color:#aab1bc;font-size:13px;line-height:1.9">
+        <strong style="color:#f1d28b;font-size:14px">MATT TRANSPORT</strong><br>
+        Telefon: <a style="color:#f1d28b;text-decoration:none" href="tel:+48691242691">+48 691 242 691</a><br>
         <a style="color:#f1d28b" href="mailto:kontakt@matt-transport.pl">kontakt@matt-transport.pl</a><br>
         <a style="color:#f1d28b" href="https://matt-transport.pl">matt-transport.pl</a>
-      </div>
-    </div>
+      </td></tr>
+    </table>
   </div>`;
 }
 
+function mailRow(label: string, value: string, emphasize = false) {
+  return `<tr><td style="padding:11px 12px;color:#aab1bc;font-size:13px;vertical-align:top;border-bottom:1px solid #343b49;width:36%">${esc(label)}</td><td style="padding:11px 12px;color:${emphasize ? "#f1d28b" : "#fff"};font-size:14px;font-weight:700;line-height:1.5;vertical-align:top;border-bottom:1px solid #343b49;overflow-wrap:anywhere">${value}</td></tr>`;
+}
 
 function paymentButton(b: BookingMail) {
   const eligible =
@@ -183,23 +187,25 @@ function bookingNumberForAdmin(b: BookingMail) {
 function details(b: BookingMail, forAdmin = false) {
   const vehicle = b.vehicle_type === "bus" ? "Bus do 8 pasażerów" : "Samochód osobowy";
   const number = forAdmin ? bookingNumberForAdmin(b) : bookingNumberForCustomer(b);
-
   return `
-    <div style="background:#10141b;border:1px solid #343b49;border-radius:14px;padding:18px;line-height:1.8">
-      <div><span style="color:#aab1bc">Numer rezerwacji:</span> ${number}</div>
-      <div><span style="color:#aab1bc">Trasa:</span> <strong>${esc(routeText(b))}</strong></div>
-      <div><span style="color:#aab1bc">${b.service_type === "from_airport" ? "Przylot" : "Wylot"}:</span> <strong>${esc(b.travel_date)} ${esc(b.travel_time)}</strong></div>
-      ${b.service_type === "roundtrip" && b.return_date ? `<div><span style="color:#aab1bc">Przylot powrotny:</span> <strong>${esc(b.return_date)} ${esc(b.return_time || "—")}</strong></div>` : ""}
-      <div><span style="color:#aab1bc">Pasażerowie:</span> <strong>${esc(b.passengers)}</strong></div>
-      <div><span style="color:#aab1bc">Pojazd:</span> <strong>${esc(vehicle)}</strong></div>
-      <div><span style="color:#aab1bc">Lot:</span> <strong>${esc(b.flight_number || "—")}</strong></div>
-      ${b.company_id
-        ? `<div><span style="color:#aab1bc">Netto:</span> <strong>${Number(b.price_net ?? b.total_price).toFixed(2)} zł</strong></div>
-           <div><span style="color:#aab1bc">VAT ${Number(b.vat_rate ?? 8).toFixed(0)}%:</span> <strong>${Number(b.vat_price ?? 0).toFixed(2)} zł</strong></div>
-           <div><span style="color:#aab1bc">Brutto:</span> <strong style="color:#f1d28b">${Number(b.price_gross ?? b.total_price).toFixed(2)} zł</strong></div>
-           <div style="margin-top:6px;color:#aab1bc;font-size:12px">Wszystkie ceny B2B są cenami netto + VAT 8%.</div>`
-        : `<div><span style="color:#aab1bc">Kwota:</span> <strong style="color:#f1d28b">${Number(b.total_price).toFixed(2)} zł</strong></div>`}
-      <div><span style="color:#aab1bc">Płatność:</span> <strong>${esc(paymentPreferenceText(b))}</strong></div>
+    <div style="margin:20px 0;background:#10141b;border:1px solid #343b49;border-radius:17px;overflow:hidden">
+      <div style="padding:15px 14px;background:#1c222d;color:#f1d28b;font-weight:800;font-size:15px">SZCZEGÓŁY REZERWACJI</div>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;table-layout:fixed">
+        ${mailRow("Numer rezerwacji",number,true)}
+        ${mailRow("Trasa",esc(routeText(b)))}
+        ${mailRow(b.service_type === "from_airport" ? "Przylot" : "Wylot",esc(b.travel_date)+" · "+esc(b.travel_time))}
+        ${b.service_type === "roundtrip" && b.return_date ? mailRow("Przylot powrotny",esc(b.return_date)+" · "+esc(b.return_time || "—")) : ""}
+        ${mailRow("Pasażerowie",esc(b.passengers))}
+        ${mailRow("Pojazd",esc(vehicle))}
+        ${mailRow("Lot",esc(b.flight_number || "—"))}
+        ${b.company_id
+          ? mailRow("Netto",Number(b.price_net ?? b.total_price).toFixed(2)+" zł")
+            +mailRow("VAT "+Number(b.vat_rate ?? 8).toFixed(0)+"%",Number(b.vat_price ?? 0).toFixed(2)+" zł")
+            +mailRow("Brutto",Number(b.price_gross ?? b.total_price).toFixed(2)+" zł",true)
+          : mailRow("Kwota",Number(b.total_price).toFixed(2)+" zł",true)}
+        ${mailRow("Płatność",esc(paymentPreferenceText(b)))}
+      </table>
+      ${b.company_id ? '<div style="padding:11px 12px;color:#aab1bc;font-size:12px">Ceny B2B: netto + VAT 8%.</div>' : ""}
     </div>`;
 }
 
@@ -255,6 +261,7 @@ export function assignedEmail(b: BookingMail) {
         <div style="font-weight:900;color:#f1d28b;margin-bottom:6px">→ WYJAZD</div>
         <div><span style="color:#aab1bc">Kierowca:</span> <strong>${esc(b.driver_name || "—")}</strong></div>
         <div><span style="color:#aab1bc">Telefon:</span> <strong>${esc(b.driver_phone || "—")}</strong></div>
+        ${driverWhatsAppButton(b.driver_phone, b.booking_number)}
         <div><span style="color:#aab1bc">Pojazd:</span> <strong>${esc(b.vehicle_name || "—")}</strong></div>
         <div><span style="color:#aab1bc">Rejestracja:</span> <strong>${esc(b.vehicle_registration || "—")}</strong></div>
         ${b.service_type === "roundtrip" ? `
@@ -262,6 +269,7 @@ export function assignedEmail(b: BookingMail) {
           <div style="font-weight:900;color:#f1d28b;margin-bottom:6px">↩ POWRÓT</div>
           <div><span style="color:#aab1bc">Kierowca:</span> <strong>${esc(b.return_driver_name || "Jeszcze nie przypisano")}</strong></div>
           <div><span style="color:#aab1bc">Telefon:</span> <strong>${esc(b.return_driver_phone || "—")}</strong></div>
+          ${driverWhatsAppButton(b.return_driver_phone, b.booking_number)}
           <div><span style="color:#aab1bc">Pojazd:</span> <strong>${esc(b.return_vehicle_name || "Jeszcze nie przypisano")}</strong></div>
           <div><span style="color:#aab1bc">Rejestracja:</span> <strong>${esc(b.return_vehicle_registration || "—")}</strong></div>` : ""}
       </div>
