@@ -1,3 +1,4 @@
+import { driverWhatsAppButton } from "@/lib/driverWhatsAppEmail";
 import { bookingOrigin, panelOrigin } from "@/lib/bookingOrigin";
 import { localizedStatusEmail } from "@/lib/localizedStatusEmails";
 import { resolveCustomerLocale } from "@/lib/localizedBookingEmails";
@@ -255,6 +256,7 @@ export function assignedEmail(b: BookingMail) {
         <div style="font-weight:900;color:#f1d28b;margin-bottom:6px">→ WYJAZD</div>
         <div><span style="color:#aab1bc">Kierowca:</span> <strong>${esc(b.driver_name || "—")}</strong></div>
         <div><span style="color:#aab1bc">Telefon:</span> <strong>${esc(b.driver_phone || "—")}</strong></div>
+        ${driverWhatsAppButton(b.driver_phone, b.booking_number)}
         <div><span style="color:#aab1bc">Pojazd:</span> <strong>${esc(b.vehicle_name || "—")}</strong></div>
         <div><span style="color:#aab1bc">Rejestracja:</span> <strong>${esc(b.vehicle_registration || "—")}</strong></div>
         ${b.service_type === "roundtrip" ? `
@@ -262,6 +264,7 @@ export function assignedEmail(b: BookingMail) {
           <div style="font-weight:900;color:#f1d28b;margin-bottom:6px">↩ POWRÓT</div>
           <div><span style="color:#aab1bc">Kierowca:</span> <strong>${esc(b.return_driver_name || "Jeszcze nie przypisano")}</strong></div>
           <div><span style="color:#aab1bc">Telefon:</span> <strong>${esc(b.return_driver_phone || "—")}</strong></div>
+          ${driverWhatsAppButton(b.return_driver_phone, b.booking_number)}
           <div><span style="color:#aab1bc">Pojazd:</span> <strong>${esc(b.return_vehicle_name || "Jeszcze nie przypisano")}</strong></div>
           <div><span style="color:#aab1bc">Rejestracja:</span> <strong>${esc(b.return_vehicle_registration || "—")}</strong></div>` : ""}
       </div>
