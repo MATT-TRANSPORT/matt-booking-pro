@@ -40,3 +40,19 @@ test("international templates use the same rounded table presentation",()=>{
  assert.match(intl, /border-radius:16px/);
  assert.match(intl, /function localizedStatusEmail/);
 });
+
+test("premium 2.0 puts a compact trip summary and driver actions before guidance",()=>{
+  assert.match(pl,/function assignedSummary\(/);
+  assert.match(pl,/function assignedDriverCard\(/);
+  const start=pl.indexOf("export function assignedEmail(");
+  const end=pl.indexOf("export function completedEmail(",start);
+  const body=pl.slice(start,end);
+  assert.ok(body.indexOf("assignedSummary(b)") < body.indexOf("assignedDriverCard(b)"));
+  assert.ok(body.indexOf("assignedDriverCard(b)") < body.indexOf("travelGuideHtml(b.service_type"));
+  assert.match(body,/assignedDriverCard\(b,true\)/);
+  assert.match(pl,/Zadzwoń do kierowcy/);
+});
+test("international messages have compact assigned summary",()=>{
+  assert.match(intl,/const assignmentHero=kind==="assigned"/);
+  assert.match(intl,/kind==="assigned" \? assignmentHero/);
+});
