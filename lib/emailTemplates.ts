@@ -246,33 +246,51 @@ export function confirmedEmail(b: BookingMail) {
   };
 }
 
+function assignedSummary(b: BookingMail) {
+  const date = esc(b.travel_date) + " · " + esc(String(b.travel_time).slice(0,5));
+  const route = esc(routeText(b));
+  return `
+    <div style="margin:18px 0 14px;background:#242d3c;border:1px solid #404858;border-radius:18px;padding:20px">
+      <div style="color:#e9c780;font-size:12px;font-weight:800;letter-spacing:1px">TWOJA REZERWACJA</div>
+      <div style="margin:12px 0 8px;color:#ffffff;font-size:23px;font-weight:800;line-height:1.35;overflow-wrap:anywhere">${route}</div>
+      <div style="color:#e9c780;font-size:17px;font-weight:700">${date}</div>
+      ${b.service_type === "roundtrip" && b.return_date ? '<div style="margin-top:6px;color:#b9c1cf;font-size:13px">Powrót: '+esc(b.return_date)+' · '+esc(String(b.return_time||"").slice(0,5))+'</div>' : ""}
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:15px;border-top:1px solid #404858"><tr>
+        <td width="50%" style="padding-top:13px;vertical-align:top;color:#aab4c3;font-size:12px">PASAŻEROWIE<br><strong style="color:#fff;font-size:15px">${esc(b.passengers)}</strong></td>
+        <td width="50%" style="padding-top:13px;vertical-align:top;color:#aab4c3;font-size:12px">POJAZD<br><strong style="color:#fff;font-size:15px">${esc(b.vehicle_type === "bus" ? "Bus do 8 osób" : "Osobowy")}</strong></td>
+      </tr></table>
+      <div style="margin-top:14px;color:#aab4c3;font-size:12px">Numer: <strong style="color:#f1d28b">${bookingNumberForCustomer(b)}</strong> · Kwota: <strong style="color:#f1d28b">${Number(b.total_price).toFixed(2)} zł</strong></div>
+    </div>`;
+}
+
+function assignedDriverCard(b: BookingMail, isReturn = false) {
+  const name = isReturn ? b.return_driver_name : b.driver_name;
+  const phone = isReturn ? b.return_driver_phone : b.driver_phone;
+  const vehicle = isReturn ? b.return_vehicle_name : b.vehicle_name;
+  const registration = isReturn ? b.return_vehicle_registration : b.vehicle_registration;
+  const dial = String(phone || "").replace(/[^+\d]/g,"");
+  return `
+    <div style="margin:14px 0;background:#1b2930;border:1px solid #35654f;border-radius:18px;padding:20px">
+      <div style="color:#b1e3c7;font-size:12px;font-weight:800;letter-spacing:1px">${isReturn ? "KIEROWCA POWROTNY" : "TWÓJ KIEROWCA"}</div>
+      <div style="margin-top:8px;color:#fff;font-size:24px;line-height:1.25;font-weight:800">${esc(name || "Jeszcze nie przypisano")}</div>
+      <div style="margin:7px 0;color:#d8dee8;font-size:15px">${esc(phone || "Telefon jeszcze niedostępny")}</div>
+      <div style="color:#aab4c3;font-size:13px">${esc(vehicle || "Pojazd w przygotowaniu")}${registration ? " · "+esc(registration) : ""}</div>
+      ${driverWhatsAppButton(phone,b.booking_number)}
+      ${dial ? '<p style="margin:12px 0 0"><a href="tel:'+esc(dial)+'" style="color:#e9c780;font-size:14px;font-weight:700">Zadzwoń do kierowcy</a></p>' : ""}
+    </div>`;
+}
+
 export function assignedEmail(b: BookingMail) {
   if (resolveCustomerLocale(b.customer_locale) !== "pl") return localizedStatusEmail("assigned", b, {guideHtml:travelGuideHtml(b.service_type,b.customer_locale, !b.destination_address && b.booking_source !== "public_general")});
   return {
     subject: `Kierowca został przydzielony – ${b.booking_number}`,
     html: shell(
-      "Kierowca i pojazd przypisani",
-      `<p style="color:#aab1bc;line-height:1.7">
-        Przydzieliliśmy obsadę do Twojego transferu.
-      </p>
-      ${details(b)}
+      "Twój kierowca jest gotowy",
+      `<p style="color:#aab1bc;line-height:1.65">Przydzieliliśmy obsadę do Twojego transferu.</p>
+      ${assignedSummary(b)}
+      ${assignedDriverCard(b)}
+      ${b.service_type === "roundtrip" ? assignedDriverCard(b,true) : ""}
       ${travelGuideHtml(b.service_type, b.customer_locale, !b.destination_address && b.booking_source !== "public_general")}
-      <div style="margin-top:18px;background:#10141b;border:1px solid #343b49;border-radius:14px;padding:18px;line-height:1.8">
-        <div style="font-weight:900;color:#f1d28b;margin-bottom:6px">→ WYJAZD</div>
-        <div><span style="color:#aab1bc">Kierowca:</span> <strong>${esc(b.driver_name || "—")}</strong></div>
-        <div><span style="color:#aab1bc">Telefon:</span> <strong>${esc(b.driver_phone || "—")}</strong></div>
-        ${driverWhatsAppButton(b.driver_phone, b.booking_number)}
-        <div><span style="color:#aab1bc">Pojazd:</span> <strong>${esc(b.vehicle_name || "—")}</strong></div>
-        <div><span style="color:#aab1bc">Rejestracja:</span> <strong>${esc(b.vehicle_registration || "—")}</strong></div>
-        ${b.service_type === "roundtrip" ? `
-          <div style="height:1px;background:#343b49;margin:14px 0"></div>
-          <div style="font-weight:900;color:#f1d28b;margin-bottom:6px">↩ POWRÓT</div>
-          <div><span style="color:#aab1bc">Kierowca:</span> <strong>${esc(b.return_driver_name || "Jeszcze nie przypisano")}</strong></div>
-          <div><span style="color:#aab1bc">Telefon:</span> <strong>${esc(b.return_driver_phone || "—")}</strong></div>
-          ${driverWhatsAppButton(b.return_driver_phone, b.booking_number)}
-          <div><span style="color:#aab1bc">Pojazd:</span> <strong>${esc(b.return_vehicle_name || "Jeszcze nie przypisano")}</strong></div>
-          <div><span style="color:#aab1bc">Rejestracja:</span> <strong>${esc(b.return_vehicle_registration || "—")}</strong></div>` : ""}
-      </div>
       ${paymentButton(b)}
       ${customerPortalButton(b)}`
     )

@@ -30,6 +30,13 @@ export function travelGuideHtml(serviceType: string, localeInput: unknown, airpo
   const kinds: GuideKind[] = serviceType === "roundtrip" ? ["departure", "arrival"] : [serviceType === "from_airport" ? "arrival" : "departure"];
   return kinds.map(kind => {
     const guide = guides[locale][kind];
-    return `<section lang="${locale}" style="margin-top:20px;padding:18px;border:1px solid #343b49;border-radius:14px;background:#10141b"><h2 style="color:#f1d28b;font-size:20px">${esc(guide.heading)}</h2><ol style="padding-left:22px;line-height:1.8;color:#f7f7f7;font-family:Arial,sans-serif">${guide.steps.map(step => `<li style="padding-bottom:8px">${esc(step)}</li>`).join("")}</ol><p style="color:#aab1bc;font-size:13px">${esc(guide.note)}</p></section>`;
+    const shortSteps = guide.steps.slice(0,2);
+    return `<section lang="${locale}" style="margin-top:15px;padding:18px;background:#10141b;border:1px solid #343b49;border-radius:16px">
+      <div style="color:#e9c780;font-size:16px;font-weight:800;line-height:1.4">${esc(guide.heading)}</div>
+      <ul style="margin:12px 0 0;padding-left:19px;color:#d8dee8;font-size:13px;line-height:1.65">
+        ${shortSteps.map(step=>`<li style="padding-bottom:7px">${esc(step)}</li>`).join("")}
+      </ul>
+      <div style="margin-top:6px;color:#aab4c3;font-size:12px;line-height:1.55">${esc(guide.note)}</div>
+    </section>`;
   }).join("");
 }
