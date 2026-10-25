@@ -25,3 +25,18 @@ test("international assigned email has localized driver CTAs for both legs",()=>
  assert.match(intl, /driverWhatsAppButton\(b\.return_driver_phone,b\.booking_number,locale\)/);
  for(const language of ["pl","en","de","cs"]) assert.match(helper,new RegExp(language+": "));
 });
+
+test("Polish customer emails use a branded presentation table with rounded details",()=>{
+ const css=pl;
+ assert.match(css, /function shell\(title: string, content: string\)/);
+ assert.match(css, /table role="presentation"/);
+ assert.match(css, /border-radius:22px/);
+ assert.match(css, /function mailRow\(/);
+ assert.match(css, /SZCZEGÓŁY REZERWACJI/);
+});
+test("international templates use the same rounded table presentation",()=>{
+ assert.match(intl, /table role="presentation"/);
+ assert.match(intl, /border-radius:22px/);
+ assert.match(intl, /border-radius:16px/);
+ assert.match(intl, /function localizedStatusEmail/);
+});
