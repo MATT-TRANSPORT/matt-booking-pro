@@ -16,8 +16,9 @@ test("whatsapp driver helper accepts Polish and international numbers safely",()
  assert.match(helper, /replaceAll\("&","&amp;"\)/);
 });
 test("outbound and return contacts get separate links in Polish assigned email",()=>{
- assert.match(pl, /driverWhatsAppButton\(b\.driver_phone, b\.booking_number\)/);
- assert.match(pl, /driverWhatsAppButton\(b\.return_driver_phone, b\.booking_number\)/);
+ assert.match(pl, /driverWhatsAppButton\(phone,b\.booking_number\)/);
+ assert.match(pl, /isReturn \? b\.return_driver_phone : b\.driver_phone/);
+ assert.match(pl, /assignedDriverCard\(b,true\)/);
  assert.match(pl, /b\.service_type === "roundtrip"/);
 });
 test("international assigned email has localized driver CTAs for both legs",()=>{
