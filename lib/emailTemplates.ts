@@ -98,7 +98,7 @@ function shell(title: string, content: string) {
         <div style="margin-top:7px;font-size:13px;line-height:1.5;color:#aab1bc">Transport zawsze na czas</div>
       </td></tr>
       <tr><td style="padding:28px 24px">
-        <h1 style="margin:0 0 19px;font-size:clamp(25px,5vw,32px);font-weight:800;line-height:1.23;letter-spacing:-.4px;color:#fff">${title}</h1>
+        <h1 style="margin:0 0 19px;font-size:30px;font-weight:800;line-height:1.23;letter-spacing:-.4px;color:#fff">${title}</h1>
         ${content}
       </td></tr>
       <tr><td style="padding:22px 24px;background:#10141b;border-top:1px solid #343b49;color:#aab1bc;font-size:13px;line-height:1.9">
