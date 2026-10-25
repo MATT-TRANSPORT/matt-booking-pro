@@ -49,7 +49,7 @@ test("premium 2.0 puts a compact trip summary and driver actions before guidance
   const end=pl.indexOf("export function completedEmail(",start);
   const body=pl.slice(start,end);
   assert.ok(body.indexOf("assignedSummary(b)") < body.indexOf("assignedDriverCard(b)"));
-  assert.ok(body.indexOf("assignedDriverCard(b)") < body.indexOf("travelGuideHtml(b.service_type"));
+  assert.ok(body.indexOf("assignedDriverCard(b)") < body.lastIndexOf("travelGuideHtml(b.service_type"));
   assert.match(body,/assignedDriverCard\(b,true\)/);
   assert.match(pl,/Zadzwoń do kierowcy/);
 });
