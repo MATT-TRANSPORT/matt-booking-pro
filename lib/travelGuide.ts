@@ -30,6 +30,6 @@ export function travelGuideHtml(serviceType: string, localeInput: unknown, airpo
   const kinds: GuideKind[] = serviceType === "roundtrip" ? ["departure", "arrival"] : [serviceType === "from_airport" ? "arrival" : "departure"];
   return kinds.map(kind => {
     const guide = guides[locale][kind];
-    return `<section lang="${locale}" style="margin-top:20px;padding:18px;border:1px solid #343b49;border-radius:14px;background:#10141b"><h2 style="color:#f1d28b;font-size:20px">${esc(guide.heading)}</h2><ol style="padding-left:22px;line-height:1.8">${guide.steps.map(step => `<li style="padding-bottom:8px">${esc(step)}</li>`).join("")}</ol><p style="color:#aab1bc;font-size:13px">${esc(guide.note)}</p></section>`;
+    return `<section lang="${locale}" style="margin-top:20px;padding:18px;border:1px solid #343b49;border-radius:14px;background:#10141b"><h2 style="color:#f1d28b;font-size:20px">${esc(guide.heading)}</h2><ol style="padding-left:22px;line-height:1.8;color:#f7f7f7;font-family:Arial,sans-serif">${guide.steps.map(step => `<li style="padding-bottom:8px">${esc(step)}</li>`).join("")}</ol><p style="color:#aab1bc;font-size:13px">${esc(guide.note)}</p></section>`;
   }).join("");
 }
