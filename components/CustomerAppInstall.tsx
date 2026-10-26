@@ -78,9 +78,7 @@ export default function CustomerAppInstall() {
       aria-label={t("Zainstaluj aplikację MATT TRANSPORT")}
     >
       <span className="customer-quick-icon" aria-hidden="true">📲</span>
-      <strong>{installed ? t("Aplikacja gotowa") : t("Aplikacja")}</strong>
-      <small>{installed ? t("MATT TRANSPORT jest na telefonie.") : t("MATT TRANSPORT na telefonie.")}</small>
-      <b>{installed ? t("ZAINSTALOWANA ✓") : t("INSTALUJ →")}</b>
+      <strong>{installed ? t("Aplikacja gotowa") : t("Zainstaluj aplikację")}</strong>
       {message && <em className="customer-quick-message">{message}</em>}
     </button>
   );
