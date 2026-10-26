@@ -1,6 +1,7 @@
 "use client";
 import { customerText } from "@/lib/customerCopy";
 import { useCustomerLocale } from "@/lib/useCustomerLocale";
+import { bookingHubTranslations } from "@/lib/bookingLocale";
 
 import { useEffect, useState } from "react";
 
@@ -78,7 +79,7 @@ export default function CustomerAppInstall() {
       aria-label={t("Zainstaluj aplikację MATT TRANSPORT")}
     >
       <span className="customer-quick-icon" aria-hidden="true">📲</span>
-      <strong>{installed ? t("Aplikacja gotowa") : t("Zainstaluj aplikację")}</strong>
+      <strong>{installed ? t("Aplikacja gotowa") : bookingHubTranslations[locale].installApp}</strong>
       {message && <em className="customer-quick-message">{message}</em>}
     </button>
   );
