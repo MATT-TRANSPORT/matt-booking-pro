@@ -6,6 +6,7 @@ import { AIRPORT_ROUTE_ADDRESSES } from "@/lib/additionalStopConfig";
 const ALLOWED_ORIGINS = new Set([
   "https://matt-transport.pl",
   "https://www.matt-transport.pl",
+  "https://booking.matt-transport.pl",
 ]);
 const AIRPORT_LABELS: Record<string, string> = {
   pyrzowice: "Katowice-Pyrzowice (KTW)",
