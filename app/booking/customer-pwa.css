@@ -122,3 +122,38 @@
   .customer-quick-card small { font-size: .71rem; }
   .customer-quick-card b { font-size: .69rem; }
 }
+
+/* Three compact, equal-sized quick actions below the service chooser. */
+.customer-quick-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.customer-quick-grid .customer-quick-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 106px;
+  padding: 16px 10px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+}
+.customer-quick-grid .customer-quick-card strong {
+  font-size: .93rem;
+  line-height: 1.2;
+}
+.customer-quick-planner {
+  border: 1px solid rgba(226, 189, 74, .55);
+  background: linear-gradient(135deg, rgba(226,189,74,.15), rgba(255,255,255,.025));
+}
+.customer-quick-grid .customer-quick-message {
+  font-size: .75rem;
+  width: 100%;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 720px) {
+ .customer-quick-grid { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 8px; }
+ .customer-quick-grid .customer-quick-card { min-height: 99px; padding: 12px 5px; gap: 9px; }
+ .customer-quick-grid .customer-quick-card strong { font-size: .78rem; }
+ .customer-quick-grid .customer-quick-icon { width: 37px; height: 37px; font-size: 1rem; }
+}
