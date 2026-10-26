@@ -57,7 +57,7 @@ export default function BookingLanding({initialEntry}: {initialEntry?: BookingEn
       <span className="customer-quick-icon" aria-hidden="true">👤</span>
       <strong>{t.account}</strong>
     </a>
-    <a className="customer-quick-card customer-quick-planner" href="https://matt-transport.pl/o-ktorej-wyjechac-na-lotnisko/">
+    <a className="customer-quick-card customer-quick-planner" href={localized("/planer")}>
       <span className="customer-quick-icon" aria-hidden="true">⏱️</span>
       <strong>{t.planner}</strong>
     </a>
