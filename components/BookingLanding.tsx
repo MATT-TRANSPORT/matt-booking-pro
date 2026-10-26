@@ -52,7 +52,7 @@ export default function BookingLanding({initialEntry}: {initialEntry?: BookingEn
       <span className="booking-service-icon">🚐</span><strong>{t.other}</strong><small>{t.otherDesc}</small><b>{t.choose}</b>
     </a>
    </div>
-   <nav className="customer-quick-grid" aria-label={customerText("Szybkie skróty",locale)}>
+   <nav className="customer-quick-grid" aria-label={t.shortcuts}>
     <a className="customer-quick-card customer-quick-trips" href={localized("/moje-przejazdy")}>
       <span className="customer-quick-icon" aria-hidden="true">👤</span>
       <strong>{t.account}</strong>
