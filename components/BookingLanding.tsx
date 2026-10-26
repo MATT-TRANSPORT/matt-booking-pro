@@ -52,15 +52,17 @@ export default function BookingLanding({initialEntry}: {initialEntry?: BookingEn
       <span className="booking-service-icon">🚐</span><strong>{t.other}</strong><small>{t.otherDesc}</small><b>{t.choose}</b>
     </a>
    </div>
-   <div className="customer-quick-grid">
+   <nav className="customer-quick-grid" aria-label={customerText("Szybkie skróty",locale)}>
     <a className="customer-quick-card customer-quick-trips" href={localized("/moje-przejazdy")}>
       <span className="customer-quick-icon" aria-hidden="true">👤</span>
-      <strong>{t.trips}</strong>
-      <small>{t.tripsDesc}</small>
-      <b>{t.open}</b>
+      <strong>{t.account}</strong>
+    </a>
+    <a className="customer-quick-card customer-quick-planner" href="https://matt-transport.pl/o-ktorej-wyjechac-na-lotnisko/">
+      <span className="customer-quick-icon" aria-hidden="true">⏱️</span>
+      <strong>{t.planner}</strong>
     </a>
     <CustomerAppInstall />
-   </div>
+   </nav>
    <p className="booking-hub-contact">{t.contact} <a href="tel:+48691242691">+48 691 242 691</a></p>
   </section> : <>
     <div className="booking-change-service"><a href={localized("/booking")}>{t.change}</a></div>
