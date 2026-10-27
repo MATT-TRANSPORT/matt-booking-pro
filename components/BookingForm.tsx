@@ -9,6 +9,7 @@ import { useAirportPricing } from "@/lib/useAirportPricing";
 import { clearGrowthTracking, growthFunnelSessionId, readGrowthTracking, resetGrowthFunnelSession, trackGrowthFunnelEvent } from "@/lib/growthTracking";
 import { trackBookingPurchase } from "@/lib/ga4";
 import type { BookingEntry } from "@/lib/bookingEntry";
+import { takeAirportPlannerHandoff } from "@/lib/airportPlannerHandoff";
 
 const airportCopy: Record<string,[string,string,string]> = {"Dziękujemy! Rezerwacja przyjęta":["Thank you! Booking received","Vielen Dank! Buchung eingegangen","Děkujeme! Rezervace přijata"],"🕐 Oczekuje na potwierdzenie":["🕐 Awaiting confirmation","🕐 Bestätigung ausstehend","🕐 Čeká na potvrzení"],"Co dalej?":["What happens next?","Wie geht es weiter?","Co bude dál?"],"Twoje zgłoszenie zostało przyjęte. Potwierdzimy rezerwację najszybciej jak to możliwe.":["Your request has been received. We will confirm your booking as soon as possible.","Ihre Anfrage ist eingegangen. Wir bestätigen Ihre Buchung schnellstmöglich.","Vaši poptávku jsme přijali. Rezervaci potvrdíme co nejdříve."],"Oczekuj wiadomości e-mail lub kontaktu z MATT TRANSPORT.":["Please look out for an email or contact from MATT TRANSPORT.","Bitte achten Sie auf eine E-Mail oder Nachricht von MATT TRANSPORT.","Očekávejte e-mail nebo kontakt od MATT TRANSPORT."],"Jakiego przejazdu potrzebujesz?":["What transfer do you need?","Welche Fahrt benötigen Sie?","Jakou přepravu potřebujete?"],"Trasa i lotnisko":["Route and airport","Strecke und Flughafen","Trasa a letiště"],"Termin przejazdu":["Travel date and time","Reisetermin","Termín jízdy"],"Wybierz pojazd":["Choose your vehicle","Fahrzeug auswählen","Vyberte vozidlo"],"Twoje dane":["Your details","Ihre Angaben","Vaše údaje"],"Podsumowanie":["Summary","Zusammenfassung","Shrnutí"],"Zarezerwuj transfer lotniskowy":["Book an airport transfer","Flughafentransfer buchen","Rezervovat letištní transfer"],"Sposób płatności":["Payment method","Zahlungsart","Způsob platby"],"Trasa":["Route","Strecke","Trasa"],"Termin":["Date and time","Termin","Termín"],"Pojazd":["Vehicle","Fahrzeug","Vozidlo"],"Dane klienta":["Customer details","Kundendaten","Údaje zákazníka"],"Adres docelowy":["Destination address","Zieladresse","Cílová adresa"],"Adres odbioru":["Pickup address","Abholadresse","Adresa vyzvednutí"],"Wpisz adres":["Enter address","Adresse eingeben","Zadejte adresu"],"Data":["Date","Datum","Datum"],"Godzina przylotu":["Arrival time","Ankunftszeit","Čas příletu"],"Godzina wyjazdu na lotnisko":["Departure time to airport","Abfahrtszeit zum Flughafen","Čas odjezdu na letiště"],"Lot wylotowy":["Outbound flight","Hinflug","Odletový let"],"Numer lotu":["Flight number","Flugnummer","Číslo letu"],"Pasażerowie":["Passengers","Fahrgäste","Cestující"],"Data powrotu":["Return date","Rückfahrtdatum","Datum návratu"],"Godzina przylotu powrotnego":["Return flight arrival time","Ankunftszeit des Rückflugs","Čas příletu zpátečního letu"],"Lot powrotny":["Return flight","Rückflug","Zpáteční let"],"Imię i nazwisko":["Full name","Vor- und Nachname","Jméno a příjmení"],"Telefon":["Phone","Telefon","Telefon"],"E-mail":["Email","E-Mail","E-mail"],"Faktura VAT":["VAT invoice","MwSt.-Rechnung","Faktura s DPH"],"Nie":["No","Nein","Ne"],"Tak, +8%":["Yes, +8%","Ja, +8%","Ano, +8 %"],"Uwagi do rezerwacji":["Booking notes","Anmerkungen zur Buchung","Poznámky k rezervaci"],"Lotnisko":["Airport","Flughafen","Letiště"],"Jakie lotnisko?":["Which airport?","Welcher Flughafen?","Jaké letiště?"],"np. Berlin Brandenburg":["e.g. Berlin Brandenburg","z. B. Berlin Brandenburg","např. Berlín Brandenburg"]};
 const airportExtraCopy: Record<string,[string,string,string]> = {"NOWA REZERWACJA":["NEW BOOKING","NEUE BUCHUNG","NOVÁ REZERVACE"],"WSTECZ":["BACK","ZURÜCK","ZPĚT"],"DALEJ":["NEXT","WEITER","DALŠÍ"],"PODSUMOWANIE":["SUMMARY","ZUSAMMENFASSUNG","SHRNUTÍ"],"ZAREZERWUJ":["BOOK NOW","JETZT BUCHEN","REZERVOVAT"],"ZAPISYWANIE...":["SAVING...","WIRD GESPEICHERT...","UKLÁDÁNÍ..."],"OBLICZANIE TRASY...":["CALCULATING ROUTE...","ROUTE WIRD BERECHNET...","VÝPOČET TRASY..."],"Godzina przylotu":["Arrival time","Ankunftszeit","Čas příletu"],"Godzina wyjazdu na lotnisko":["Departure time to airport","Abfahrtszeit zum Flughafen","Čas odjezdu na letiště"],"Lotnisko":["Airport","Flughafen","Letiště"],"ZADZWOŃ":["CALL US","ANRUFEN","ZAVOLEJTE"],"OBLICZ PONOWNIE":["RECALCULATE","ERNEUT BERECHNEN","PŘEPOČÍTAT"],"ZADZWOŃ I ZAPYTAJ O CENĘ":["CALL FOR A QUOTE","PREIS TELEFONISCH ERFRAGEN","ZAVOLEJTE PRO CENU"],"Adres dodatkowego przystanku":["Additional stop address","Adresse des Zwischenstopps","Adresa další zastávky"],"Wpisz drugi adres":["Enter another address","Weitere Adresse eingeben","Zadejte další adresu"],"USUŃ":["REMOVE","ENTFERNEN","ODSTRANIT"],"Obliczanie dojazdu do adresu...":["Calculating route to address...","Route zur Adresse wird berechnet...","Výpočet trasy k adrese..."],"Obliczanie objazdu...":["Calculating detour...","Umweg wird berechnet...","Výpočet objížďky..."],"+ DODAJ DODATKOWY ADRES / PRZYSTANEK":["+ ADD ANOTHER ADDRESS / STOP","+ WEITERE ADRESSE / ZWISCHENSTOPP","+ PŘIDAT DALŠÍ ADRESU / ZASTÁVKU"],"Wyjazd na lotnisko (+20 zł)":["Outbound to airport (+20 PLN)","Hinfahrt zum Flughafen (+20 PLN)","Cesta na letiště (+20 PLN)"],"Powrót z lotniska (+20 zł)":["Return from airport (+20 PLN)","Rückfahrt vom Flughafen (+20 PLN)","Návrat z letiště (+20 PLN)"]};
@@ -61,6 +62,21 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
   const [message,setMessage] = useState("");
   const [saving,setSaving] = useState(false);
   const [success,setSuccess] = useState<any>(null);
+  const [plannerImported, setPlannerImported] = useState(false);
+
+  useEffect(() => {
+    if (!initialEntry?.fromPlanner) return;
+    const saved = takeAirportPlannerHandoff(initialEntry.airport);
+    if (!saved) return;
+    setServiceType("to_airport");
+    setAddress(saved.address);
+    setTravelDate(saved.travelDate);
+    setTravelTime(saved.travelTime);
+    setPlannerImported(true);
+    setStep(2);
+    window.dispatchEvent(new CustomEvent("matt:booking-step", { detail: { step: 2 } }));
+    // The normal address route check recalculates the price for this booking.
+  }, [initialEntry?.fromPlanner, initialEntry?.airport]);
 
   useEffect(()=>{
     const f=()=>setMobile(window.innerWidth<=900);
@@ -369,6 +385,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
 
       {step===2&&<section className="card wizard-card">
         <h1>{t("Trasa i lotnisko")}</h1>
+        {plannerImported&&<p className="route-status ok" role="status">{t("Adres i godzina wyjazdu zostały uzupełnione na podstawie planera. Sprawdź je przed rezerwacją.")}</p>}
         <label>{serviceType==="from_airport"?t("Adres docelowy"):t("Adres odbioru")}
           <input value={address} onChange={e=>setAddress(e.target.value)} placeholder={t("Wpisz adres")}/>
           {suggestions.length>0&&<div className="address-suggestions">{suggestions.slice(0,5).map((s,i)=><button key={s.placeId??i} type="button" onClick={()=>chooseAddress(s.text??"")}>{s.text}</button>)}</div>}
