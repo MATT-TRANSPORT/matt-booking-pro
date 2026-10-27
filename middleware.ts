@@ -7,6 +7,14 @@ export async function middleware(request: NextRequest) {
   const bookingHost = process.env.NEXT_PUBLIC_BOOKING_HOST;
   const panelHost = process.env.NEXT_PUBLIC_PANEL_HOST;
 
+  // Podgląd gałęzi może nie mieć zmiennych Supabase. Formularz lotniskowy
+  // jest publiczny, więc sam widok nie powinien wymagać odświeżania sesji.
+  // Dotyczy wyłącznie preview i tylko /booking — panel oraz API
+  // nadal przechodzą standardową ochronę sesji.
+  if (process.env.VERCEL_ENV === "preview" && pathname === "/booking") {
+    return NextResponse.next();
+  }
+
   // Publiczny formularz nie wymaga odświeżania sesji użytkownika.
   if (host === bookingHost && pathname === "/") {
     const bookingUrl = request.nextUrl.clone();
