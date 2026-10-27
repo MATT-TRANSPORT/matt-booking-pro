@@ -75,3 +75,5 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: matt-local-test-only
       - name: B2B payment method UI in four languages and two viewports
         run: npx playwright test -g 'company payment method edit'
+      - name: Airport email validation in four languages and two viewports
+        run: npx playwright test tests/browser/airport-email.spec.cjs
