@@ -246,3 +246,26 @@ test('authenticated company screens render the selected language and retain it i
  await expect(page).toHaveURL(new RegExp('/firma/rezerwacje/fixture-booking\\?lang='+lang));
 
 });
+
+ test('company payment method edit submits selected method and explains reconfirmation',async({page,context},info)=>{
+ const lang=info.project.metadata.bookingLocale;
+ const user={id:'11111111-1111-4111-8111-111111111111',email:'test@example.invalid',aud:'authenticated',role:'authenticated',app_metadata:{},user_metadata:{}};
+ const encode=value=>Buffer.from(JSON.stringify(value)).toString('base64url');
+ const access_token=encode({alg:'HS256',typ:'JWT'})+'.'+encode({sub:user.id,aud:'authenticated',role:'authenticated',exp:4102444800,email:user.email})+'.test-signature';
+ const session={access_token,refresh_token:'test-only-refresh',expires_at:4102444800,expires_in:3600,token_type:'bearer',user};
+ await context.addCookies([{name:'sb-127-auth-token',value:'base64-'+encode(session),domain:'127.0.0.1',path:'/'}]);
+
+ const index=['pl','en','de','cs'].indexOf(lang);
+ await page.route('**/api/company/quote',route=>route.fulfill({json:{net:800,gross:864,vatRate:8,distanceKm:20,billableKm:0}}));
+ let submitted;
+ await page.route('**/api/company/bookings/fixture-booking',route=>{submitted=route.request().postDataJSON();return route.fulfill({json:{id:'fixture-booking',status:'pending'}})});
+ await page.goto('/firma/rezerwacje/fixture-booking?lang='+lang);
+ await page.getByRole('button',{name:['EDYTUJ REZERWACJĘ','EDIT BOOKING','BUCHUNG BEARBEITEN','UPRAVIT REZERVACI'][index],exact:true}).click();
+ const select=page.locator('select').filter({has:page.locator('option[value="employee_payment"]')});
+ await expect(select).toHaveValue('company_transfer');
+ await select.selectOption('employee_payment');
+ await page.getByRole('button',{name:['ZAPISZ ZMIANY','SAVE CHANGES','ÄNDERUNGEN SPEICHERN','ULOŽIT ZMĚNY'][index],exact:true}).click();
+ await expect.poll(()=>submitted).toMatchObject({action:'update',locale:lang,paymentMethod:'employee_payment'});
+ await expect(page.locator('.admin-save-message')).toContainText(['Zmiany oczekują','Changes are awaiting','Die Änderungen warten','Změny čekají'][index]);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+ });
