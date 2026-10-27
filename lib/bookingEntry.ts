@@ -2,6 +2,7 @@ export type BookingEntry = {
   airport: string;
   vehicle: "car" | "bus";
   chooseService: boolean;
+  fromPlanner?: boolean;
 };
 
 // Bez parametrów /booking pokazuje hub trzech usług. Linki z cennika i reklam
@@ -18,6 +19,7 @@ export function parseBookingEntry(params: Record<string, string | string[] | und
   return {
     airport,
     vehicle: params.vehicle === "bus" ? "bus" : "car",
-    chooseService: !directAirport
+    chooseService: !directAirport,
+    fromPlanner: params.entry === "airport_departure_planner"
   };
 }
