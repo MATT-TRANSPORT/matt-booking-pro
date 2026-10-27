@@ -24,7 +24,9 @@ test('airport email validation prevents invalid contact details in the mobile wi
       return route.abort();
     }
     if(!url.pathname.startsWith('/api/')) return route.continue();
-    if(request.method() !== 'GET') bookingPosts.push(url.pathname);
+    // Route recalculation and funnel telemetry are expected technical POSTs.
+    // Only a booking-creation POST would be forbidden in this validation test.
+    if(request.method() !== 'GET' && /^\/api\/(?:bookings|general-bookings|wedding-bookings)$/.test(url.pathname)) bookingPosts.push(url.pathname);
     let data = {};
     if(url.pathname === '/api/airports') data={airports:{pyrzowice:{label:'Katowice-Pyrzowice',car:290,bus:400},balice:{label:'Kraków-Balice',car:390,bus:500}}};
     else if(url.pathname === '/api/places') data={suggestions:[]};
@@ -76,7 +78,6 @@ test('airport email validation prevents invalid contact details in the mobile wi
     await expect(next).toBeEnabled();
     await next.click();
     await expect(page.locator('.wizard-card h1')).toContainText({pl:'Podsumowanie',en:'Summary',de:'Zusammenfassung',cs:'Shrnutí'}[locale]);
-    await expect(page.locator('.wizard-summary')).toContainText('QA Test').catch(()=>{});
   }else{
     // No network write may occur if invalid data are submitted.
     await page.getByRole('button',{name:t.book,exact:true}).click();
