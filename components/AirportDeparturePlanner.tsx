@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { saveAirportPlannerHandoff } from "@/lib/airportPlannerHandoff";
 
 type Suggestion = { placeId?: string; text?: string };
 type DriveTime = { airport: string; airportLabel: string; distanceKm: number; durationMinutes: number; liveTraffic: boolean };
@@ -145,6 +146,20 @@ export default function AirportDeparturePlanner() {
   }
 
   const bookingLink = `/booking?service=airport&airport=${encodeURIComponent(airport)}&entry=airport_departure_planner`;
+  function continueToBooking() {
+    if (!plan) return;
+    const pickup = plan.pickupAt;
+    const date = [
+      pickup.getFullYear(),
+      String(pickup.getMonth() + 1).padStart(2, "0"),
+      String(pickup.getDate()).padStart(2, "0"),
+    ].join("-");
+    const time = [
+      String(pickup.getHours()).padStart(2, "0"),
+      String(pickup.getMinutes()).padStart(2, "0"),
+    ].join(":");
+    saveAirportPlannerHandoff({ airport: plan.drive.airport, address: plan.address, travelDate: date, travelTime: time });
+  }
 
   return (
     <main className="airport-planner-wrap">
@@ -243,7 +258,7 @@ export default function AirportDeparturePlanner() {
             </div>
             <p><strong>Przyjazd na lotnisko:</strong> {dateTimeFormat.format(plan.arriveAt)}</p>
             <p className="airport-planner-route">{plan.address} → {plan.drive.airportLabel}</p>
-            <a className="airport-planner-reserve" href={bookingLink}>Sprawdź cenę i zarezerwuj transfer ↗</a>
+            <a className="airport-planner-reserve" href={bookingLink} onClick={continueToBooking}>Sprawdź cenę i zarezerwuj transfer ↗</a>
           </section>
         )}
 
