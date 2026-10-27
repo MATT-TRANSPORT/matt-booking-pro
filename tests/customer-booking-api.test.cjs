@@ -8,9 +8,9 @@ const ts=require('typescript');
 const {randomUUID}=require('node:crypto');
 const root=path.resolve(__dirname,'..');
 let writes=[],emails=[],adminAccess=0;
-let repeatSource=null, expiredSessions=[];
+let repeatSource=null, expiredSessions=[], strictExpiryFails=false;
 const allRecords=[];
-function reset(){writes=[];emails=[];adminAccess=0;expiredSessions=[]}
+function reset(){writes=[];emails=[];adminAccess=0;expiredSessions=[];strictExpiryFails=false}
 function query(table){
  let insert,update;
  const q={select(){return q},eq(){return q},limit(){return q},order(){return q},single(){return q},maybeSingle(){return q},insert(value){insert=value;return q},update(value){update=value;return q},
@@ -27,7 +27,7 @@ const originalLoad=Module._load;
 Module._load=function(id,parent,isMain){
  if(id==='@/lib/supabase/admin')return {createAdminClient:()=>{adminAccess++;return admin}};
  if(id==='@/lib/supabase/server')return {createClient:async()=>({from:query,auth:{getUser:async()=>({data:{user:{id:'test-user',email:'company@example.invalid'}}})}})};
- if(id==='@/lib/stripeServer')return {expireCheckoutSession:async id=>{expiredSessions.push(id)}};
+ if(id==='@/lib/stripeServer')return {expireCheckoutSession:async id=>{expiredSessions.push(id)},expireCheckoutSessionForChange:async id=>{if(strictExpiryFails)throw new Error("Stripe unavailable");expiredSessions.push(id)}};
  if(id==='@/lib/googleCalendar')return {syncBookingCalendar:async()=>{}};
  if(id==='@/lib/email')return {sendMattEmail:async value=>{emails.push(value);return {sent:false,skipped:true}}};
  if(id==='@/lib/adminNotifications')return {sendNewBookingAdminPush:async()=>({sent:0,skipped:true}),sendNewWeddingAdminPush:async()=>({sent:0,skipped:true})};
@@ -110,5 +110,22 @@ for(const locale of ['pl','en','de','cs']){
    assert.equal(response.status,400);assert.deepEqual(writes,[]);assert.deepEqual(expiredSessions,[]);
   }
   for(const body of [null,[],42]){reset();const response=await repeatBooking(request(body,locale),{params:Promise.resolve({id:'test-only'})});assert.equal(response.status,400);assert.deepEqual(writes,[]);}
+ });
+}
+
+for(const locale of ['pl','en','de','cs']) for(const method of ['company_transfer','employee_payment']) {
+ test(`company payment change/${locale}/${method}: requires reconfirmation and blocks payment`,async()=>{
+  reset();repeatSource={...repeatSource,updated_at:'2026-10-27T10:00:00Z',status:'confirmed',customer_locale:locale,payment_status:'pending',payment_method:method==='company_transfer'?'employee_payment':'company_transfer',payment_link:'https://invalid.test/old',payment_checkout_session_id:'cs_test_old',travel_date:'2027-02-10',travel_time:'08:30',return_date:'2027-02-17',return_time:'14:55',price_gross:864};
+  const body={action:'update',locale,paymentMethod:method,serviceType:'roundtrip',address:repeatSource.pickup_address,airport:'pyrzowice',vehicleType:'bus',passengers:8,travelDate:'2027-02-10',travelTime:'08:30',returnDate:'2027-02-17',returnTime:'14:55'};
+  const response=await repeatBooking(request(body,locale),{params:Promise.resolve({id:repeatSource.id})});
+  assert.equal(response.status,200);const data=await response.json();assert.equal(data.payment_method,method);assert.equal(data.status,'pending');assert.equal(data.payment_link,null);assert.equal(data.payment_checkout_session_id,null);assert.deepEqual(expiredSessions,['cs_test_old']);
+  assert.equal(require('../lib/payment.ts').paymentCanStart(data),false);
+  assert.ok(writes.some(w=>w.table==='booking_history'&&w.value.event.includes('sposób płatności')));
+  const notice=emails.find(e=>e.to==='company@example.invalid');assert.ok(notice);assert.match(notice.html, /confirmation|Bestätigung|potvrzení|potwierdzenie/);
+  reset();repeatSource={...repeatSource,payment_method:method};
+  const unchanged=await repeatBooking(request(body,locale),{params:Promise.resolve({id:repeatSource.id})});assert.equal(unchanged.status,200);assert.equal((await unchanged.json()).status,'confirmed');assert.deepEqual(expiredSessions,[]);
+  for(const bad of ['cash','online','',null,{}]){reset();const response=await repeatBooking(request({...body,paymentMethod:bad},locale),{params:Promise.resolve({id:repeatSource.id})});assert.equal(response.status,400);assert.deepEqual(writes,[]);}
+  for(const paymentStatus of ['paid','review','refunded']){reset();repeatSource.payment_status=paymentStatus;const response=await repeatBooking(request({...body,paymentMethod:method==='company_transfer'?'employee_payment':'company_transfer'},locale),{params:Promise.resolve({id:repeatSource.id})});assert.equal(response.status,409);assert.deepEqual(writes,[]);}
+  reset();repeatSource.payment_status='pending';strictExpiryFails=true;const failed=await repeatBooking(request({...body,paymentMethod:method==='company_transfer'?'employee_payment':'company_transfer'},locale),{params:Promise.resolve({id:repeatSource.id})});assert.equal(failed.status,409);assert.deepEqual(writes,[]);
  });
 }

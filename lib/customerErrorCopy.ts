@@ -1,4 +1,6 @@
 export const customerErrorCopy:Record<string,[string,string,string]> = {
+"Nieprawidłowy sposób płatności.": ["Invalid payment method.", "Ungültige Zahlungsart.", "Neplatný způsob platby."],
+"Rezerwacja została zmieniona. Odśwież stronę i spróbuj ponownie.": ["The booking has changed. Refresh the page and try again.", "Die Buchung wurde geändert. Laden Sie die Seite neu und versuchen Sie es erneut.", "Rezervace se změnila. Obnovte stránku a zkuste to znovu."],
  "Nieprawidłowe dane formularza.": ["Invalid form data.", "Ungültige Formulardaten.", "Neplatné údaje formuláře."],
   "Podaj punkt A i punkt B.": [
     "Enter pickup and destination locations.",

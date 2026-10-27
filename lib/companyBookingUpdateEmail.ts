@@ -1,3 +1,4 @@
+import { companyText } from "@/lib/companyCopy";
 import { bookingOrigin } from "@/lib/bookingOrigin";
 import { resolveCustomerLocale, withCustomerLocale } from "@/lib/bookingLocale";
 import { escapeCustomerHtml } from "@/lib/customerAccount";
@@ -12,5 +13,5 @@ export function companyBookingUpdateEmail(kind:"updated"|"cancelled",booking:any
  const locale=resolveCustomerLocale(booking.customer_locale),t=copy[locale],esc=escapeCustomerHtml;
  const origin=bookingOrigin();
  const url=withCustomerLocale(`${origin}/firma/rezerwacje/${encodeURIComponent(booking.id)}`,locale);
- return {locale,subject:`${t[kind]} ${booking.booking_number}`,html:`<div lang="${locale}" style="font-family:Arial,sans-serif;padding:28px"><h2>MATT TRANSPORT</h2><h1>${t[kind]} ${esc(booking.booking_number)}</h1><p>${kind==="updated"?t.updatedText:t.cancelledText}</p>${wasPaid?`<p>${t.paid}</p>`:""}<p><a href="${esc(url)}">${t.open}</a></p><p>${t.terms}</p><p>+48 691 242 691</p></div>`};
+ return {locale,subject:`${t[kind]} ${booking.booking_number}`,html:`<div lang="${locale}" style="font-family:Arial,sans-serif;padding:28px"><h2>MATT TRANSPORT</h2><h1>${t[kind]} ${esc(booking.booking_number)}</h1><p>${kind==="updated"?t.updatedText:t.cancelledText}</p>${kind==="updated" && booking.status==="pending"?`<p><strong>${companyText("Zmiany oczekują na potwierdzenie przez MATT TRANSPORT.",locale)}</strong></p>`:""}${wasPaid?`<p>${t.paid}</p>`:""}<p><a href="${esc(url)}">${t.open}</a></p><p>${t.terms}</p><p>+48 691 242 691</p></div>`};
 }

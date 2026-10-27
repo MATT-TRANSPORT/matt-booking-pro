@@ -54,3 +54,16 @@ export async function expireCheckoutSession(
 
   return false;
 }
+
+// Fail closed: a completed or unverifiable session must never be detached from a booking.
+export async function expireCheckoutSessionForChange(sessionId?: string | null) {
+  if (!sessionId) return;
+  const stripe = getStripe();
+  const session = await stripe.checkout.sessions.retrieve(sessionId);
+  if (session.status === "expired" && session.payment_status === "unpaid") return;
+  if (session.status !== "open" || session.payment_status !== "unpaid") {
+    throw new Error("Payment requires review before changing its method");
+  }
+  const expired = await stripe.checkout.sessions.expire(sessionId);
+  if (expired.status !== "expired") throw new Error("Checkout expiration failed");
+}
