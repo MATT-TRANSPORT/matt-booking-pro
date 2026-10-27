@@ -38,6 +38,7 @@ export default function CompanyBookingActions({ customerLocale, booking }: { cus
     flightNumber: booking.flight_number ?? "",
     passengers: Number(booking.passengers),
     vehicleType: booking.vehicle_type,
+    paymentMethod: booking.payment_method || "company_transfer",
     notes: booking.notes ?? ""
   });
 
@@ -105,7 +106,7 @@ export default function CompanyBookingActions({ customerLocale, booking }: { cus
       return;
     }
 
-    setMessage(t("✓ Rezerwacja została zaktualizowana i przeliczona na serwerze."));
+    setMessage(data.status === "pending" ? t("Zmiany oczekują na potwierdzenie przez MATT TRANSPORT.") : t("✓ Rezerwacja została zaktualizowana i przeliczona na serwerze."));
     setSaving(false);
     setEditing(false);
     router.refresh();
@@ -260,6 +261,13 @@ export default function CompanyBookingActions({ customerLocale, booking }: { cus
             </div>
           )}
 
+          <label>{t("Sposób płatności")}
+            <select value={form.paymentMethod} onChange={e => setForm({ ...form, paymentMethod: e.target.value })}>
+              <option value="company_transfer">{t("Przelew firmowy")}</option>
+              <option value="employee_payment">{t("Płatność online firmy")}</option>
+            </select>
+          </label>
+          <p className="muted">{t("Zmiana sposobu płatności wymaga ponownego potwierdzenia rezerwacji przez MATT TRANSPORT.")}</p>
           <label>{t("Uwagi")}<textarea rows={4} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></label>
           <button className="btn" style={{ width: "100%", marginTop: 12 }} disabled={saving || quoteBusy} onClick={save}>
             {saving ? t("ZAPISYWANIE...") : t("ZAPISZ ZMIANY")}

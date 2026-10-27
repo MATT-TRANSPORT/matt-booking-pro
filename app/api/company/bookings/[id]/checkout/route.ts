@@ -122,7 +122,7 @@ export async function POST(
       cancel_url: `${base}/firma/rezerwacje/${booking.id}?lang=${resolveCustomerLocale(booking.customer_locale)}&payment=cancelled`
     });
 
-    await admin
+    const { data: savedPayment, error: savePaymentError } = await admin
       .from("bookings")
       .update({
         payment_provider: "stripe",
@@ -134,7 +134,17 @@ export async function POST(
         payment_review_reason: null,
         updated_at: new Date().toISOString()
       })
-      .eq("id", booking.id);
+      .eq("id", booking.id)
+      .eq("updated_at", booking.updated_at)
+      .select("id")
+      .maybeSingle();
+
+    if (savePaymentError || !savedPayment) {
+      // The booking may have changed payment method while Stripe was creating this session.
+      // Never return a Checkout URL based on stale, previously confirmed conditions.
+      await stripe.checkout.sessions.expire(session.id);
+      return json({ error: "Rezerwacja została zmieniona. Odśwież stronę i spróbuj ponownie." }, { status: 409 });
+    }
 
     await admin.from("booking_history").insert({
       booking_id: booking.id,

@@ -3,6 +3,10 @@ import { resolveCustomerLocale } from "@/lib/bookingLocale";
 import { customerText } from "@/lib/customerCopy";
 
 export const companyCopy: Record<string,[string,string,string]> = {
+  "Sposób płatności": ["Payment method", "Zahlungsart", "Způsob platby"],
+  "Płatność online firmy": ["Company online payment", "Online-Zahlung des Unternehmens", "Online platba firmy"],
+  "Zmiany oczekują na potwierdzenie przez MATT TRANSPORT.": ["Changes are awaiting confirmation by MATT TRANSPORT.", "Die Änderungen warten auf die Bestätigung durch MATT TRANSPORT.", "Změny čekají na potvrzení od MATT TRANSPORT."],
+  "Zmiana sposobu płatności wymaga ponownego potwierdzenia rezerwacji przez MATT TRANSPORT.": ["Changing the payment method requires MATT TRANSPORT to confirm the booking again.", "Bei einer Änderung der Zahlungsart muss MATT TRANSPORT die Buchung erneut bestätigen.", "Změna způsobu platby vyžaduje opětovné potvrzení rezervace od MATT TRANSPORT."],
   "TWORZENIE...": ["CREATING...", "WIRD ERSTELLT...", "VYTVÁŘENÍ..."],
   "DODAJ ADRES": ["ADD ADDRESS", "ADRESSE HINZUFÜGEN", "PŘIDAT ADRESU"],
   "✓ Adres zapisany.": ["✓ Address saved.", "✓ Adresse gespeichert.", "✓ Adresa uložena."],

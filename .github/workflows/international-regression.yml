@@ -63,3 +63,15 @@ jobs:
         run: node --test tests/driver-whatsapp-email.test.cjs
       - name: TypeScript check
         run: npx tsc --noEmit
+      - name: Payment method change safety
+        run: node --test tests/stripe-method-change.test.cjs tests/company-checkout-concurrency.test.cjs
+      - name: Install Chromium for B2B payment UI regression
+        run: npx playwright install --with-deps chromium
+      - name: Build with local test-only backend
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:3201
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: matt-local-test-only
+          SUPABASE_SERVICE_ROLE_KEY: matt-local-test-only
+      - name: B2B payment method UI in four languages and two viewports
+        run: npx playwright test -g 'company payment method edit'

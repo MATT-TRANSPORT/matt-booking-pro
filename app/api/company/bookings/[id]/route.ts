@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMattEmail } from "@/lib/email";
-import { expireCheckoutSession } from "@/lib/stripeServer";
+import { expireCheckoutSession, expireCheckoutSessionForChange } from "@/lib/stripeServer";
 import { syncBookingCalendar } from "@/lib/googleCalendar";
 import { bookingPricingFields, calculateCompanyQuote } from "@/lib/companyPricing";
 import { sendDriverPush, sendAdminPush } from "@/lib/pushServer";
@@ -297,6 +297,15 @@ export async function POST(
     );
   }
 
+  const paymentMethod = body.paymentMethod ?? current.payment_method;
+  if (body.paymentMethod !== undefined && !["company_transfer", "employee_payment"].includes(body.paymentMethod)) {
+    return json({ error: "Nieprawidłowy sposób płatności." }, { status: 400 });
+  }
+  const paymentMethodChanged = paymentMethod !== current.payment_method;
+  if (paymentMethodChanged && current.payment_status === "refunded") {
+    return json({ error: "Płatność wymaga weryfikacji przez MATT TRANSPORT." }, { status: 409 });
+  }
+
   const vehicle = body.vehicleType === "bus" ? "bus" : "car";
   const serviceType = body.serviceType || current.service_type;
   const address = String(body.address || current.pickup_address || "");
@@ -337,6 +346,10 @@ export async function POST(
     }
   };
 
+  if (paymentMethodChanged) {
+    const label = (method: string) => method === "employee_payment" ? "Płatność online firmy" : "Przelew firmowy";
+    changes.push(`sposób płatności: ${label(current.payment_method)} → ${label(paymentMethod)}; wymaga ponownego potwierdzenia MATT TRANSPORT`);
+  }
   compare("adres", current.pickup_address, address);
   compare("data", current.travel_date, body.travelDate);
   compare("godzina", String(current.travel_time ?? "").slice(0, 5), String(body.travelTime ?? "").slice(0, 5));
@@ -352,6 +365,7 @@ export async function POST(
   }
 
   const materialChange =
+    paymentMethodChanged ||
     String(current.pickup_address ?? "") !== address ||
     String(current.travel_date ?? "") !== String(body.travelDate ?? "") ||
     String(current.travel_time ?? "").slice(0, 5) !== String(body.travelTime ?? "").slice(0, 5) ||
@@ -363,13 +377,20 @@ export async function POST(
     Number(current.passengers || 0) !== Number(body.passengers || 0) ||
     Math.round(oldGross * 100) !== Math.round(quote.gross * 100);
 
-  if (materialChange) {
+  if (paymentMethodChanged) {
+    try {
+      await expireCheckoutSessionForChange(current.payment_checkout_session_id);
+    } catch {
+      return json({ error: "Płatność wymaga weryfikacji przez MATT TRANSPORT." }, { status: 409 });
+    }
+  } else if (materialChange) {
     await expireCheckoutSession(current.payment_checkout_session_id);
   }
 
   const { data, error } = await admin
     .from("bookings")
     .update({
+      payment_method: paymentMethod,
       service_type: serviceType,
       pickup_address: address,
       airport_key: quote.airportKey,
@@ -390,6 +411,7 @@ export async function POST(
         : current.status,
       ...(materialChange
         ? {
+            payment_link: null,
             payment_status: "pending",
             payment_provider: null,
             payment_checkout_session_id: null,
@@ -403,11 +425,13 @@ export async function POST(
       updated_at: new Date().toISOString()
     })
     .eq("id", id)
+    .eq("company_id", membership.company_id)
+    .eq("updated_at", current.updated_at)
     .select("*")
     .single();
 
   if (error || !data) {
-    return json({ error: error?.message || "Błąd zapisu." }, { status: 500 });
+    return json({ error: "Rezerwacja została zmieniona. Odśwież stronę i spróbuj ponownie." }, { status: 409 });
   }
 
   await admin.from("booking_history").insert({
@@ -425,6 +449,19 @@ export async function POST(
       url: `/panel/rezerwacje/${data.id}`,
       tag: `admin-company-edit-${data.id}-${data.updated_at}`
     }).catch((pushError) => console.error("Admin push po edycji B2B:", pushError));
+  }
+
+  if (paymentMethodChanged) {
+    try {
+      const label = (method: string) => method === "employee_payment" ? "Płatność online firmy" : "Przelew firmowy";
+      await sendMattEmail({
+        to: "kontakt@matt-transport.pl",
+        subject: `B2B · ZMIANA PŁATNOŚCI DO POTWIERDZENIA · ${data.booking_number}`,
+        html: htmlUpdate(data.booking_number, `Firma zgłosiła zmianę: ${label(current.payment_method)} → ${label(paymentMethod)}. Rezerwacja oczekuje na ponowne potwierdzenie w panelu MATT TRANSPORT.`)
+      });
+    } catch (error) {
+      console.error("Admin email after B2B payment method change:", error);
+    }
   }
 
   if (current.driver_id && changes.length) {
