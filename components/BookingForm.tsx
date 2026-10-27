@@ -13,6 +13,8 @@ import { takeAirportPlannerHandoff } from "@/lib/airportPlannerHandoff";
 
 const airportCopy: Record<string,[string,string,string]> = {"Dziękujemy! Rezerwacja przyjęta":["Thank you! Booking received","Vielen Dank! Buchung eingegangen","Děkujeme! Rezervace přijata"],"🕐 Oczekuje na potwierdzenie":["🕐 Awaiting confirmation","🕐 Bestätigung ausstehend","🕐 Čeká na potvrzení"],"Co dalej?":["What happens next?","Wie geht es weiter?","Co bude dál?"],"Twoje zgłoszenie zostało przyjęte. Potwierdzimy rezerwację najszybciej jak to możliwe.":["Your request has been received. We will confirm your booking as soon as possible.","Ihre Anfrage ist eingegangen. Wir bestätigen Ihre Buchung schnellstmöglich.","Vaši poptávku jsme přijali. Rezervaci potvrdíme co nejdříve."],"Oczekuj wiadomości e-mail lub kontaktu z MATT TRANSPORT.":["Please look out for an email or contact from MATT TRANSPORT.","Bitte achten Sie auf eine E-Mail oder Nachricht von MATT TRANSPORT.","Očekávejte e-mail nebo kontakt od MATT TRANSPORT."],"Jakiego przejazdu potrzebujesz?":["What transfer do you need?","Welche Fahrt benötigen Sie?","Jakou přepravu potřebujete?"],"Trasa i lotnisko":["Route and airport","Strecke und Flughafen","Trasa a letiště"],"Termin przejazdu":["Travel date and time","Reisetermin","Termín jízdy"],"Wybierz pojazd":["Choose your vehicle","Fahrzeug auswählen","Vyberte vozidlo"],"Twoje dane":["Your details","Ihre Angaben","Vaše údaje"],"Podsumowanie":["Summary","Zusammenfassung","Shrnutí"],"Zarezerwuj transfer lotniskowy":["Book an airport transfer","Flughafentransfer buchen","Rezervovat letištní transfer"],"Sposób płatności":["Payment method","Zahlungsart","Způsob platby"],"Trasa":["Route","Strecke","Trasa"],"Termin":["Date and time","Termin","Termín"],"Pojazd":["Vehicle","Fahrzeug","Vozidlo"],"Dane klienta":["Customer details","Kundendaten","Údaje zákazníka"],"Adres docelowy":["Destination address","Zieladresse","Cílová adresa"],"Adres odbioru":["Pickup address","Abholadresse","Adresa vyzvednutí"],"Wpisz adres":["Enter address","Adresse eingeben","Zadejte adresu"],"Data":["Date","Datum","Datum"],"Godzina przylotu":["Arrival time","Ankunftszeit","Čas příletu"],"Godzina wyjazdu na lotnisko":["Departure time to airport","Abfahrtszeit zum Flughafen","Čas odjezdu na letiště"],"Lot wylotowy":["Outbound flight","Hinflug","Odletový let"],"Numer lotu":["Flight number","Flugnummer","Číslo letu"],"Pasażerowie":["Passengers","Fahrgäste","Cestující"],"Data powrotu":["Return date","Rückfahrtdatum","Datum návratu"],"Godzina przylotu powrotnego":["Return flight arrival time","Ankunftszeit des Rückflugs","Čas příletu zpátečního letu"],"Lot powrotny":["Return flight","Rückflug","Zpáteční let"],"Imię i nazwisko":["Full name","Vor- und Nachname","Jméno a příjmení"],"Telefon":["Phone","Telefon","Telefon"],"E-mail":["Email","E-Mail","E-mail"],"Faktura VAT":["VAT invoice","MwSt.-Rechnung","Faktura s DPH"],"Nie":["No","Nein","Ne"],"Tak, +8%":["Yes, +8%","Ja, +8%","Ano, +8 %"],"Uwagi do rezerwacji":["Booking notes","Anmerkungen zur Buchung","Poznámky k rezervaci"],"Lotnisko":["Airport","Flughafen","Letiště"],"Jakie lotnisko?":["Which airport?","Welcher Flughafen?","Jaké letiště?"],"np. Berlin Brandenburg":["e.g. Berlin Brandenburg","z. B. Berlin Brandenburg","např. Berlín Brandenburg"]};
 const airportExtraCopy: Record<string,[string,string,string]> = {"NOWA REZERWACJA":["NEW BOOKING","NEUE BUCHUNG","NOVÁ REZERVACE"],"WSTECZ":["BACK","ZURÜCK","ZPĚT"],"DALEJ":["NEXT","WEITER","DALŠÍ"],"PODSUMOWANIE":["SUMMARY","ZUSAMMENFASSUNG","SHRNUTÍ"],"ZAREZERWUJ":["BOOK NOW","JETZT BUCHEN","REZERVOVAT"],"ZAPISYWANIE...":["SAVING...","WIRD GESPEICHERT...","UKLÁDÁNÍ..."],"OBLICZANIE TRASY...":["CALCULATING ROUTE...","ROUTE WIRD BERECHNET...","VÝPOČET TRASY..."],"Godzina przylotu":["Arrival time","Ankunftszeit","Čas příletu"],"Godzina wyjazdu na lotnisko":["Departure time to airport","Abfahrtszeit zum Flughafen","Čas odjezdu na letiště"],"Lotnisko":["Airport","Flughafen","Letiště"],"ZADZWOŃ":["CALL US","ANRUFEN","ZAVOLEJTE"],"OBLICZ PONOWNIE":["RECALCULATE","ERNEUT BERECHNEN","PŘEPOČÍTAT"],"ZADZWOŃ I ZAPYTAJ O CENĘ":["CALL FOR A QUOTE","PREIS TELEFONISCH ERFRAGEN","ZAVOLEJTE PRO CENU"],"Adres dodatkowego przystanku":["Additional stop address","Adresse des Zwischenstopps","Adresa další zastávky"],"Wpisz drugi adres":["Enter another address","Weitere Adresse eingeben","Zadejte další adresu"],"USUŃ":["REMOVE","ENTFERNEN","ODSTRANIT"],"Obliczanie dojazdu do adresu...":["Calculating route to address...","Route zur Adresse wird berechnet...","Výpočet trasy k adrese..."],"Obliczanie objazdu...":["Calculating detour...","Umweg wird berechnet...","Výpočet objížďky..."],"+ DODAJ DODATKOWY ADRES / PRZYSTANEK":["+ ADD ANOTHER ADDRESS / STOP","+ WEITERE ADRESSE / ZWISCHENSTOPP","+ PŘIDAT DALŠÍ ADRESU / ZASTÁVKU"],"Wyjazd na lotnisko (+20 zł)":["Outbound to airport (+20 PLN)","Hinfahrt zum Flughafen (+20 PLN)","Cesta na letiště (+20 PLN)"],"Powrót z lotniska (+20 zł)":["Return from airport (+20 PLN)","Rückfahrt vom Flughafen (+20 PLN)","Návrat z letiště (+20 PLN)"]};
+// Contact validation is shared by desktop and mobile booking flows.
+airportExtraCopy["Podaj poprawny adres e-mail."] = ["Enter a valid email address.", "Bitte geben Sie eine gültige E-Mail-Adresse ein.", "Zadejte platnou e-mailovou adresu."];
 type Suggestion = { placeId?: string; text?: string };
 type AirportKey = string | "other";
 
@@ -269,10 +271,11 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
     return Number.isFinite(outbound) && Number.isFinite(back) && back > outbound;
   }
 
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   function valid(n:number){
     if(n===2) return routeReady && (airport!=="other" || otherAirport.trim().length>=3) && (!additionalStopEnabled || (!!additionalStopAddress.trim() && !additionalStopBusy && !!additionalStopQuote));
     if(n===3) return !!travelDate && !!travelTime && roundtripScheduleReady();
-    if(n===5) return !!name.trim() && !!phone.trim() && !!email.trim() && (!invoice || nip10(nip).length===10);
+    if(n===5) return !!name.trim() && !!phone.trim() && emailValid && (!invoice || nip10(nip).length===10);
     return true;
   }
 
@@ -284,6 +287,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
       !name.trim() && t("imię i nazwisko"), !phone.trim() && t("telefon"), !email.trim() && t("e-mail")
     ].filter(Boolean);
     if(missing.length){ setMessage(`${t("Uzupełnij")}: ${missing.join(", ")}.`); return; }
+    if(!emailValid){ setMessage(t("Podaj poprawny adres e-mail.")); return; }
     if(!routeReady){ setMessage(routeError || t("Poczekaj na obliczenie dojazdu dla podanego adresu.")); return; }
     if(serviceType==="roundtrip"&&(!returnDate||!returnTime)){ setMessage(t("Dla przejazdu w obie strony podaj datę i godzinę powrotu.")); return; }
     if(serviceType==="roundtrip"&&!roundtripScheduleReady()){ setMessage(t("Termin powrotu musi być późniejszy niż wyjazd.")); return; }
@@ -426,9 +430,9 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
       {step===5&&<section className="card wizard-card">
         <h1>{t("Twoje dane")}</h1>
         <div className="grid">
-          <label>{t("Imię i nazwisko")}<input value={name} onChange={e=>setName(e.target.value)}/></label>
-          <label>{t("Telefon")}<input value={phone} onChange={e=>setPhone(e.target.value)}/></label>
-          <label>{t("E-mail")}<input type="email" value={email} onChange={e=>setEmail(e.target.value)}/></label>
+          <label>{t("Imię i nazwisko")}<input autoComplete="name" value={name} onChange={e=>setName(e.target.value)}/></label>
+          <label>{t("Telefon")}<input type="tel" autoComplete="tel" inputMode="tel" value={phone} onChange={e=>setPhone(e.target.value)}/></label>
+          <label>{t("E-mail")}<input type="email" autoComplete="email" inputMode="email" aria-invalid={Boolean(email.trim()) && !emailValid} value={email} onChange={e=>{setEmail(e.target.value);if(message===t("Podaj poprawny adres e-mail."))setMessage("");}}/>{email.trim() && !emailValid && <small role="status" style={{display:"block",color:"#ffb8b8",marginTop:6}}>{t("Podaj poprawny adres e-mail.")}</small>}</label>
           <label>{t("Faktura VAT")}<select value={invoice?"1":"0"} onChange={e=>{const n=e.target.value==="1";setInvoice(n);if(!n)setNip("");}}><option value="0">{t("Nie")}</option><option value="1">{t("Tak, +8%")}</option></select></label>
           {invoice&&<label>NIP<input inputMode="numeric" maxLength={10} value={nip} onChange={e=>setNip(nip10(e.target.value))}/></label>}
         </div>
@@ -506,9 +510,9 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
       </div>
       <h3>{t("Dane klienta")}</h3>
       <div className="grid">
-        <label>{t("Imię i nazwisko")}<input value={name} onChange={e=>setName(e.target.value)}/></label>
-        <label>{t("Telefon")}<input value={phone} onChange={e=>setPhone(e.target.value)}/></label>
-        <label>{t("E-mail")}<input type="email" value={email} onChange={e=>setEmail(e.target.value)}/></label>
+        <label>{t("Imię i nazwisko")}<input autoComplete="name" value={name} onChange={e=>setName(e.target.value)}/></label>
+        <label>{t("Telefon")}<input type="tel" autoComplete="tel" inputMode="tel" value={phone} onChange={e=>setPhone(e.target.value)}/></label>
+        <label>{t("E-mail")}<input type="email" autoComplete="email" inputMode="email" aria-invalid={Boolean(email.trim()) && !emailValid} value={email} onChange={e=>{setEmail(e.target.value);if(message===t("Podaj poprawny adres e-mail."))setMessage("");}}/>{email.trim() && !emailValid && <small role="status" style={{display:"block",color:"#ffb8b8",marginTop:6}}>{t("Podaj poprawny adres e-mail.")}</small>}</label>
         <label>{t("Faktura VAT")}<select value={invoice?"1":"0"} onChange={e=>setInvoice(e.target.value==="1")}><option value="0">{t("Nie")}</option><option value="1">{t("Tak, +8%")}</option></select></label>
         {invoice&&<label>NIP<input inputMode="numeric" maxLength={10} value={nip} onChange={e=>setNip(nip10(e.target.value))}/></label>}
       </div>
