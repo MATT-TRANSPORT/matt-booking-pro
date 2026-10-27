@@ -432,7 +432,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
         <div className="grid">
           <label>{t("Imię i nazwisko")}<input autoComplete="name" value={name} onChange={e=>setName(e.target.value)}/></label>
           <label>{t("Telefon")}<input type="tel" autoComplete="tel" inputMode="tel" value={phone} onChange={e=>setPhone(e.target.value)}/></label>
-          <label>{t("E-mail")}<input type="email" autoComplete="email" inputMode="email" aria-invalid={Boolean(email.trim()) && !emailValid} value={email} onChange={e=>setEmail(e.target.value)}/>{email.trim() && !emailValid && <small role="status" style={{display:"block",color:"#ffb8b8",marginTop:6}}>{t("Podaj poprawny adres e-mail.")}</small>}</label>
+          <label>{t("E-mail")}<input type="email" autoComplete="email" inputMode="email" aria-invalid={Boolean(email.trim()) && !emailValid} value={email} onChange={e=>{setEmail(e.target.value);if(message===t("Podaj poprawny adres e-mail."))setMessage("");}}/>{email.trim() && !emailValid && <small role="status" style={{display:"block",color:"#ffb8b8",marginTop:6}}>{t("Podaj poprawny adres e-mail.")}</small>}</label>
           <label>{t("Faktura VAT")}<select value={invoice?"1":"0"} onChange={e=>{const n=e.target.value==="1";setInvoice(n);if(!n)setNip("");}}><option value="0">{t("Nie")}</option><option value="1">{t("Tak, +8%")}</option></select></label>
           {invoice&&<label>NIP<input inputMode="numeric" maxLength={10} value={nip} onChange={e=>setNip(nip10(e.target.value))}/></label>}
         </div>
@@ -512,7 +512,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
       <div className="grid">
         <label>{t("Imię i nazwisko")}<input autoComplete="name" value={name} onChange={e=>setName(e.target.value)}/></label>
         <label>{t("Telefon")}<input type="tel" autoComplete="tel" inputMode="tel" value={phone} onChange={e=>setPhone(e.target.value)}/></label>
-        <label>{t("E-mail")}<input type="email" autoComplete="email" inputMode="email" aria-invalid={Boolean(email.trim()) && !emailValid} value={email} onChange={e=>setEmail(e.target.value)}/>{email.trim() && !emailValid && <small role="status" style={{display:"block",color:"#ffb8b8",marginTop:6}}>{t("Podaj poprawny adres e-mail.")}</small>}</label>
+        <label>{t("E-mail")}<input type="email" autoComplete="email" inputMode="email" aria-invalid={Boolean(email.trim()) && !emailValid} value={email} onChange={e=>{setEmail(e.target.value);if(message===t("Podaj poprawny adres e-mail."))setMessage("");}}/>{email.trim() && !emailValid && <small role="status" style={{display:"block",color:"#ffb8b8",marginTop:6}}>{t("Podaj poprawny adres e-mail.")}</small>}</label>
         <label>{t("Faktura VAT")}<select value={invoice?"1":"0"} onChange={e=>setInvoice(e.target.value==="1")}><option value="0">{t("Nie")}</option><option value="1">{t("Tak, +8%")}</option></select></label>
         {invoice&&<label>NIP<input inputMode="numeric" maxLength={10} value={nip} onChange={e=>setNip(nip10(e.target.value))}/></label>}
       </div>
