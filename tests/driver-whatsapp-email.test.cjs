@@ -57,3 +57,10 @@ test("international messages have compact assigned summary",()=>{
   assert.match(intl,/const assignmentHero=kind==="assigned"/);
   assert.match(intl,/kind==="assigned" \? assignmentHero/);
 });
+
+test("assigned route typography stays readable and compact in Polish and international email",()=>{
+ assert.match(pl, /font-size:17px;font-weight:700;line-height:1\\.5;overflow-wrap:anywhere/);
+ assert.match(intl, /font-size:17px;line-height:1\\.5;font-weight:700;color:#fff;overflow-wrap:anywhere/);
+ assert.doesNotMatch(pl, /font-size:23px;font-weight:800;line-height:1\\.35;overflow-wrap:anywhere/);
+ assert.doesNotMatch(intl, /font-size:22px;font-weight:800;color:#fff;overflow-wrap:anywhere/);
+});
