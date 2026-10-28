@@ -15,6 +15,7 @@ const airportCopy: Record<string,[string,string,string]> = {"Dziękujemy! Rezerw
 const airportExtraCopy: Record<string,[string,string,string]> = {"NOWA REZERWACJA":["NEW BOOKING","NEUE BUCHUNG","NOVÁ REZERVACE"],"WSTECZ":["BACK","ZURÜCK","ZPĚT"],"DALEJ":["NEXT","WEITER","DALŠÍ"],"PODSUMOWANIE":["SUMMARY","ZUSAMMENFASSUNG","SHRNUTÍ"],"ZAREZERWUJ":["BOOK NOW","JETZT BUCHEN","REZERVOVAT"],"ZAPISYWANIE...":["SAVING...","WIRD GESPEICHERT...","UKLÁDÁNÍ..."],"OBLICZANIE TRASY...":["CALCULATING ROUTE...","ROUTE WIRD BERECHNET...","VÝPOČET TRASY..."],"Godzina przylotu":["Arrival time","Ankunftszeit","Čas příletu"],"Godzina wyjazdu na lotnisko":["Departure time to airport","Abfahrtszeit zum Flughafen","Čas odjezdu na letiště"],"Lotnisko":["Airport","Flughafen","Letiště"],"ZADZWOŃ":["CALL US","ANRUFEN","ZAVOLEJTE"],"OBLICZ PONOWNIE":["RECALCULATE","ERNEUT BERECHNEN","PŘEPOČÍTAT"],"ZADZWOŃ I ZAPYTAJ O CENĘ":["CALL FOR A QUOTE","PREIS TELEFONISCH ERFRAGEN","ZAVOLEJTE PRO CENU"],"Adres dodatkowego przystanku":["Additional stop address","Adresse des Zwischenstopps","Adresa další zastávky"],"Wpisz drugi adres":["Enter another address","Weitere Adresse eingeben","Zadejte další adresu"],"USUŃ":["REMOVE","ENTFERNEN","ODSTRANIT"],"Obliczanie dojazdu do adresu...":["Calculating route to address...","Route zur Adresse wird berechnet...","Výpočet trasy k adrese..."],"Obliczanie objazdu...":["Calculating detour...","Umweg wird berechnet...","Výpočet objížďky..."],"+ DODAJ DODATKOWY ADRES / PRZYSTANEK":["+ ADD ANOTHER ADDRESS / STOP","+ WEITERE ADRESSE / ZWISCHENSTOPP","+ PŘIDAT DALŠÍ ADRESU / ZASTÁVKU"],"Wyjazd na lotnisko (+20 zł)":["Outbound to airport (+20 PLN)","Hinfahrt zum Flughafen (+20 PLN)","Cesta na letiště (+20 PLN)"],"Powrót z lotniska (+20 zł)":["Return from airport (+20 PLN)","Rückfahrt vom Flughafen (+20 PLN)","Návrat z letiště (+20 PLN)"]};
 // Contact validation is shared by desktop and mobile booking flows.
 airportExtraCopy["Podaj poprawny adres e-mail."] = ["Enter a valid email address.", "Bitte geben Sie eine gültige E-Mail-Adresse ein.", "Zadejte platnou e-mailovou adresu."];
+airportExtraCopy["Podaj poprawny numer telefonu."] = ["Enter a valid phone number.", "Bitte geben Sie eine gültige Telefonnummer ein.", "Zadejte platné telefonní číslo."];
 type Suggestion = { placeId?: string; text?: string };
 type AirportKey = string | "other";
 
@@ -272,10 +273,13 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
   }
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  // Accept international phone formats without requiring a particular country prefix.
+  const phoneDigits = phone.replace(/\D/g, "");
+  const phoneValid = phoneDigits.length >= 7 && phoneDigits.length <= 15;
   function valid(n:number){
     if(n===2) return routeReady && (airport!=="other" || otherAirport.trim().length>=3) && (!additionalStopEnabled || (!!additionalStopAddress.trim() && !additionalStopBusy && !!additionalStopQuote));
     if(n===3) return !!travelDate && !!travelTime && roundtripScheduleReady();
-    if(n===5) return !!name.trim() && !!phone.trim() && emailValid && (!invoice || nip10(nip).length===10);
+    if(n===5) return !!name.trim() && phoneValid && emailValid && (!invoice || nip10(nip).length===10);
     return true;
   }
 
@@ -288,6 +292,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
     ].filter(Boolean);
     if(missing.length){ setMessage(`${t("Uzupełnij")}: ${missing.join(", ")}.`); return; }
     if(!emailValid){ setMessage(t("Podaj poprawny adres e-mail.")); return; }
+    if(!phoneValid){ setMessage(t("Podaj poprawny numer telefonu.")); return; }
     if(!routeReady){ setMessage(routeError || t("Poczekaj na obliczenie dojazdu dla podanego adresu.")); return; }
     if(serviceType==="roundtrip"&&(!returnDate||!returnTime)){ setMessage(t("Dla przejazdu w obie strony podaj datę i godzinę powrotu.")); return; }
     if(serviceType==="roundtrip"&&!roundtripScheduleReady()){ setMessage(t("Termin powrotu musi być późniejszy niż wyjazd.")); return; }
@@ -431,7 +436,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
         <h1>{t("Twoje dane")}</h1>
         <div className="grid">
           <label>{t("Imię i nazwisko")}<input autoComplete="name" value={name} onChange={e=>setName(e.target.value)}/></label>
-          <label>{t("Telefon")}<input type="tel" autoComplete="tel" inputMode="tel" value={phone} onChange={e=>setPhone(e.target.value)}/></label>
+          <label>{t("Telefon")}<input type="tel" autoComplete="tel" inputMode="tel" aria-invalid={Boolean(phone.trim()) && !phoneValid} value={phone} onChange={e=>{setPhone(e.target.value);if(message===t("Podaj poprawny numer telefonu."))setMessage("");}}/>{phone.trim() && !phoneValid && <small role="status" style={{display:"block",color:"#ffb8b8",marginTop:6}}>{t("Podaj poprawny numer telefonu.")}</small>}</label>
           <label>{t("E-mail")}<input type="email" autoComplete="email" inputMode="email" aria-invalid={Boolean(email.trim()) && !emailValid} value={email} onChange={e=>{setEmail(e.target.value);if(message===t("Podaj poprawny adres e-mail."))setMessage("");}}/>{email.trim() && !emailValid && <small role="status" style={{display:"block",color:"#ffb8b8",marginTop:6}}>{t("Podaj poprawny adres e-mail.")}</small>}</label>
           <label>{t("Faktura VAT")}<select value={invoice?"1":"0"} onChange={e=>{const n=e.target.value==="1";setInvoice(n);if(!n)setNip("");}}><option value="0">{t("Nie")}</option><option value="1">{t("Tak, +8%")}</option></select></label>
           {invoice&&<label>NIP<input inputMode="numeric" maxLength={10} value={nip} onChange={e=>setNip(nip10(e.target.value))}/></label>}
@@ -511,7 +516,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
       <h3>{t("Dane klienta")}</h3>
       <div className="grid">
         <label>{t("Imię i nazwisko")}<input autoComplete="name" value={name} onChange={e=>setName(e.target.value)}/></label>
-        <label>{t("Telefon")}<input type="tel" autoComplete="tel" inputMode="tel" value={phone} onChange={e=>setPhone(e.target.value)}/></label>
+        <label>{t("Telefon")}<input type="tel" autoComplete="tel" inputMode="tel" aria-invalid={Boolean(phone.trim()) && !phoneValid} value={phone} onChange={e=>{setPhone(e.target.value);if(message===t("Podaj poprawny numer telefonu."))setMessage("");}}/>{phone.trim() && !phoneValid && <small role="status" style={{display:"block",color:"#ffb8b8",marginTop:6}}>{t("Podaj poprawny numer telefonu.")}</small>}</label>
         <label>{t("E-mail")}<input type="email" autoComplete="email" inputMode="email" aria-invalid={Boolean(email.trim()) && !emailValid} value={email} onChange={e=>{setEmail(e.target.value);if(message===t("Podaj poprawny adres e-mail."))setMessage("");}}/>{email.trim() && !emailValid && <small role="status" style={{display:"block",color:"#ffb8b8",marginTop:6}}>{t("Podaj poprawny adres e-mail.")}</small>}</label>
         <label>{t("Faktura VAT")}<select value={invoice?"1":"0"} onChange={e=>setInvoice(e.target.value==="1")}><option value="0">{t("Nie")}</option><option value="1">{t("Tak, +8%")}</option></select></label>
         {invoice&&<label>NIP<input inputMode="numeric" maxLength={10} value={nip} onChange={e=>setNip(nip10(e.target.value))}/></label>}

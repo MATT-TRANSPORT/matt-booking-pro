@@ -62,7 +62,11 @@ test('airport email validation prevents invalid contact details in the mobile wi
   const phone=page.locator('input[autocomplete="tel"]');
   const email=page.locator('input[type="email"]');
   await name.fill('QA Test');
+  await phone.fill('123');
+  await expect(phone).toHaveAttribute('aria-invalid','true');
+  if(mobile) await expect(page.getByRole('button',{name:t.summary,exact:true})).toBeDisabled();
   await phone.fill('+48123456789');
+  await expect(phone).toHaveAttribute('aria-invalid','false');
   await expect(phone).toHaveAttribute('type','tel');
   await expect(phone).toHaveAttribute('inputmode','tel');
 
