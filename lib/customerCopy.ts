@@ -48,10 +48,10 @@ export const customerCopy: Record<string, [string, string, string]> = {
     "Bitte rufen Sie uns für ein Angebot für diesen Flughafen an.",
     "Pro cenu dopravy na toto letiště nám prosím zavolejte."
   ],
-  "Dojazd z bazy w Książenicach:": [
-    "Distance from our base in Książenice:",
-    "Entfernung von unserem Standort in Książenice:",
-    "Vzdálenost od naší základny v Książenicích:"
+  "Dojazd z bazy w centrum Rybnika:": [
+    "Distance from our base in central Rybnik:",
+    "Entfernung von unserem Standort im Zentrum von Rybnik:",
+    "Vzdálenost od naší základny v centru Rybniku:"
   ],
   "km · 40 km w cenie.": [
     "km · 40 km included.",
