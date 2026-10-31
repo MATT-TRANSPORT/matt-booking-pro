@@ -535,6 +535,17 @@ function DriverTripCard({
         <strong>{currentRoute}</strong>
       </div>
 
+      {(() => {
+        const snapshot = b.pricing_snapshot && typeof b.pricing_snapshot === "object" ? b.pricing_snapshot : {};
+        const routes = (snapshot as any).route_stops;
+        const stops = leg === "return" ? routes?.inbound : routes?.outbound;
+        if (!Array.isArray(stops) || !stops.length) return null;
+        return <div className="driver-notes">
+          <strong>📍 Kolejne przystanki ({stops.length})</strong>
+          {stops.map((address: string, i: number) => <span key={i}>{i + 1}. {address}</span>)}
+        </div>;
+      })()}
+
       <DriverTimeline status={normalizedStatus || "assigned"} lastStepAt={lastStepAt} />
 
       {b.service_type === "roundtrip" && (
