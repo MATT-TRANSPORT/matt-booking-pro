@@ -122,7 +122,7 @@ function attentionItems(booking: any, now: Date) {
     minutes <= 120 &&
     minutes > -180
   ) {
-    items.push(minutes < 0 ? "Planowany start operacyjny już minął" : "Kurs zaczyna się w ciągu 2 godzin");
+    items.push(minutes < 0 ? "Godzina odbioru już minęła" : "Odbiór klienta w ciągu 2 godzin");
   }
 
   const alerts = (booking.flightAlerts || []).filter(
@@ -493,7 +493,7 @@ function DriverTripCard({
 
           <h2>{driverLegTime(b, leg)} · {b.customer_name}</h2>
           <small className="driver-booking-ref">{b.booking_number}</small>
-          <p className="muted driver-flight-scheduled-time">✈ {leg === "return" || b.service_type === "from_airport" ? "Godzina przylotu" : "Godzina wyjazdu na lotnisko"}: {driverLegDate(b, leg)} · {driverLegTime(b, leg)}</p>
+          <p className="muted driver-flight-scheduled-time">✈ {leg === "return" || b.service_type === "from_airport" ? "Godzina przylotu" : "Wyjazd z adresu klienta"}: {driverLegDate(b, leg)} · {driverLegTime(b, leg)}</p>
           {flightNumber && (
             <div className="driver-flight-box driver-pro-flight-box">
               <div className="driver-flight-title">
@@ -606,13 +606,13 @@ function DriverTripCard({
         <div className="driver-status-actions driver-pro-command">
           <button
             className="driver-action primary"
-            disabled={saving || (nextStatus === "in_progress" && !(leg === "return" ? b.return_vehicle_id : b.vehicle_id))}
+            disabled={saving || (nextStatus === "arrived" && !(leg === "return" ? b.return_vehicle_id : b.vehicle_id))}
             onClick={() => onStatus(b.id, nextStatus, leg)}
           >
             {saving ? "ZAPISYWANIE..." : ACTION_LABELS[nextStatus] ?? nextStatus}
           </button>
-          {nextStatus === "in_progress" && !(leg === "return" ? b.return_vehicle_id : b.vehicle_id) && (
-            <small>Start zablokowany: dyspozytor musi przypisać pojazd.</small>
+          {nextStatus === "arrived" && !(leg === "return" ? b.return_vehicle_id : b.vehicle_id) && (
+            <small>Potwierdzenie przyjazdu zablokowane: dyspozytor musi przypisać pojazd.</small>
           )}
         </div>
       )}
@@ -666,13 +666,13 @@ function RoundtripPlan({
     <div className="driver-roundtrip-plan">
       <div className={primaryDone ? "done" : currentLeg === "primary" ? "current" : "waiting"}>
         <span>WYJAZD</span>
-        <strong>Start {driverLegOperationalStartDate(booking, "primary")} · {driverLegOperationalStartTime(booking, "primary")}</strong>
-        <small>Wylot {driverLegDate(booking, "primary")} · {driverLegTime(booking, "primary")} · {driverRouteText(booking, "primary")}</small>
+        <strong>Wyjazd z adresu klienta: {driverLegDate(booking, "primary")} · {driverLegTime(booking, "primary")}</strong>
+        <small>{driverRouteText(booking, "primary")}</small>
         <em>{primaryDone ? "✓ zakończony" : currentLeg === "primary" ? "aktualny etap" : "oczekuje na realizację"}</em>
       </div>
       <div className={returnDone ? "done" : returnWaiting ? "waiting" : currentLeg === "return" ? "current" : ""}>
         <span>POWRÓT</span>
-        <strong>Start {driverLegOperationalStartDate(booking, "return") || "—"} · {driverLegOperationalStartTime(booking, "return") || "—"}</strong>
+        <strong>Odbiór z lotniska: {driverLegDate(booking, "return") || "—"} · {driverLegTime(booking, "return") || "—"}</strong>
         <small>Przylot {driverLegDate(booking, "return") || "—"} · {driverLegTime(booking, "return") || "—"} · {driverRouteText(booking, "return")}</small>
         <em>{returnDone ? "✓ zakończony" : returnWaiting ? "przypisany · czeka na zakończenie wyjazdu" : currentLeg === "return" ? "aktualny etap" : ""}</em>
       </div>
