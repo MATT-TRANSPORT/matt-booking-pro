@@ -1,3 +1,2 @@
-// Shared by distance preview and server-side route pricing.
-// Preserve the currently configured production origin until a verified base relocation.
-export const PUBLIC_BOOKING_BASE_ADDRESS = "ul. Kościelna 29, 44-213 Książenice, Polska";
+// Shared base for public booking distance preview and multi-stop route pricing.
+export const PUBLIC_BOOKING_BASE_ADDRESS = "ul. Wyzwolenia 20, 44-200 Rybnik, Polska";
