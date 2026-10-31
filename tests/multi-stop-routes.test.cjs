@@ -14,7 +14,7 @@ Module._load=function(id,parent,isMain) {
  }
  return original.call(this,id,parent,isMain);
 };
-const {quoteMultiStopRoute}=require("../lib/multiStopRoutes.ts");
+const {quoteMultiStopRoute}=require(path.join(root,"lib/multiStopRoutes.ts"));
 test("no startup charge when all pickup points lie on usual route",async()=>{
  const seen=[];
  const r=await quoteMultiStopRoute({baseAddress:"Base",pickupAddress:"A",airportAddress:"Airport",serviceType:"to_airport",outboundStops:["B","C"],drivingKm:async(_a,_b,via)=>{seen.push(via);return 100;}});
