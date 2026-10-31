@@ -1,4 +1,5 @@
 "use client";
+import {bookingRouteText} from "@/lib/bookingRoute";
 import { customerFetch } from "@/lib/customerFetch";
 import { customerText } from "@/lib/customerCopy";
 import { useCustomerLocale } from "@/lib/useCustomerLocale";
@@ -398,6 +399,10 @@ export default function ClientBookingPortal({
       <div className="client-portal-grid">
         <section className="card" id="client-edit-data">
           <h2>{t("Szczegóły przejazdu")}</h2>
+          {b.pricing_snapshot?.route_stops && <div className="detail-list">
+            <div><span>{t("Trasa")}</span><strong>{bookingRouteText(b,"primary")}</strong></div>
+            {b.service_type==="roundtrip" && <div><span>{t("Powrót")}</span><strong>{bookingRouteText(b,"return")}</strong></div>}
+          </div>}
 
           {general ? (
             <div className="grid">
