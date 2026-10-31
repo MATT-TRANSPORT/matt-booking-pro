@@ -1,3 +1,4 @@
+import {bookingRouteText} from "@/lib/bookingRoute";
 import { bookingOrigin } from "@/lib/bookingOrigin";
 import { resolveCustomerLocale, type BookingLocale } from "@/lib/bookingLocale";
 export { resolveCustomerLocale } from "@/lib/bookingLocale";
@@ -16,6 +17,7 @@ function escapeHtml(value: unknown): string {
 }
 
 export type LocalizedBookingEmailInput = {
+  pickup_address?:string; airport_label?:string;
   booking_number: string;
   customer_name: string;
   customer_access_token?: string | null;
@@ -28,7 +30,9 @@ export function localizedReceivedEmail(b: LocalizedBookingEmailInput) {
   const bookingUrl = b.customer_access_token
     ? bookingOrigin()+"/rezerwacja/" + encodeURIComponent(b.customer_access_token) + "?lang=" + locale
     : null;
+  const route=b.pickup_address && b.airport_label ? bookingRouteText(b) : "";
   const text = [
+    route,
     t.receivedTitle,
     t.greeting + " " + b.customer_name + ",",
     t.received,
@@ -37,6 +41,6 @@ export function localizedReceivedEmail(b: LocalizedBookingEmailInput) {
     bookingUrl ? t.details + ": " + bookingUrl : "",
     t.support
   ].filter(Boolean).join("\n\n");
-  const html = `<div lang="${locale}" style="font-family:Arial,sans-serif;background:#10141b;color:#f7f7f7;padding:28px;line-height:1.7"><h1 style="color:#f1d28b">MATT TRANSPORT</h1><h2>${escapeHtml(t.receivedTitle)}</h2><p>${escapeHtml(t.greeting)} ${escapeHtml(b.customer_name)},</p><p>${escapeHtml(t.received)}</p><p>${escapeHtml(t.number)}: <strong>${escapeHtml(b.booking_number)}</strong></p><p>${escapeHtml(t.eta)}</p>${bookingUrl ? `<p><a style="color:#f1d28b" href="${escapeHtml(bookingUrl)}">${escapeHtml(t.details)}</a></p>` : ""}<p>${escapeHtml(t.support)}</p></div>`;
+  const html = `<div lang="${locale}" style="font-family:Arial,sans-serif;background:#10141b;color:#f7f7f7;padding:28px;line-height:1.7"><h1 style="color:#f1d28b">MATT TRANSPORT</h1><h2>${escapeHtml(t.receivedTitle)}</h2><p>${escapeHtml(t.greeting)} ${escapeHtml(b.customer_name)},</p><p>${escapeHtml(t.received)}</p><p>${escapeHtml(t.number)}: <strong>${escapeHtml(b.booking_number)}</strong></p><p>${escapeHtml(route)}</p><p>${escapeHtml(t.eta)}</p>${bookingUrl ? `<p><a style="color:#f1d28b" href="${escapeHtml(bookingUrl)}">${escapeHtml(t.details)}</a></p>` : ""}<p>${escapeHtml(t.support)}</p></div>`;
   return { subject: t.receivedSubject + " – " + b.booking_number, html, text };
 }

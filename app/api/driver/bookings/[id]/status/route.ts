@@ -14,7 +14,6 @@ import {
 } from "@/lib/driverOps";
 
 const ALLOWED: DriverStep[] = [
-  "in_progress",
   "arrived",
   "picked_up",
   "completed"
@@ -120,7 +119,7 @@ export async function POST(
     );
   }
 
-  if (status === "in_progress" && !assignedVehicleId) {
+  if (status === "arrived" && !assignedVehicleId) {
     return NextResponse.json(
       { error: "Nie można rozpocząć kursu bez przypisanego pojazdu." },
       { status: 409 }

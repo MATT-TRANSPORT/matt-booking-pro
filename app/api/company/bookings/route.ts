@@ -151,6 +151,10 @@ export async function POST(req: NextRequest) {
       airportKey: String(body.airport || ""),
       vehicleType: vehicle,
       serviceType: String(body.serviceType || "to_airport"),
+      routeStops: body.routeStops !== undefined ? body.routeStops : {
+        outbound: body.additionalStopAddress && (body.serviceType!=="roundtrip" || body.additionalStopPrimary) ? [body.additionalStopAddress] : [],
+        inbound: body.additionalStopAddress && body.serviceType==="roundtrip" && body.additionalStopReturn ? [body.additionalStopAddress] : []
+      },
       additionalStopAddress: body.additionalStopAddress ? String(body.additionalStopAddress) : null,
       additionalStopPrimary: Boolean(body.additionalStopPrimary),
       additionalStopReturn: Boolean(body.additionalStopReturn)
@@ -166,6 +170,8 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
+
+  if (body.expectedTotal != null && Math.round(Number(body.expectedTotal)*100)!==Math.round(quote.gross*100)) return json({error:"Cena trasy uległa zmianie. Odśwież wycenę."},{status:409});
 
   const paymentMethod =
     body.paymentMethod === "employee_payment"

@@ -21,6 +21,12 @@ export function bookingRouteText(booking: any, leg?: "primary" | "return") {
   const destination = isPointToPoint(booking)
     ? text(booking?.destination_address || booking?.airport_label, "Punkt B")
     : text(booking?.airport_label, "Lotnisko");
+  const ordered=booking?.pricing_snapshot?.route_stops;
+  if(Array.isArray(ordered?.outbound) && Array.isArray(ordered?.inbound)){
+    const first=(booking.service_type==="from_airport" ? [destination,...ordered.outbound,pickup] : [pickup,...ordered.outbound,destination]).join(" → ");
+    const back=[destination,...ordered.inbound,pickup].join(" → ");
+    return leg==="return" ? back : !leg && booking.service_type==="roundtrip" ? first+" · "+back : first;
+  }
   const stop = text(booking?.additional_stop_address, "");
   const usePrimary = Boolean(stop && booking?.additional_stop_primary);
   const useReturn = Boolean(stop && booking?.additional_stop_return);

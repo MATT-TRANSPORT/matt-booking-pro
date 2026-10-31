@@ -1,4 +1,5 @@
 "use client";
+import RouteStopInput from "./RouteStopInput";
 import { customerFetch } from "@/lib/customerFetch";
 import { customerText } from "@/lib/customerCopy";
 import { useCustomerLocale } from "@/lib/useCustomerLocale";
@@ -78,6 +79,10 @@ export default function CompanyBookingForm({
     useState<"company_transfer" | "employee_payment">("company_transfer");
   const [paymentInitialized, setPaymentInitialized] = useState(false);
   const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [routeStopsOut, setRouteStopsOut] = useState<string[]>([]);
+  const [routeStopsBack, setRouteStopsBack] = useState<string[]>([]);
+  const multiStopActive = true;
+  useEffect(()=>{ if(serviceType!=="roundtrip") setRouteStopsBack([]); },[serviceType]);
   const [additionalStopEnabled, setAdditionalStopEnabled] = useState(false);
   const [additionalStopAddress, setAdditionalStopAddress] = useState("");
   const [additionalStopPrimary, setAdditionalStopPrimary] = useState(true);
@@ -155,26 +160,30 @@ export default function CompanyBookingForm({
   }, [additionalStopEnabled, additionalStopAddress]);
 
   useEffect(() => {
-    if (address.trim().length < 5) {
+    setQuote(null);
+    setQuoteBusy(false);
+    if (address.trim().length < 5 || [...routeStopsOut,...routeStopsBack].some(x=>x.trim().length<5)) {
       setQuote(null);
       setQuoteError("");
       return;
     }
 
+    const controller=new AbortController();
     const timer = setTimeout(() => {
-      quoteFor(address);
+      quoteFor(address,controller.signal);
     }, 650);
 
-    return () => clearTimeout(timer);
-  }, [address, airport, vehicle, serviceType, additionalStopEnabled, additionalStopAddress, additionalStopPrimary, additionalStopReturn]);
+    return () => {controller.abort();clearTimeout(timer);};
+  }, [address, airport, vehicle, serviceType, additionalStopEnabled, additionalStopAddress, additionalStopPrimary, additionalStopReturn, routeStopsOut, routeStopsBack]);
 
-  async function quoteFor(value: string) {
+  async function quoteFor(value: string,signal: AbortSignal) {
     if (!value) return;
     setQuoteBusy(true);
     setQuoteError("");
 
     try {
       const response = await fetchCustomer("/api/company/quote", {
+        signal,
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ locale,
@@ -182,12 +191,14 @@ export default function CompanyBookingForm({
           airport,
           vehicleType: vehicle,
           serviceType,
-          additionalStopAddress: additionalStopEnabled ? additionalStopAddress : null,
+          ...(multiStopActive ? { routeStops: { outbound: routeStopsOut, inbound: serviceType === "roundtrip" ? routeStopsBack : [] } } : {}),
+          additionalStopAddress: multiStopActive ? null : additionalStopEnabled ? additionalStopAddress : null,
           additionalStopPrimary: additionalStopEnabled && additionalStopPrimary,
           additionalStopReturn: additionalStopEnabled && serviceType === "roundtrip" && additionalStopReturn
         })
       });
       const data = await response.json();
+      if(signal.aborted) return;
 
       if (!response.ok) {
         setQuote(null);
@@ -200,6 +211,7 @@ export default function CompanyBookingForm({
         }
       }
     } catch {
+      if(signal.aborted) return;
       setQuote(null);
       setQuoteError(t("Nie udało się połączyć z kalkulatorem B2B."));
     }
@@ -228,11 +240,15 @@ export default function CompanyBookingForm({
       return;
     }
 
-    if (additionalStopEnabled && (!additionalStopAddress.trim() || (!additionalStopPrimary && !(serviceType === "roundtrip" && additionalStopReturn)))) {
+    if (!multiStopActive && additionalStopEnabled && (!additionalStopAddress.trim() || (!additionalStopPrimary && !(serviceType === "roundtrip" && additionalStopReturn)))) {
       setMessage(t("Uzupełnij dodatkowy adres i wybierz kierunek przystanku."));
       return;
     }
 
+    if (multiStopActive && [...routeStopsOut,...routeStopsBack].some(x => x.trim().length < 5)) {
+      setMessage(t("Uzupełnij wszystkie adresy przystanków."));
+      return;
+    }
     if (!quote) {
       setMessage(t("Poczekaj na poprawną wycenę B2B."));
       return;
@@ -244,7 +260,7 @@ export default function CompanyBookingForm({
     const response = await fetchCustomer("/api/company/bookings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ locale,
+      body: JSON.stringify({ expectedTotal: quote.gross, locale,
         employeeId: passengerMode === "existing" ? employeeId : null,
         newEmployee: passengerMode === "new" ? newEmployee : null,
         serviceType,
@@ -258,7 +274,8 @@ export default function CompanyBookingForm({
         returnTime,
         flightNumber,
         returnFlightNumber,
-        additionalStopAddress: additionalStopEnabled ? additionalStopAddress : null,
+        ...(multiStopActive ? { routeStops: { outbound: routeStopsOut, inbound: serviceType === "roundtrip" ? routeStopsBack : [] } } : {}),
+        additionalStopAddress: multiStopActive ? null : additionalStopEnabled ? additionalStopAddress : null,
         additionalStopPrimary: additionalStopEnabled && additionalStopPrimary,
         additionalStopReturn: additionalStopEnabled && serviceType === "roundtrip" && additionalStopReturn,
         notes,
@@ -393,7 +410,7 @@ export default function CompanyBookingForm({
                   const value = String(selected.address);
                   setAddress(value);
                   setSuggestions([]);
-                  setTimeout(() => quoteFor(value), 0);
+                  
                 }
               }}
             >
@@ -415,7 +432,7 @@ export default function CompanyBookingForm({
                     const value = String(s?.text ?? "");
                     setAddress(value);
                     setSuggestions([]);
-                    setTimeout(() => quoteFor(value), 0);
+                    
                   }}>{s.text}</button>
                 ))}
               </div>
@@ -432,47 +449,41 @@ export default function CompanyBookingForm({
           </label>
         </div>
 
-        {!additionalStopEnabled ? (
-          <button type="button" className="btn secondary additional-stop-toggle" onClick={() => setAdditionalStopEnabled(true)}>
-            {t("+ DODAJ DODATKOWY ADRES / PRZYSTANEK")}</button>
-        ) : (
-          <div className="additional-stop-box">
-            <div className="additional-stop-head">
-              <div><strong>{t("Dodatkowy adres / przystanek")}</strong><small>{t("+20,00 zł netto za każdy użyty kierunek. Kilometry doliczamy tylko za faktyczny objazd poza normalną trasę.")}</small></div>
-              <button type="button" className="btn secondary" onClick={() => { setAdditionalStopEnabled(false); setAdditionalStopAddress(""); setAdditionalStopPrimary(true); setAdditionalStopReturn(false); setAdditionalStopSuggestions([]); }}>{t("USUŃ")}</button>
-            </div>
-            <label>{t("Adres dodatkowego przystanku")}<input value={additionalStopAddress} onChange={(e) => setAdditionalStopAddress(e.target.value)} autoComplete="off" placeholder={t("Wpisz drugi adres")} />
-              {additionalStopSuggestions.length > 0 && (
-                <div className="address-suggestions">
-                  {additionalStopSuggestions.slice(0, 5).map((item: any, i: number) => (
-                    <button key={item.placeId ?? i} type="button" onClick={() => { setAdditionalStopAddress(String(item?.text ?? "")); setAdditionalStopSuggestions([]); }}>{item.text}</button>
-                  ))}
+        <div className="additional-stop-box">
+          <strong>{t("Wiele adresów / przystanków")}</strong>
+          <p className="muted">{t("Dodaj adresy w kolejności przejazdu. Maksymalnie 10 dodatkowych przystanków łącznie.")}</p>
+          {([
+            { name: t("Wyjazd"), values: routeStopsOut, set: setRouteStopsOut },
+            ...(serviceType === "roundtrip" ? [{ name: t("Powrót"), values: routeStopsBack, set: setRouteStopsBack }] : [])
+          ]).map((section) => (
+            <div key={section.name}>
+              <h4>{section.name}</h4>
+              {section.values.map((value, index) => (
+                <div key={index} className="row" style={{gap:8,alignItems:"center"}}>
+                  <RouteStopInput locale={locale} label={section.name + " " + (index + 1)} value={value}
+                    onChange={(v) => section.set(section.values.map((item,i) => i === index ? v : item))}
+                    placeholder={t("Wpisz adres przystanku")}/>
+                  <button type="button" className="btn secondary" disabled={index === 0}
+                    onClick={() => section.set(section.values.map((item,i) => i === index-1 ? section.values[index] : i === index ? section.values[index-1] : item))}>↑</button>
+                  <button type="button" className="btn secondary" disabled={index === section.values.length-1}
+                    onClick={() => section.set(section.values.map((item,i) => i === index+1 ? section.values[index] : i === index ? section.values[index+1] : item))}>↓</button>
+                  <button type="button" className="btn secondary" onClick={() => section.set(section.values.filter((_,i) => i !== index))}>×</button>
                 </div>
-              )}
-            </label>
-            {serviceType === "roundtrip" ? (
-              <div className="additional-stop-directions">
-                <label><input type="checkbox" checked={additionalStopPrimary} onChange={(e) => setAdditionalStopPrimary(e.target.checked)} /> {t("Wyjazd na lotnisko (+20 zł netto)")}</label>
-                <label><input type="checkbox" checked={additionalStopReturn} onChange={(e) => setAdditionalStopReturn(e.target.checked)} /> {t("Powrót z lotniska (+20 zł netto)")}</label>
-              </div>
-            ) : (
-              <p className="muted">{t("Przystanek dotyczy tego przejazdu · +20,00 zł netto.")}</p>
-            )}
-            {quote?.additionalStopAddress && (
-              <div className="route-status ok">
-                {Number(quote.additionalStopExtraKm || 0) > 0
-                  ? `Objazd poza normalną trasę: ${fixed(quote.additionalStopExtraKm, 1)} km · dopłata ${fixed(quote.additionalStopExtraPriceNet, 2)} zł netto`
-                  : t("✓ Przystanek jest na trasie — bez dopłaty kilometrowej.")}
-              </div>
-            )}
-          </div>
-        )}
+              ))}
+              <button type="button" className="btn secondary" disabled={routeStopsOut.length + routeStopsBack.length >= 10}
+                onClick={() => {setAdditionalStopEnabled(false); section.set([...section.values,""]);}}>
+                {t("+ DODAJ ADRES")}
+              </button>
+            </div>
+          ))}
+          {multiStopActive && <small>{t("Cena zostanie przeliczona na serwerze dla pełnej trasy.")}</small>}
+        </div>
 
         <div className={`route-status ${quote ? "ok" : ""}`}>
           {quoteBusy
             ? t("Obliczanie odległości od siedziby kontrahenta i wyceny...")
             : quote
-            ? `✓ ${fixed(quote.distanceKm, 1)} km od siedziby kontrahenta · ${fixed(quote.billableKm, 1)} km płatne`
+            ? t("Objazd poza trasą")+": "+fixed(quote.billableKm,1)+" km"
             : quoteError || t("Wybierz dokładny adres, aby pobrać indywidualną wycenę.")}
         </div>
 
@@ -516,16 +527,16 @@ export default function CompanyBookingForm({
           <>
             <div className="row"><span>{t("Warunki ważne od")}</span><strong>{quote.effectiveFrom || "—"}</strong></div>
             <div className="row"><span>{t("Siedziba kontrahenta")}</span><strong style={{ textAlign: "right", maxWidth: "60%" }}>{quote.originAddress}</strong></div>
-            <div className="row"><span>{t("Odległość od siedziby")}</span><strong>{fixed(quote.distanceKm, 1)} km</strong></div>
-            <div className="row"><span>{t("Limit bez dopłaty")}</span><strong>{fixed(quote.freeKm, 1)} km</strong></div>
+            <div className="row"><span>{t("Trasa bazowa")}</span><strong>{fixed(quote.routeBaselineKm, 1)} km</strong></div>
+            <div className="row"><span>{t("Trasa z adresami")}</span><strong>{fixed(quote.routeActualKm, 1)} km</strong></div>
             <div className="row"><span>{t("Km płatne")}</span><strong>{fixed(quote.billableKm, 1)} km</strong></div>
             <div className="row"><span>{t("Stawka ponad limit")}</span><strong>{fixed(quote.extraKmRateNet, 2)} {t("zł netto/km")}</strong></div>
             <div className="row"><span>{t("Cena 1 strony")}</span><strong>{fixed(quote.baseOneWayNet, 2)} {t("zł netto")}</strong></div>
             {quote.multiplier > 1 && <div className="row"><span>{t("Mnożnik przejazdu")}</span><strong>× {quote.multiplier}</strong></div>}
             <div className="row"><span>{t("Cena bazowa")}</span><strong>{fixed(quote.basePriceNet, 2)} {t("zł netto")}</strong></div>
             <div className="row"><span>{t("Dopłata km")}</span><strong>{fixed(quote.extraPriceNet, 2)} {t("zł netto")}</strong></div>
-            {quote.additionalStopAddress && <div className="row"><span>{t("Dodatkowy przystanek")}</span><strong>{fixed(quote.additionalStopFeeNet, 2)} {t("zł netto")}</strong></div>}
-            {quote.additionalStopAddress && <div className="row"><span>{t("Objazd przystanku")}</span><strong>{fixed(quote.additionalStopExtraKm, 1)} km · {fixed(quote.additionalStopExtraPriceNet, 2)} {t("zł netto")}</strong></div>}
+            {quote.additionalStopFeeNet > 0 && <div className="row"><span>{t("Dodatkowe przystanki")}</span><strong>{fixed(quote.additionalStopFeeNet, 2)} {t("zł netto")}</strong></div>}
+            {quote.additionalStopExtraKm > 0 && <div className="row"><span>{t("Objazd przystanku")}</span><strong>{fixed(quote.additionalStopExtraKm, 1)} km · {fixed(quote.additionalStopExtraPriceNet, 2)} {t("zł netto")}</strong></div>}
             <div className="row total"><span>{t("RAZEM NETTO")}</span><strong>{fixed(quote.net, 2)} zł</strong></div>
             <div className="row"><span>{t("VAT")} {fixed(quote.vatRate, 0)}%</span><strong>{fixed(quote.vat, 2)} zł</strong></div>
             <div className="row total"><span>{t("RAZEM BRUTTO")}</span><strong>{fixed(quote.gross, 2)} zł</strong></div>

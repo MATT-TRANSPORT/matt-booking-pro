@@ -1,6 +1,19 @@
 import { resolveCustomerLocale } from "@/lib/bookingLocale";
 
 export const customerCopy: Record<string, [string, string, string]> = {
+  "Dodatkowe adresy / przystanki": ["Additional stops", "Zusätzliche Haltestellen", "Další zastávky"],
+  "Wiele adresów / przystanków": ["Additional stops", "Zusätzliche Haltestellen", "Další zastávky"],
+  "Dodaj adresy w kolejności przejazdu. Maksymalnie 10 dodatkowych przystanków łącznie.": ["Add addresses in travel order. Up to 10 additional stops in total.", "Adressen in Fahrtreihenfolge hinzufügen. Insgesamt maximal 10 zusätzliche Haltestellen.", "Přidejte adresy v pořadí jízdy. Celkem nejvýše 10 dalších zastávek."],
+  "Trasa bazowa": ["Direct route","Direkte Strecke","Přímá trasa"],
+  "Trasa z adresami": ["Route with stops","Strecke mit Haltestellen","Trasa se zastávkami"],
+  "Cena trasy uległa zmianie. Odśwież wycenę.": ["The route price has changed. Refresh the quote.","Der Fahrpreis hat sich geändert. Bitte aktualisieren Sie das Angebot.","Cena trasy se změnila. Obnovte kalkulaci."],
+  "Wyjazd": ["Outbound", "Hinfahrt", "Cesta tam"],
+  "Wpisz adres przystanku": ["Enter stop address", "Adresse der Haltestelle eingeben", "Zadejte adresu zastávky"],
+  "+ DODAJ ADRES": ["+ ADD ADDRESS", "+ ADRESSE HINZUFÜGEN", "+ PŘIDAT ADRESU"],
+  "Wyliczono trasę ze wszystkimi przystankami.": ["Route calculated.", "Route berechnet.", "Trasa vypočtena."],
+  "Uzupełnij adresy.": ["Enter the addresses.", "Adressen eingeben.", "Vyplňte adresy."],
+  "Cena zostanie przeliczona na serwerze dla pełnej trasy.": ["The price covers the complete route.", "Der Preis gilt für die gesamte Strecke.", "Cena platí pro celou trasu."],
+  "Poczekaj na poprawną wycenę dodatkowych adresów.": ["Wait for the route price.", "Bitte warten Sie auf den Fahrpreis.", "Počkejte na cenu trasy."],
   "ZAPISZ ZMIANY": ["SAVE CHANGES", "ÄNDERUNGEN SPEICHERN", "ULOŽIT ZMĚNY"],
   "VAT": ["VAT", "MwSt.", "DPH"],
   "Numer rezerwacji": [
@@ -48,10 +61,10 @@ export const customerCopy: Record<string, [string, string, string]> = {
     "Bitte rufen Sie uns für ein Angebot für diesen Flughafen an.",
     "Pro cenu dopravy na toto letiště nám prosím zavolejte."
   ],
-  "Dojazd z bazy w Książenicach:": [
-    "Distance from our base in Książenice:",
-    "Entfernung von unserem Standort in Książenice:",
-    "Vzdálenost od naší základny v Książenicích:"
+  "Dojazd z bazy w centrum Rybnika:": [
+    "Distance from our base in central Rybnik:",
+    "Entfernung von unserem Standort im Zentrum von Rybnik:",
+    "Vzdálenost od naší základny v centru Rybniku:"
   ],
   "km · 40 km w cenie.": [
     "km · 40 km included.",

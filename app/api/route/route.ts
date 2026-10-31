@@ -1,6 +1,6 @@
 import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
 import { NextRequest, NextResponse } from "next/server";
-const BASE_ADDRESS = "ul. Kościelna 29, 44-213 Książenice, Polska";
+import { PUBLIC_BOOKING_BASE_ADDRESS as BASE_ADDRESS } from "@/lib/bookingRouteBase";
 export async function POST(req: NextRequest) {
   let responseLocale=requestCustomerLocale(req);
   const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);

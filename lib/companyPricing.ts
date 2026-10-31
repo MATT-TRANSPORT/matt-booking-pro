@@ -1,5 +1,8 @@
 import { getAirportPricing } from "@/lib/airportPricingServer";
 import { calculateAdditionalStopDetour } from "@/lib/additionalStopServer";
+import { quoteMultiStopRoute } from "@/lib/multiStopRoutes";
+import { PUBLIC_BOOKING_BASE_ADDRESS } from "@/lib/bookingRouteBase";
+import { normalizeRouteStops } from "@/lib/routeDetourPolicy";
 import { ADDITIONAL_STOP_FEE_B2B_NET, additionalStopDirectionCount } from "@/lib/additionalStopConfig";
 
 export const B2B_VAT_RATE = 8;
@@ -23,6 +26,9 @@ export type CompanyQuote = {
   basePriceNet: number;
   extraPriceNet: number;
   additionalStopAddress: string | null;
+  routeStops?: { outbound: string[]; inbound: string[] };
+  routeBaselineKm?: number;
+  routeActualKm?: number;
   additionalStopPrimary: boolean;
   additionalStopReturn: boolean;
   additionalStopPrimaryExtraKm: number;
@@ -184,6 +190,7 @@ export async function calculateCompanyQuote(
     serviceType: string;
     termsId?: string | null;
     additionalStopAddress?: string | null;
+    routeStops?: { outbound?: string[]; inbound?: string[] };
     additionalStopPrimary?: boolean;
     additionalStopReturn?: boolean;
     allowInactiveAirport?: boolean;
@@ -208,13 +215,8 @@ export async function calculateCompanyQuote(
     termsId: input.termsId
   });
 
-  const originAddress = String(terms.pricing_origin_address || "").trim();
-
-  if (!originAddress || originAddress === "UZUPEŁNIJ SIEDZIBĘ KONTRAHENTA") {
-    throw new Error(
-      "Brak siedziby kontrahenta do kalkulacji B2B. Administrator MATT musi uzupełnić Warunki handlowe firmy."
-    );
-  }
+  const contractedOrigin = String(terms.pricing_origin_address || "").trim();
+  const originAddress = contractedOrigin && contractedOrigin !== "UZUPEŁNIJ SIEDZIBĘ KONTRAHENTA" ? contractedOrigin : PUBLIC_BOOKING_BASE_ADDRESS;
 
   const pickupAddress = String(input.pickupAddress || "").trim();
   if (!pickupAddress) throw new Error("Podaj adres pasażera.");
@@ -235,7 +237,25 @@ export async function calculateCompanyQuote(
   );
 
   const freeKm = km(Number(terms.free_km ?? 40));
-  const billableKm = km(Math.max(0, distanceKm - freeKm));
+  const isMultiStop = input.routeStops !== undefined;
+  const routeStops = isMultiStop ? {
+    outbound: normalizeRouteStops(input.routeStops?.outbound ?? []),
+    inbound: normalizeRouteStops(input.routeStops?.inbound ?? [])
+  } : null;
+  // Multi-stop bookings compare the complete route with the direct route.
+  // Contractual free kilometres still apply, but never bill a pickup simply
+  // because it is distant from the base while lying on the airport route.
+  const multiStopRoute = routeStops ? await quoteMultiStopRoute({
+    baseAddress: originAddress,
+    pickupAddress,
+    airportAddress: airport.routeAddress,
+    serviceType: serviceType as "to_airport" | "from_airport" | "roundtrip",
+    outboundStops: routeStops.outbound,
+    inboundStops: routeStops.inbound
+  }) : null;
+  const billableKm = multiStopRoute
+    ? km(multiStopRoute.totalDetourKm)
+    : km(Math.max(0, distanceKm - freeKm));
   const extraKmRateNet = money(Number(terms.extra_km_rate_net ?? 2.4));
 
   let customPrice: any = null;
@@ -276,7 +296,7 @@ export async function calculateCompanyQuote(
   );
   const basePriceNet = money(baseOneWayNet * multiplier);
   const extraPriceNet = money(
-    billableKm * extraKmRateNet * multiplier
+    billableKm * extraKmRateNet * (multiStopRoute ? 1 : multiplier)
   );
 
   const additionalStopAddress = String(input.additionalStopAddress || "").trim();
@@ -284,7 +304,10 @@ export async function calculateCompanyQuote(
   const additionalStopReturn = Boolean(
     additionalStopAddress && serviceType === "roundtrip" && input.additionalStopReturn
   );
-  const additionalStop = await calculateAdditionalStopDetour({
+  const additionalStop = multiStopRoute ? {
+    stopAddress: null, primary: false, returnLeg: false,
+    primaryExtraKm: 0, returnExtraKm: 0, totalExtraKm: 0
+  } : await calculateAdditionalStopDetour({
     serviceType,
     pickupAddress,
     airportKey: input.airportKey,
@@ -296,7 +319,7 @@ export async function calculateCompanyQuote(
     routeBaseAddress: originAddress,
     airportAddress: airport.routeAddress
   });
-  const additionalStopCount = additionalStopDirectionCount({
+  const additionalStopCount = multiStopRoute ? multiStopRoute.chargedStopVisits : additionalStopDirectionCount({
     serviceType,
     primary: additionalStop.primary,
     returnLeg: additionalStop.returnLeg
@@ -311,7 +334,8 @@ export async function calculateCompanyQuote(
     terms.legacy ? "legacy" : hasCustom ? "custom" : "standard";
 
   const snapshot = {
-    version: 1,
+    version: multiStopRoute ? 2 : 1,
+    ...(multiStopRoute ? { route_stops: routeStops, route_baseline_km: multiStopRoute.outbound.baselineKm + multiStopRoute.inbound.baselineKm, route_actual_km: multiStopRoute.outbound.actualKm + multiStopRoute.inbound.actualKm, route_detour_km: multiStopRoute.totalDetourKm } : {}),
     terms_id: terms.id,
     effective_from: terms.effective_from,
     pricing_source: pricingSource,
@@ -363,6 +387,7 @@ export async function calculateCompanyQuote(
     basePriceNet,
     extraPriceNet,
     additionalStopAddress: additionalStop.stopAddress,
+    ...(routeStops ? { routeStops, routeBaselineKm: multiStopRoute!.outbound.baselineKm + multiStopRoute!.inbound.baselineKm, routeActualKm: multiStopRoute!.outbound.actualKm + multiStopRoute!.inbound.actualKm } : {}),
     additionalStopPrimary: additionalStop.primary,
     additionalStopReturn: additionalStop.returnLeg,
     additionalStopPrimaryExtraKm: additionalStop.primaryExtraKm,

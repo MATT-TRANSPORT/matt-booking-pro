@@ -204,7 +204,8 @@ export async function POST(
         pickupAddress: current.pickup_address,
         airportKey: current.airport_key,
         vehicleType: current.vehicle_type,
-        serviceType: current.service_type
+        serviceType: current.service_type,
+        routeStops: current.pricing_snapshot?.route_stops ?? {outbound:current.additional_stop_primary && current.additional_stop_address ? [current.additional_stop_address] : [],inbound:current.additional_stop_return && current.additional_stop_address ? [current.additional_stop_address] : []}
       });
     } catch (error) {
       return json(
@@ -330,6 +331,8 @@ export async function POST(
       vehicleType: vehicle,
       serviceType,
       termsId: current.company_pricing_terms_id || null,
+      routeStops: current.pricing_snapshot?.route_stops ? {...current.pricing_snapshot.route_stops,inbound:serviceType==="roundtrip" ? current.pricing_snapshot.route_stops.inbound : []} : undefined,
+      additionalStopAddress: current.additional_stop_address, additionalStopPrimary: current.additional_stop_primary, additionalStopReturn: current.additional_stop_return,
       allowInactiveAirport: true
     });
   } catch (error) {

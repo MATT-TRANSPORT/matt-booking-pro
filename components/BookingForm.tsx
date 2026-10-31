@@ -1,4 +1,5 @@
 "use client";
+import RouteStopInput from "./RouteStopInput";
 import { customerFetch } from "@/lib/customerFetch";
 import { customerText } from "@/lib/customerCopy";
 import { useCustomerLocale } from "@/lib/useCustomerLocale";
@@ -40,6 +41,10 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
   const [routeRetry,setRouteRetry] = useState(0);
   const routeReady = !!address.trim() && calculatedAddress === address.trim() && !routeBusy && !routeError;
   const [suggestions,setSuggestions] = useState<Suggestion[]>([]);
+  const [routeStopsOut,setRouteStopsOut] = useState<string[]>([]);
+  const [routeStopsBack,setRouteStopsBack] = useState<string[]>([]);
+  const multiStopActive = airport !== "other";
+  useEffect(()=>{ if(serviceType!=="roundtrip") setRouteStopsBack([]); },[serviceType]);
   const [additionalStopEnabled,setAdditionalStopEnabled] = useState(false);
   const [additionalStopAddress,setAdditionalStopAddress] = useState("");
   const [additionalStopPrimary,setAdditionalStopPrimary] = useState(true);
@@ -160,23 +165,26 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
   },[additionalStopEnabled,additionalStopAddress]);
 
   useEffect(()=>{
-    const active=additionalStopEnabled&&additionalStopAddress.trim().length>=5&&address.trim().length>=5&&airport!=="other"&&
+    const active=multiStopActive ? [...routeStopsOut,...routeStopsBack].every(s=>s.trim().length>=5)&&address.trim().length>=5&&airport!=="other" : additionalStopEnabled&&additionalStopAddress.trim().length>=5&&address.trim().length>=5&&airport!=="other"&&
       (additionalStopPrimary||(serviceType==="roundtrip"&&additionalStopReturn));
     if(!active){ setAdditionalStopQuote(null); setAdditionalStopError(""); setAdditionalStopBusy(false); return; }
     setAdditionalStopQuote(null);
+    const controller=new AbortController();
     const timer=setTimeout(async()=>{
       setAdditionalStopBusy(true); setAdditionalStopError("");
       try{
-        const r=await fetchCustomer("/api/additional-stop/quote",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-          serviceType,address,airport,additionalStopAddress,additionalStopPrimary,additionalStopReturn:serviceType==="roundtrip"&&additionalStopReturn
+        const r=await fetchCustomer("/api/additional-stop/quote",{method:"POST",signal:controller.signal,headers:{"Content-Type":"application/json"},body:JSON.stringify({
+          serviceType,address,airport,additionalStopAddress,additionalStopPrimary,additionalStopReturn:serviceType==="roundtrip"&&additionalStopReturn,
+          ...(multiStopActive ? {routeStops:{outbound:routeStopsOut,inbound:serviceType==="roundtrip"?routeStopsBack:[]}} : {})
         })});
         const d=await r.json();
+        if(controller.signal.aborted) return;
         if(r.ok) setAdditionalStopQuote(d); else setAdditionalStopError(d.error??t("Nie udało się obliczyć przystanku."));
-      }catch{ setAdditionalStopError(t("Nie udało się obliczyć dodatkowego przystanku.")); }
+      }catch{ if(controller.signal.aborted) return; setAdditionalStopError(t("Nie udało się obliczyć dodatkowego przystanku.")); }
       setAdditionalStopBusy(false);
     },500);
-    return()=>clearTimeout(timer);
-  },[additionalStopEnabled,additionalStopAddress,additionalStopPrimary,additionalStopReturn,address,airport,serviceType]);
+    return()=>{controller.abort();clearTimeout(timer);};
+  },[additionalStopEnabled,additionalStopAddress,additionalStopPrimary,additionalStopReturn,address,airport,serviceType,routeStopsOut,routeStopsBack]);
 
   function chooseAddress(value:string){
     setAddress(value); setSuggestions([]);
@@ -188,29 +196,18 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
     if(!item) return {base:0,extra:0,stopFee:0,stopExtraKm:0,stopExtra:0,vat:0,total:0};
     const m=serviceType==="roundtrip"?2:1;
     const base=item[vehicle]*m;
-    const extra=routeReady?Math.max(0,distanceKm-40)*2.4*m:0;
-    const stopFee=additionalStopEnabled?Number(additionalStopQuote?.stopFee||0):0;
-    const stopExtraKm=additionalStopEnabled?Number(additionalStopQuote?.totalExtraKm||0):0;
-    const stopExtra=additionalStopEnabled?Number(additionalStopQuote?.stopExtraPrice||0):0;
+    const extra=multiStopActive?0:routeReady?Math.max(0,distanceKm-40)*2.4*m:0;
+    const stopFee=(multiStopActive||additionalStopEnabled)?Number(additionalStopQuote?.stopFee||0):0;
+    const stopExtraKm=(multiStopActive||additionalStopEnabled)?Number(additionalStopQuote?.totalExtraKm||0):0;
+    const stopExtra=(multiStopActive||additionalStopEnabled)?Number(additionalStopQuote?.stopExtraPrice||0):0;
     const subtotal=base+extra+stopFee+stopExtra;
     const vat=invoice?subtotal*0.08:0;
     return {base,extra,stopFee,stopExtraKm,stopExtra,vat,total:subtotal+vat};
-  },[item,serviceType,vehicle,distanceKm,routeReady,invoice,additionalStopEnabled,additionalStopQuote]);
+  },[item,serviceType,vehicle,distanceKm,routeReady,invoice,additionalStopEnabled,additionalStopQuote,multiStopActive]);
 
   const airportLabel = airport==="other" ? (otherAirport||t("Inne lotnisko")) : (airports[airport]?.label || t("Lotnisko"));
-  const activeStop = additionalStopEnabled && additionalStopAddress.trim() ? additionalStopAddress.trim() : "";
-  const stopLegText = serviceType === "roundtrip"
-    ? additionalStopPrimary && additionalStopReturn
-      ? t("wyjazd i powrót")
-      : additionalStopReturn
-      ? t("powrót")
-      : t("wyjazd")
-    : "";
-  const routeText = serviceType==="from_airport"
-    ? (activeStop ? `${airportLabel} → ${activeStop} → ${address||"—"}` : `${airportLabel} → ${address||"—"}`)
-    : serviceType==="roundtrip"
-    ? `${address||"—"} ↔ ${airportLabel}${activeStop ? ` · ${t("przystanek")}: ${activeStop} (${stopLegText})` : ""}`
-    : (activeStop ? `${address||"—"} → ${activeStop} → ${airportLabel}` : `${address||"—"} → ${airportLabel}`);
+  const outboundText = (serviceType==="from_airport" ? [airportLabel,...routeStopsOut,address] : [address,...routeStopsOut,airportLabel]).filter(Boolean).join(" → ");
+  const routeText = serviceType==="roundtrip" ? outboundText+" · "+t("Powrót")+": "+[airportLabel,...routeStopsBack,address].filter(Boolean).join(" → ") : outboundText;
   const paymentMethodText = paymentMethod === "online"
     ? t("Płatność online po potwierdzeniu")
     : t("Gotówka u kierowcy");
@@ -277,7 +274,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
   const phoneDigits = phone.replace(/\D/g, "");
   const phoneValid = phoneDigits.length >= 7 && phoneDigits.length <= 15;
   function valid(n:number){
-    if(n===2) return routeReady && (airport!=="other" || otherAirport.trim().length>=3) && (!additionalStopEnabled || (!!additionalStopAddress.trim() && !additionalStopBusy && !!additionalStopQuote));
+    if(n===2) return routeReady && (airport!=="other" || otherAirport.trim().length>=3) && (multiStopActive ? !additionalStopBusy && !!additionalStopQuote : !additionalStopEnabled || (!!additionalStopAddress.trim() && !additionalStopBusy && !!additionalStopQuote));
     if(n===3) return !!travelDate && !!travelTime && roundtripScheduleReady();
     if(n===5) return !!name.trim() && phoneValid && emailValid && (!invoice || nip10(nip).length===10);
     return true;
@@ -297,15 +294,17 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
     if(serviceType==="roundtrip"&&(!returnDate||!returnTime)){ setMessage(t("Dla przejazdu w obie strony podaj datę i godzinę powrotu.")); return; }
     if(serviceType==="roundtrip"&&!roundtripScheduleReady()){ setMessage(t("Termin powrotu musi być późniejszy niż wyjazd.")); return; }
     if(invoice&&nip10(nip).length!==10){ setMessage(t("Podaj poprawny 10-cyfrowy NIP.")); return; }
-    if(additionalStopEnabled&&(!additionalStopAddress.trim()||(!additionalStopPrimary&&!(serviceType==="roundtrip"&&additionalStopReturn))||!additionalStopQuote)){ setMessage(t("Poczekaj na poprawne obliczenie dodatkowego przystanku.")); return; }
+    if(multiStopActive && (![...routeStopsOut,...routeStopsBack].every(s=>s.trim().length>=5)||!additionalStopQuote)){setMessage(t("Poczekaj na poprawną wycenę dodatkowych adresów."));return;}
+    if(!multiStopActive&&additionalStopEnabled&&(!additionalStopAddress.trim()||(!additionalStopPrimary&&!(serviceType==="roundtrip"&&additionalStopReturn))||!additionalStopQuote)){ setMessage(t("Poczekaj na poprawne obliczenie dodatkowego przystanku.")); return; }
     setSaving(true); setMessage("");
     const tracking = readGrowthTracking();
     try {
     const r=await fetchCustomer("/api/bookings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
       serviceType,address,airport,vehicleType:vehicle,passengers,distanceKm,travelDate,travelTime,
       returnDate,returnTime,flightNumber:flight,returnFlightNumber:returnFlight,
-      additionalStopAddress:additionalStopEnabled?additionalStopAddress:null,additionalStopPrimary:additionalStopEnabled&&additionalStopPrimary,additionalStopReturn:additionalStopEnabled&&serviceType==="roundtrip"&&additionalStopReturn,
-      locale,customerName:name,phone,email,invoiceRequired:invoice,companyNip:invoice?nip10(nip):null,paymentMethod,onlinePaymentRequested,notes:notes||null,
+      ...(multiStopActive?{routeStops:{outbound:routeStopsOut,inbound:serviceType==="roundtrip"?routeStopsBack:[]}}:{}),
+      additionalStopAddress:multiStopActive?null:additionalStopEnabled?additionalStopAddress:null,additionalStopPrimary:!multiStopActive&&additionalStopEnabled&&additionalStopPrimary,additionalStopReturn:!multiStopActive&&additionalStopEnabled&&serviceType==="roundtrip"&&additionalStopReturn,
+      expectedTotal:quote.total,locale,customerName:name,phone,email,invoiceRequired:invoice,companyNip:invoice?nip10(nip):null,paymentMethod,onlinePaymentRequested,notes:notes||null,
       tracking,
       funnelSessionId: growthFunnelSessionId()
     })});
@@ -354,10 +353,28 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
   const renderRouteStatus = () => airport!=="other" && <div aria-live="polite">
     {routeBusy && <div className="route-status">{t("Obliczanie dojazdu do adresu...")}</div>}
     {routeError && <div className="booking-error">{routeError}<br/><button type="button" className="btn secondary" onClick={()=>setRouteRetry(n=>n+1)}>{t("OBLICZ PONOWNIE")}</button></div>}
-    {routeReady && <div className="route-status ok">{t("Dojazd z bazy w Książenicach:")}{distanceKm.toFixed(1)} {t("km · 40 km w cenie.")}</div>}
+    {routeReady && !multiStopActive && <div className="route-status ok">{t("Dojazd z bazy w centrum Rybnika:")}{distanceKm.toFixed(1)} {t("km · 40 km w cenie.")}</div>}
   </div>;
 
-  const renderAdditionalStopBox = () => !additionalStopEnabled ? <button type="button" className="btn secondary additional-stop-toggle" onClick={()=>setAdditionalStopEnabled(true)}>{t("+ DODAJ DODATKOWY ADRES / PRZYSTANEK")}</button> : <div className="additional-stop-box">
+  const renderAdditionalStopBox = () => <div className="additional-stop-box">
+    <strong>{t("Dodatkowe adresy / przystanki")}</strong>
+    {([
+      { label:t("Wyjazd"), stops:routeStopsOut, update:setRouteStopsOut },
+      ...(serviceType==="roundtrip" ? [{label:t("Powrót"),stops:routeStopsBack,update:setRouteStopsBack}] : [])
+    ]).map(section=><div key={section.label}>
+      <p>{section.label}</p>
+      {section.stops.map((stop,index)=><div className="row" key={index} style={{gap:6}}>
+        <RouteStopInput locale={locale} label={section.label+" "+(index+1)} placeholder={t("Wpisz adres przystanku")} value={stop} onChange={v=>section.update(section.stops.map((s,i)=>i===index?v:s))}/>
+        <button type="button" className="btn secondary" disabled={index===0} onClick={()=>section.update(section.stops.map((s,i)=>i===index-1?section.stops[index]:i===index?section.stops[index-1]:s))}>↑</button>
+        <button type="button" className="btn secondary" disabled={index===section.stops.length-1} onClick={()=>section.update(section.stops.map((s,i)=>i===index+1?section.stops[index]:i===index?section.stops[index+1]:s))}>↓</button>
+        <button type="button" className="btn secondary" onClick={()=>section.update(section.stops.filter((_,i)=>i!==index))}>×</button>
+      </div>)}
+      <button type="button" className="btn secondary" disabled={routeStopsOut.length+routeStopsBack.length>=10}
+        onClick={()=>{setAdditionalStopEnabled(false);section.update([...section.stops,""]);}}>{t("+ DODAJ ADRES")}</button>
+    </div>)}
+    {multiStopActive && <div className="route-status">{additionalStopBusy?t("Obliczanie objazdu..."):additionalStopError|| (additionalStopQuote ? t("Wyliczono trasę ze wszystkimi przystankami.") : t("Uzupełnij adresy."))}</div>}
+  </div>;
+  const renderLegacyAdditionalStopBox = () => !additionalStopEnabled ? <button type="button" className="btn secondary additional-stop-toggle" onClick={()=>setAdditionalStopEnabled(true)}>{t("+ DODAJ DODATKOWY ADRES / PRZYSTANEK")}</button> : <div className="additional-stop-box">
     <div className="additional-stop-head"><div><strong>{t("Dodatkowy adres / przystanek")}</strong><small>{t("+20,00 zł za każdy użyty kierunek. Dopłata kilometrowa tylko za faktyczny objazd poza normalną trasę.")}</small></div><button type="button" className="btn secondary" onClick={()=>{setAdditionalStopEnabled(false);setAdditionalStopAddress("");setAdditionalStopPrimary(true);setAdditionalStopReturn(false);setAdditionalStopSuggestions([]);setAdditionalStopQuote(null);setAdditionalStopError("");}}>{t("USUŃ")}</button></div>
     <label>{t("Adres dodatkowego przystanku")}<input value={additionalStopAddress} onChange={e=>setAdditionalStopAddress(e.target.value)} autoComplete="off" placeholder={t("Wpisz drugi adres")}/>{additionalStopSuggestions.length>0&&<div className="address-suggestions">{additionalStopSuggestions.slice(0,5).map((x,i)=><button key={x.placeId??i} type="button" onClick={()=>{setAdditionalStopAddress(x.text??"");setAdditionalStopSuggestions([]);}}>{x.text}</button>)}</div>}</label>
     {serviceType==="roundtrip"?<div className="additional-stop-directions"><label><input type="checkbox" checked={additionalStopPrimary} onChange={e=>setAdditionalStopPrimary(e.target.checked)}/> {t("Wyjazd na lotnisko (+20 zł)")}</label><label><input type="checkbox" checked={additionalStopReturn} onChange={e=>setAdditionalStopReturn(e.target.checked)}/> {t("Powrót z lotniska (+20 zł)")}</label></div>:<p className="muted">{t("Przystanek dotyczy tego przejazdu · +20,00 zł.")}</p>}
@@ -467,7 +484,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
           {serviceType==="roundtrip"&&<div><span>{t("Powrót")}</span><strong>{returnDate} {returnTime}</strong></div>}
           <div><span>{t("Pojazd")}</span><strong>{vehicle==="car"?t("Samochód osobowy"):t("Bus do 8 osób")}</strong></div>
           <div><span>{t("Pasażerowie")}</span><strong>{passengers}</strong></div>
-          {additionalStopEnabled&&additionalStopAddress&&<div><span>{t("Dodatkowy przystanek")}</span><strong>{additionalStopAddress}</strong></div>}
+          {!multiStopActive&&additionalStopEnabled&&additionalStopAddress&&<div><span>{t("Dodatkowy przystanek")}</span><strong>{additionalStopAddress}</strong></div>}
           {quote.stopFee>0&&<div><span>{t("Opłata za przystanek")}</span><strong>{quote.stopFee.toFixed(2)} zł</strong></div>}
           {quote.stopExtraKm>0&&<div><span>{t("Objazd poza trasą")}</span><strong>{quote.stopExtraKm.toFixed(1)} km · {quote.stopExtra.toFixed(2)} zł</strong></div>}
           <div><span>{t("Płatność")}</span><strong>{paymentMethodText}</strong></div>
@@ -549,7 +566,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
         {serviceType==="roundtrip"&&<div className="row"><span>{t("Powrót")}</span><strong>{returnDate||"—"} {returnTime||""}</strong></div>}
         <div className="row"><span>{t("Cena bazowa")}</span><strong>{quote.base.toFixed(2)} zł</strong></div>
         <div className="row"><span>{t("Dopłata")}</span><strong>{quote.extra.toFixed(2)} zł</strong></div>
-        {additionalStopEnabled&&additionalStopAddress&&<div className="row"><span>{t("Dodatkowy przystanek")}</span><strong style={{textAlign:"right",maxWidth:"60%"}}>{additionalStopAddress}</strong></div>}
+        {!multiStopActive&&additionalStopEnabled&&additionalStopAddress&&<div className="row"><span>{t("Dodatkowy przystanek")}</span><strong style={{textAlign:"right",maxWidth:"60%"}}>{additionalStopAddress}</strong></div>}
         {quote.stopFee>0&&<div className="row"><span>{t("Opłata za przystanek")}</span><strong>{quote.stopFee.toFixed(2)} zł</strong></div>}
         {quote.stopExtraKm>0&&<div className="row"><span>{t("Objazd poza trasą")}</span><strong>{quote.stopExtraKm.toFixed(1)} km · {quote.stopExtra.toFixed(2)} zł</strong></div>}
         <div className="row"><span>{t("VAT")}</span><strong>{quote.vat.toFixed(2)} zł</strong></div>

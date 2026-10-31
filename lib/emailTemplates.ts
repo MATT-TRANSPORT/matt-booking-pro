@@ -1,3 +1,4 @@
+import {bookingRouteText} from "@/lib/bookingRoute";
 import { driverWhatsAppButton } from "@/lib/driverWhatsAppEmail";
 import { bookingOrigin, panelOrigin } from "@/lib/bookingOrigin";
 import { localizedStatusEmail } from "@/lib/localizedStatusEmails";
@@ -84,9 +85,7 @@ function paymentPreferenceText(b: BookingMail) {
 }
 
 function routeText(b: BookingMail) {
-  if (b.service_type === "from_airport") return `${b.airport_label} → ${b.pickup_address}`;
-  if (b.service_type === "roundtrip") return `${b.pickup_address} ↔ ${b.airport_label}`;
-  return `${b.pickup_address} → ${b.airport_label}`;
+  return bookingRouteText(b);
 }
 
 function shell(title: string, content: string) {

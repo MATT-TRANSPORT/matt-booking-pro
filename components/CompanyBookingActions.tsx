@@ -59,6 +59,8 @@ export default function CompanyBookingActions({ customerLocale, booking }: { cus
           airport: next.airport,
           vehicleType: next.vehicleType,
           serviceType: next.serviceType,
+          routeStops: booking.pricing_snapshot?.route_stops ? {...booking.pricing_snapshot.route_stops,inbound:next.serviceType==="roundtrip" ? booking.pricing_snapshot.route_stops.inbound : []} : undefined,
+          additionalStopAddress: booking.additional_stop_address, additionalStopPrimary: booking.additional_stop_primary, additionalStopReturn: booking.additional_stop_return,
           termsId: booking.company_pricing_terms_id || null
         })
       });

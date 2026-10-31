@@ -18,11 +18,13 @@ const STEP_LABELS: Record<DriverStep, string> = {
 };
 
 const LABEL_TO_STEP = Object.fromEntries(Object.entries(STEP_LABELS).map(([status, label]) => [label, status])) as Record<string, DriverStep>;
-export const DRIVER_FLOW: DriverStep[] = ["assigned", "in_progress", "arrived", "picked_up", "completed"];
+export const DRIVER_FLOW: DriverStep[] = ["assigned", "arrived", "picked_up", "completed"];
 
 export function normalizedDriverStatus(status: unknown): DriverStep | null {
   const value = String(status || "");
   if (value === "confirmed") return "assigned";
+  // Historyczne kursy ze statusem in_progress mogą przejść wprost do NA MIEJSCU.
+  if (value === "in_progress") return "assigned";
   return DRIVER_FLOW.includes(value as DriverStep) ? (value as DriverStep) : null;
 }
 

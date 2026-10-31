@@ -29,8 +29,8 @@ export default function B2BPricingSnapshotCard({customerLocale,  booking }: {cus
       <div><span>{t("Cennik")}</span><strong>{source}</strong></div>
       <div><span>{t("Warunki ważne od")}</span><strong>{snapshot.effective_from || "—"}</strong></div>
       <div><span>{t("Siedziba kontrahenta")}</span><strong>{booking.pricing_origin_address || snapshot.origin_address || "—"}</strong></div>
-      <div><span>{t("Odległość od siedziby")}</span><strong>{distance.toFixed(1)} km</strong></div>
-      <div><span>{t("Limit bez dopłaty")}</span><strong>{freeKm.toFixed(1)} km</strong></div>
+      {snapshot.version===2 ? <><div><span>{t("Trasa bazowa")}</span><strong>{finite(snapshot.route_baseline_km).toFixed(1)} km</strong></div><div><span>{t("Trasa z adresami")}</span><strong>{finite(snapshot.route_actual_km).toFixed(1)} km</strong></div></> : <><div><span>{t("Odległość od siedziby")}</span><strong>{distance.toFixed(1)} km</strong></div>
+      <div><span>{t("Limit bez dopłaty")}</span><strong>{freeKm.toFixed(1)} km</strong></div></>}
       <div><span>{t("Kilometry płatne")}</span><strong>{billable.toFixed(1)} km</strong></div>
       <div><span>{t("Stawka powyżej limitu")}</span><strong>{rate.toFixed(2)}  {t("zł netto/km")}</strong></div>
       <div><span>{t("Cena bazowa")}</span><strong>{base.toFixed(2)}  {t("zł netto")}</strong></div>
