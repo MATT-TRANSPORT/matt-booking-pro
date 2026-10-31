@@ -109,6 +109,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           <h2>Przejazd</h2>
           <div className="detail-list">
             <div><span>Trasa</span><strong>{route}</strong></div>
+            {!booking.company_id && booking.pricing_snapshot?.version===2 && <div><span>Trasa bazowa / z adresami / objazd</span><strong>{[booking.pricing_snapshot.route_baseline_km,booking.pricing_snapshot.route_actual_km,booking.pricing_snapshot.route_detour_km].map(n=>Number(n).toFixed(1)+" km").join(" / ")}</strong></div>}
             {general && <div><span>Punkt B</span><strong>{booking.destination_address || booking.airport_label}</strong></div>}
             <div><span>Data</span><strong>{booking.travel_date}</strong></div>
             <div><span>Godzina</span><strong>{booking.travel_time}</strong></div>

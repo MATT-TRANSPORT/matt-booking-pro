@@ -304,7 +304,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
       returnDate,returnTime,flightNumber:flight,returnFlightNumber:returnFlight,
       ...(multiStopActive?{routeStops:{outbound:routeStopsOut,inbound:serviceType==="roundtrip"?routeStopsBack:[]}}:{}),
       additionalStopAddress:multiStopActive?null:additionalStopEnabled?additionalStopAddress:null,additionalStopPrimary:!multiStopActive&&additionalStopEnabled&&additionalStopPrimary,additionalStopReturn:!multiStopActive&&additionalStopEnabled&&serviceType==="roundtrip"&&additionalStopReturn,
-      locale,customerName:name,phone,email,invoiceRequired:invoice,companyNip:invoice?nip10(nip):null,paymentMethod,onlinePaymentRequested,notes:notes||null,
+      expectedTotal:quote.total,locale,customerName:name,phone,email,invoiceRequired:invoice,companyNip:invoice?nip10(nip):null,paymentMethod,onlinePaymentRequested,notes:notes||null,
       tracking,
       funnelSessionId: growthFunnelSessionId()
     })});

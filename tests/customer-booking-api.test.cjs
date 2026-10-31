@@ -33,6 +33,10 @@ Module._load=function(id,parent,isMain){
  if(id==='@/lib/adminNotifications')return {sendNewBookingAdminPush:async()=>({sent:0,skipped:true}),sendNewWeddingAdminPush:async()=>({sent:0,skipped:true})};
  if(id==='@/lib/customerNotifications')return {sendBookingNotification:async()=>({sent:false,skipped:true})};
  if(id==='@/lib/pushServer')return {sendAdminPush:async()=>({sent:0,skipped:true}),sendDriverPush:async()=>({sent:0,skipped:true})};
+ if(id==='@/lib/multiStopRoutes')return {quoteMultiStopRoute:async i=>{
+  const leg=stops=>({stops,baselineKm:100,actualKm:100+stops.length*3,detourKm:stops.length*3});
+  const a=i.outboundStops||[],b=i.inboundStops||[];return {outbound:leg(a),inbound:leg(b),totalDetourKm:3*(a.length+b.length),chargedStopVisits:a.length+b.length};
+ }};
  if(id==='@/lib/routesServer')return {shortestDrivingRouteKm:async()=>({distanceKm:120})};
  if(id==='@/lib/companyPricing')return {calculateCompanyQuote:async(_admin,input)=>({serviceType:input.serviceType,airportKey:input.airportKey,airportLabel:'Katowice-Pyrzowice',vehicleType:input.vehicleType,defaultPaymentMethod:'company_transfer',net:800,gross:864,vatRate:8,distanceKm:20,billableKm:0}),bookingPricingFields:()=>({total_price:864,price_net:800,price_gross:864,vat_price:64,vat_rate:8})};
  if(id.startsWith('@/'))id=path.join(root,id.slice(2));
@@ -129,3 +133,14 @@ for(const locale of ['pl','en','de','cs']) for(const method of ['company_transfe
   reset();repeatSource.payment_status='pending';strictExpiryFails=true;const failed=await repeatBooking(request({...body,paymentMethod:method==='company_transfer'?'employee_payment':'company_transfer'},locale),{params:Promise.resolve({id:repeatSource.id})});assert.equal(failed.status,409);assert.deepEqual(writes,[]);
  });
 }
+
+test('public roundtrip persists the quoted stops and charges the detour only once',async()=>{
+ reset();const stops={outbound:["A Street","B Street"],inbound:["C Street"]};
+ const input={...base,distanceKm:9999,routeStops:stops};
+ const failed=await routes.airport(request({...input,expectedTotal:1},"en"));
+ assert.equal(failed.status,409);assert.equal(writes.length,0);
+ const res=await routes.airport(request({...input,expectedTotal:881.60},"en"));assert.equal(res.status,200);
+ const row=writes.find(w=>w.table==="bookings").value;
+ assert.deepEqual(row.pricing_snapshot.route_stops,stops);assert.equal(row.total_price,881.6);
+ assert.ok(emails.some(m=>m.html?.includes("A Street → B Street")));
+});

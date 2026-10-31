@@ -168,6 +168,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  if (body.expectedTotal != null && Math.round(Number(body.expectedTotal)*100)!==Math.round(quote.gross*100)) return json({error:"Cena trasy uległa zmianie. Odśwież wycenę."},{status:409});
+
   const paymentMethod =
     body.paymentMethod === "employee_payment"
       ? "employee_payment"
@@ -205,10 +207,7 @@ export async function POST(req: NextRequest) {
       flight_number: body.flightNumber || null,
       return_flight_number: body.returnFlightNumber || null,
       status: "pending",
-      notes: quote.routeStops ? [body.notes || "",
-        quote.routeStops.outbound.length ? "PRZYSTANKI WYJAZD: " + quote.routeStops.outbound.join(" → ") : "",
-        quote.routeStops.inbound.length ? "PRZYSTANKI POWRÓT: " + quote.routeStops.inbound.join(" → ") : ""
-      ].filter(Boolean).join("\n") || null : body.notes || null,
+      notes: body.notes || null,
       ...bookingPricingFields(quote)
     })
     .select("*")

@@ -260,7 +260,7 @@ export default function CompanyBookingForm({
     const response = await fetchCustomer("/api/company/bookings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ locale,
+      body: JSON.stringify({ expectedTotal: quote.gross, locale,
         employeeId: passengerMode === "existing" ? employeeId : null,
         newEmployee: passengerMode === "new" ? newEmployee : null,
         serviceType,
@@ -527,8 +527,8 @@ export default function CompanyBookingForm({
           <>
             <div className="row"><span>{t("Warunki ważne od")}</span><strong>{quote.effectiveFrom || "—"}</strong></div>
             <div className="row"><span>{t("Siedziba kontrahenta")}</span><strong style={{ textAlign: "right", maxWidth: "60%" }}>{quote.originAddress}</strong></div>
-            <div className="row"><span>{t("Odległość od siedziby")}</span><strong>{fixed(quote.distanceKm, 1)} km</strong></div>
-            <div className="row"><span>{t("Limit bez dopłaty")}</span><strong>{fixed(quote.freeKm, 1)} km</strong></div>
+            <div className="row"><span>{t("Trasa bazowa")}</span><strong>{fixed(quote.routeBaselineKm, 1)} km</strong></div>
+            <div className="row"><span>{t("Trasa z adresami")}</span><strong>{fixed(quote.routeActualKm, 1)} km</strong></div>
             <div className="row"><span>{t("Km płatne")}</span><strong>{fixed(quote.billableKm, 1)} km</strong></div>
             <div className="row"><span>{t("Stawka ponad limit")}</span><strong>{fixed(quote.extraKmRateNet, 2)} {t("zł netto/km")}</strong></div>
             <div className="row"><span>{t("Cena 1 strony")}</span><strong>{fixed(quote.baseOneWayNet, 2)} {t("zł netto")}</strong></div>

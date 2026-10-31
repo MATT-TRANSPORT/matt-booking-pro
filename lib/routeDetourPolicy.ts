@@ -20,7 +20,7 @@ export function routeDetourKm(baselineKm: number, actualKm: number): number {
 export function normalizeRouteStops(stops: unknown, maxStops = 10): string[] {
   if (!Array.isArray(stops)) throw new Error("Lista przystanków musi być tablicą.");
   if (stops.length > maxStops) throw new Error("Maksymalnie 10 dodatkowych adresów.");
-  const cleaned = stops.map((value) => String(value ?? "").trim());
+  const cleaned = stops.map((value) => typeof value === "string" ? value.trim() : "");
   if (cleaned.some((value) => !value || value.length > 400)) {
     throw new Error("Każdy przystanek musi mieć poprawny adres.");
   }

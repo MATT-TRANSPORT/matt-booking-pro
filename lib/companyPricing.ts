@@ -1,6 +1,7 @@
 import { getAirportPricing } from "@/lib/airportPricingServer";
 import { calculateAdditionalStopDetour } from "@/lib/additionalStopServer";
 import { quoteMultiStopRoute } from "@/lib/multiStopRoutes";
+import { PUBLIC_BOOKING_BASE_ADDRESS } from "@/lib/bookingRouteBase";
 import { normalizeRouteStops } from "@/lib/routeDetourPolicy";
 import { ADDITIONAL_STOP_FEE_B2B_NET, additionalStopDirectionCount } from "@/lib/additionalStopConfig";
 
@@ -214,13 +215,8 @@ export async function calculateCompanyQuote(
     termsId: input.termsId
   });
 
-  const originAddress = String(terms.pricing_origin_address || "").trim();
-
-  if (!originAddress || originAddress === "UZUPEŁNIJ SIEDZIBĘ KONTRAHENTA") {
-    throw new Error(
-      "Brak siedziby kontrahenta do kalkulacji B2B. Administrator MATT musi uzupełnić Warunki handlowe firmy."
-    );
-  }
+  const contractedOrigin = String(terms.pricing_origin_address || "").trim();
+  const originAddress = contractedOrigin && contractedOrigin !== "UZUPEŁNIJ SIEDZIBĘ KONTRAHENTA" ? contractedOrigin : PUBLIC_BOOKING_BASE_ADDRESS;
 
   const pickupAddress = String(input.pickupAddress || "").trim();
   if (!pickupAddress) throw new Error("Podaj adres pasażera.");

@@ -159,55 +159,31 @@ export async function POST(req: NextRequest) {
     totalExtraKm: 0
   } as any;
 
-  if (additionalStopAddress && (additionalStopPrimary || additionalStopReturn)) {
-    try {
-      additionalStop = await calculateAdditionalStopDetour({
-        serviceType: body.serviceType,
-        pickupAddress: body.address,
-        airportKey: body.airport,
-        stopAddress: additionalStopAddress,
-        primary: additionalStopPrimary,
-        returnLeg: additionalStopReturn,
-        airportAddress: airportPricing.route_address
-      });
-    } catch (error) {
-      return json(
-        { error: error instanceof Error ? error.message : "Nie udało się obliczyć dodatkowego przystanku." },
-        { status: 400 }
-      );
-    }
-  }
-
-  let multiStopRoute: Awaited<ReturnType<typeof quoteMultiStopRoute>> | null = null;
-  if (body.routeStops !== undefined) {
+  const routeStops = body.routeStops !== undefined ? body.routeStops : {
+    outbound: additionalStopPrimary ? [additionalStopAddress] : [],
+    inbound: additionalStopReturn ? [additionalStopAddress] : []
+  };
+  let multiStopRoute: Awaited<ReturnType<typeof quoteMultiStopRoute>>;
     try {
       multiStopRoute = await quoteMultiStopRoute({
         baseAddress: PUBLIC_BOOKING_BASE_ADDRESS,
         pickupAddress: String(body.address || ""),
         airportAddress: airportPricing.route_address,
         serviceType: body.serviceType,
-        outboundStops: body.routeStops?.outbound,
-        inboundStops: body.routeStops?.inbound
+        outboundStops: routeStops?.outbound,
+        inboundStops: routeStops?.inbound
       });
     } catch (error) {
       return json({ error: error instanceof Error ? error.message : "Nie udało się wycenić trasy." }, { status: 400 });
     }
-  }
-
-  const additionalStopCount = additionalStopDirectionCount({
-    serviceType: body.serviceType,
-    primary: additionalStop.primary,
-    returnLeg: additionalStop.returnLeg
-  });
-
   const quote = calculateQuote({
     serviceType: body.serviceType,
     airport: body.airport,
     vehicleType: body.vehicleType,
-    distanceKm: multiStopRoute ? 40 : Number(body.distanceKm),
+    distanceKm: 0, // All distance charges are based on the measured route detour.
     invoiceRequired: Boolean(body.invoiceRequired),
-    additionalStopCount: multiStopRoute ? multiStopRoute.chargedStopVisits : additionalStopCount,
-    additionalStopExtraKm: multiStopRoute ? multiStopRoute.totalDetourKm : additionalStop.totalExtraKm,
+    additionalStopCount: multiStopRoute.chargedStopVisits,
+    additionalStopExtraKm: multiStopRoute.totalDetourKm,
     additionalStopFee: ADDITIONAL_STOP_FEE_B2C,
     additionalStopKmRate: ADDITIONAL_STOP_B2C_KM_RATE,
     priceRow: {
@@ -216,6 +192,8 @@ export async function POST(req: NextRequest) {
       bus: airportPricing.bus_price
     }
   });
+
+  if (body.expectedTotal != null && Math.round(Number(body.expectedTotal)*100)!==Math.round(quote.totalPrice*100)) return json({error:t("Cena trasy uległa zmianie. Odśwież wycenę.")},{status:409});
 
   const airport = {
     label: airportPricing.label,
@@ -265,8 +243,8 @@ export async function POST(req: NextRequest) {
       additional_stop_address: additionalStop.stopAddress,
       additional_stop_primary: Boolean(additionalStop.primary),
       additional_stop_return: Boolean(additionalStop.returnLeg),
-      additional_stop_primary_extra_km: Number(additionalStop.primaryExtraKm || 0),
-      additional_stop_return_extra_km: Number(additionalStop.returnExtraKm || 0),
+      additional_stop_primary_extra_km: body.serviceType==="from_airport" ? multiStopRoute.inbound.detourKm : multiStopRoute.outbound.detourKm,
+      additional_stop_return_extra_km: body.serviceType==="roundtrip" ? multiStopRoute.inbound.detourKm : 0,
       additional_stop_fee: quote.additionalStopFee,
       additional_stop_extra_price: quote.additionalStopExtraPrice,
       vat_price: quote.vatPrice,

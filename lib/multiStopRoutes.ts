@@ -16,6 +16,7 @@ async function googleDrivingKm(origin: string, destination: string, via: string[
       travelMode: "DRIVE", routingPreference: "TRAFFIC_UNAWARE",
       computeAlternativeRoutes: via.length === 0, languageCode: "pl-PL", units: "METRIC"
     }),
+    signal: AbortSignal.timeout(15000),
     cache: "no-store"
   });
   const data = await response.json();
@@ -35,6 +36,7 @@ export async function quoteMultiStopRoute(input: {
   inboundStops?: string[];
   drivingKm?: (origin: string, destination: string, via: string[]) => Promise<number>;
 }): Promise<MultiStopQuote> {
+  if (!["to_airport","from_airport","roundtrip"].includes(input.serviceType)) throw new Error("Nieprawidłowy kierunek przejazdu.");
   const outboundStops = normalizeRouteStops(input.outboundStops ?? []);
   const inboundStops = normalizeRouteStops(input.inboundStops ?? []);
   if (outboundStops.length + inboundStops.length > 10) {
