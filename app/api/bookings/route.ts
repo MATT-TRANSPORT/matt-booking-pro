@@ -6,7 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { calculateQuote } from "@/lib/pricing";
 import { getAirportPricing } from "@/lib/airportPricingServer";
 import { calculateAdditionalStopDetour } from "@/lib/additionalStopServer";
-import { quoteMultiStopRoute } from "@/lib/multiStopRoutes";
+import { quoteMultiStopRoute, publicRouteSnapshot } from "@/lib/multiStopRoutes";
 import { PUBLIC_BOOKING_BASE_ADDRESS } from "@/lib/bookingRouteBase";
 import { ADDITIONAL_STOP_B2C_KM_RATE, ADDITIONAL_STOP_FEE_B2C, additionalStopDirectionCount } from "@/lib/additionalStopConfig";
 import { sendMattEmail } from "@/lib/email";
@@ -259,12 +259,7 @@ export async function POST(req: NextRequest) {
       customer_notification_channel: notificationChannel,
       customer_notification_opt_in_at: notificationChannel === "email" ? null : new Date().toISOString(),
       customer_notification_opt_out_at: null,
-      ...(multiStopRoute ? { pricing_snapshot: {
-        version: 2, route_stops: {outbound: body.serviceType==="from_airport" ? multiStopRoute.inbound.stops : multiStopRoute.outbound.stops, inbound: body.serviceType==="roundtrip" ? multiStopRoute.inbound.stops : []},
-        route_baseline_km: multiStopRoute.outbound.baselineKm + multiStopRoute.inbound.baselineKm,
-        route_actual_km: multiStopRoute.outbound.actualKm + multiStopRoute.inbound.actualKm,
-        route_detour_km: multiStopRoute.totalDetourKm
-      }} : {}),
+      pricing_snapshot: publicRouteSnapshot(body.serviceType,multiStopRoute),
       notes: body.notes || null
     })
     .select("*")

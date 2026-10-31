@@ -1,3 +1,7 @@
+import {quoteMultiStopRoute,publicRouteSnapshot} from "@/lib/multiStopRoutes";
+import {PUBLIC_BOOKING_BASE_ADDRESS} from "@/lib/bookingRouteBase";
+import {calculateQuote} from "@/lib/pricing";
+import {bookingRouteText} from "@/lib/bookingRoute";
 import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -136,6 +140,8 @@ export async function PATCH(
         vehicleType,
         serviceType: booking.service_type,
         termsId: booking.company_pricing_terms_id || null,
+        routeStops: booking.pricing_snapshot?.route_stops,
+        additionalStopAddress: booking.additional_stop_address, additionalStopPrimary: booking.additional_stop_primary, additionalStopReturn: booking.additional_stop_return,
         allowInactiveAirport: true
       });
       pricingUpdate = bookingPricingFields(quote);
@@ -148,6 +154,26 @@ export async function PATCH(
         { status: 400 }
       );
     }
+  } else if (booking.pricing_snapshot?.version===2 && booking.pricing_snapshot.route_stops) {
+    const saved=booking.pricing_snapshot;
+    const stops=saved.route_stops;
+    try {
+      // For a date/contact edit the saved route remains authoritative.
+      const updatedRoute=routeChanged ? await quoteMultiStopRoute({
+        baseAddress:PUBLIC_BOOKING_BASE_ADDRESS, pickupAddress,airportAddress:airportPricing.route_address,
+        serviceType:booking.service_type,outboundStops:stops.outbound,inboundStops:stops.inbound
+      }) : null;
+      const snapshot=updatedRoute ? publicRouteSnapshot(booking.service_type,updatedRoute) : saved;
+      const q=calculateQuote({serviceType:booking.service_type,airport,vehicleType,distanceKm:0,invoiceRequired,
+        additionalStopCount:stops.outbound.length+stops.inbound.length,additionalStopExtraKm:snapshot.route_detour_km,
+        priceRow:{car:airportPricing.car_price,bus:airportPricing.bus_price}});
+      total=q.totalPrice;priceChanged=Math.round(total*100)!==Math.round(Number(booking.total_price)*100);
+      pricingUpdate={pricing_snapshot:snapshot,base_price:q.basePrice,extra_price:q.extraPrice,
+        additional_stop_fee:q.additionalStopFee,additional_stop_extra_price:q.additionalStopExtraPrice,
+        ...(updatedRoute ? {additional_stop_primary_extra_km:booking.service_type==="from_airport" ? updatedRoute.inbound.detourKm : updatedRoute.outbound.detourKm,
+          additional_stop_return_extra_km:booking.service_type==="roundtrip" ? updatedRoute.inbound.detourKm : 0} : {}),
+        total_price:total,vat_price:q.vatPrice};
+    } catch {return json({error:"Nie udało się obliczyć trasy."},{status:400});}
   } else {
     // B2C: zachowujemy dotychczasowy model. Zmiana adresu wymaga ponownego
     // potwierdzenia, a dystans pozostaje kontrolowany przez MATT.
@@ -313,10 +339,7 @@ export async function PATCH(
     Number(booking.passengers || 0) !== Number(updated.passengers || 0);
 
   if (booking.driver_id && driverRelevantChange) {
-    const routeText =
-      updated.service_type === "from_airport"
-        ? `${updated.airport_label} → ${updated.pickup_address}`
-        : `${updated.pickup_address} → ${updated.airport_label}`;
+    const routeText = bookingRouteText(updated);
 
     await sendDriverPush(admin, booking.driver_id, {
       title: "⚠ KURS ZMIENIONY PRZEZ KLIENTA",

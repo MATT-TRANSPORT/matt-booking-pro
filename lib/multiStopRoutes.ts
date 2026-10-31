@@ -66,3 +66,13 @@ export async function quoteMultiStopRoute(input: {
     chargedStopVisits: outboundStops.length + inboundStops.length
   };
 }
+
+export function publicRouteSnapshot(serviceType: string, route: MultiStopQuote) {
+  return {
+    version: 2,
+    route_stops: {outbound: serviceType==="from_airport" ? route.inbound.stops : route.outbound.stops, inbound: serviceType==="roundtrip" ? route.inbound.stops : []},
+    route_baseline_km: route.outbound.baselineKm + route.inbound.baselineKm,
+    route_actual_km: route.outbound.actualKm + route.inbound.actualKm,
+    route_detour_km: route.totalDetourKm
+  };
+}

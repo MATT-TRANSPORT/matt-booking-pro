@@ -33,7 +33,7 @@ Module._load=function(id,parent,isMain){
  if(id==='@/lib/adminNotifications')return {sendNewBookingAdminPush:async()=>({sent:0,skipped:true}),sendNewWeddingAdminPush:async()=>({sent:0,skipped:true})};
  if(id==='@/lib/customerNotifications')return {sendBookingNotification:async()=>({sent:false,skipped:true})};
  if(id==='@/lib/pushServer')return {sendAdminPush:async()=>({sent:0,skipped:true}),sendDriverPush:async()=>({sent:0,skipped:true})};
- if(id==='@/lib/multiStopRoutes')return {quoteMultiStopRoute:async i=>{
+ if(id==='@/lib/multiStopRoutes')return {...require(path.join(root,'lib/multiStopRoutes.ts')),quoteMultiStopRoute:async i=>{
   const leg=stops=>({stops,baselineKm:100,actualKm:100+stops.length*3,detourKm:stops.length*3});
   const a=i.outboundStops||[],b=i.inboundStops||[];return {outbound:leg(a),inbound:leg(b),totalDetourKm:3*(a.length+b.length),chargedStopVisits:a.length+b.length};
  }};
