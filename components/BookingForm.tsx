@@ -360,7 +360,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
   const renderRouteStatus = () => airport!=="other" && <div aria-live="polite">
     {routeBusy && <div className="route-status">{t("Obliczanie dojazdu do adresu...")}</div>}
     {routeError && <div className="booking-error">{routeError}<br/><button type="button" className="btn secondary" onClick={()=>setRouteRetry(n=>n+1)}>{t("OBLICZ PONOWNIE")}</button></div>}
-    {routeReady && <div className="route-status ok">{t("Dojazd z bazy w Książenicach:")}{distanceKm.toFixed(1)} {t("km · 40 km w cenie.")}</div>}
+    {routeReady && !multiStopActive && <div className="route-status ok">{t("Dojazd z bazy w Książenicach:")}{distanceKm.toFixed(1)} {t("km · 40 km w cenie.")}</div>}
   </div>;
 
   const renderAdditionalStopBox = () => <div className="additional-stop-box">
@@ -491,7 +491,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
           {serviceType==="roundtrip"&&<div><span>{t("Powrót")}</span><strong>{returnDate} {returnTime}</strong></div>}
           <div><span>{t("Pojazd")}</span><strong>{vehicle==="car"?t("Samochód osobowy"):t("Bus do 8 osób")}</strong></div>
           <div><span>{t("Pasażerowie")}</span><strong>{passengers}</strong></div>
-          {additionalStopEnabled&&additionalStopAddress&&<div><span>{t("Dodatkowy przystanek")}</span><strong>{additionalStopAddress}</strong></div>}
+          {!multiStopActive&&additionalStopEnabled&&additionalStopAddress&&<div><span>{t("Dodatkowy przystanek")}</span><strong>{additionalStopAddress}</strong></div>}
           {quote.stopFee>0&&<div><span>{t("Opłata za przystanek")}</span><strong>{quote.stopFee.toFixed(2)} zł</strong></div>}
           {quote.stopExtraKm>0&&<div><span>{t("Objazd poza trasą")}</span><strong>{quote.stopExtraKm.toFixed(1)} km · {quote.stopExtra.toFixed(2)} zł</strong></div>}
           <div><span>{t("Płatność")}</span><strong>{paymentMethodText}</strong></div>
@@ -573,7 +573,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
         {serviceType==="roundtrip"&&<div className="row"><span>{t("Powrót")}</span><strong>{returnDate||"—"} {returnTime||""}</strong></div>}
         <div className="row"><span>{t("Cena bazowa")}</span><strong>{quote.base.toFixed(2)} zł</strong></div>
         <div className="row"><span>{t("Dopłata")}</span><strong>{quote.extra.toFixed(2)} zł</strong></div>
-        {additionalStopEnabled&&additionalStopAddress&&<div className="row"><span>{t("Dodatkowy przystanek")}</span><strong style={{textAlign:"right",maxWidth:"60%"}}>{additionalStopAddress}</strong></div>}
+        {!multiStopActive&&additionalStopEnabled&&additionalStopAddress&&<div className="row"><span>{t("Dodatkowy przystanek")}</span><strong style={{textAlign:"right",maxWidth:"60%"}}>{additionalStopAddress}</strong></div>}
         {quote.stopFee>0&&<div className="row"><span>{t("Opłata za przystanek")}</span><strong>{quote.stopFee.toFixed(2)} zł</strong></div>}
         {quote.stopExtraKm>0&&<div className="row"><span>{t("Objazd poza trasą")}</span><strong>{quote.stopExtraKm.toFixed(1)} km · {quote.stopExtra.toFixed(2)} zł</strong></div>}
         <div className="row"><span>{t("VAT")}</span><strong>{quote.vat.toFixed(2)} zł</strong></div>
