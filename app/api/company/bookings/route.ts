@@ -205,7 +205,10 @@ export async function POST(req: NextRequest) {
       flight_number: body.flightNumber || null,
       return_flight_number: body.returnFlightNumber || null,
       status: "pending",
-      notes: body.notes || null,
+      notes: quote.routeStops ? [body.notes || "",
+        quote.routeStops.outbound.length ? "PRZYSTANKI WYJAZD: " + quote.routeStops.outbound.join(" → ") : "",
+        quote.routeStops.inbound.length ? "PRZYSTANKI POWRÓT: " + quote.routeStops.inbound.join(" → ") : ""
+      ].filter(Boolean).join("\n") || null : body.notes || null,
       ...bookingPricingFields(quote)
     })
     .select("*")
