@@ -59,6 +59,8 @@ jobs:
         run: node --test tests/dispatcher-responsive-cards.test.cjs
       - name: Driver compact header and flight status layout
         run: node --test tests/driver-compact-install-flight-ui.test.cjs
+      - name: Driver arrival-first workflow regression
+        run: node --test tests/driver-arrival-first.test.cjs
       - name: Driver WhatsApp email regression
         run: node --test tests/driver-whatsapp-email.test.cjs
       - name: TypeScript check
