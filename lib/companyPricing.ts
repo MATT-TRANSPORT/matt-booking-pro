@@ -258,7 +258,7 @@ export async function calculateCompanyQuote(
     inboundStops: routeStops.inbound
   }) : null;
   const billableKm = multiStopRoute
-    ? km(Math.max(0, multiStopRoute.totalDetourKm - freeKm))
+    ? km(multiStopRoute.totalDetourKm)
     : km(Math.max(0, distanceKm - freeKm));
   const extraKmRateNet = money(Number(terms.extra_km_rate_net ?? 2.4));
 
