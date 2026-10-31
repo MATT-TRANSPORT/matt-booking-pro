@@ -59,6 +59,16 @@ jobs:
         run: node --test tests/dispatcher-responsive-cards.test.cjs
       - name: Driver compact header and flight status layout
         run: node --test tests/driver-compact-install-flight-ui.test.cjs
+      - name: B2C multi-stop integration contract
+        run: node --test tests/b2c-multi-stop-contract.test.cjs
+      - name: B2B multi-stop integration contract
+        run: node --test tests/b2b-multi-stop-contract.test.cjs
+      - name: Multi-stop routing engine
+        run: node --test tests/multi-stop-routes.test.cjs
+      - name: Full-route detour pricing policy
+        run: node --test tests/route-detour-policy.test.cjs
+      - name: Driver arrival-first workflow regression
+        run: node --test tests/driver-arrival-first.test.cjs
       - name: Driver WhatsApp email regression
         run: node --test tests/driver-whatsapp-email.test.cjs
       - name: TypeScript check

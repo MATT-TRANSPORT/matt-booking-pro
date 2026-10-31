@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
       vehicleType: String(body.vehicleType || "car"),
       serviceType: String(body.serviceType || "to_airport"),
       termsId: body.termsId ? String(body.termsId) : null,
+      ...(body.routeStops !== undefined ? { routeStops: body.routeStops } : {}),
       additionalStopAddress: body.additionalStopAddress ? String(body.additionalStopAddress) : null,
       additionalStopPrimary: Boolean(body.additionalStopPrimary),
       additionalStopReturn: Boolean(body.additionalStopReturn)
