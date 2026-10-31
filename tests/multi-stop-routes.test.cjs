@@ -7,7 +7,7 @@ const ts=require("typescript");
 const root=path.resolve(__dirname,"..");
 const original=Module._load;
 Module._load=function(id,parent,isMain) {
- if(id.startsWith("@/")) id=path.join(root,id.slice(2));
+ if(id.startsWith("@/")) id=path.join(root,id.slice(2))+".ts";
  if(id.endsWith(".ts")) {
   const code=ts.transpileModule(fs.readFileSync(id,"utf8"),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
   const mod=new Module(id,parent);mod.filename=id;mod.paths=module.paths;mod._compile(code,id);return mod.exports;
