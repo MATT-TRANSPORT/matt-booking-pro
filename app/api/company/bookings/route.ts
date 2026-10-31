@@ -151,6 +151,7 @@ export async function POST(req: NextRequest) {
       airportKey: String(body.airport || ""),
       vehicleType: vehicle,
       serviceType: String(body.serviceType || "to_airport"),
+      ...(body.routeStops !== undefined ? { routeStops: body.routeStops } : {}),
       additionalStopAddress: body.additionalStopAddress ? String(body.additionalStopAddress) : null,
       additionalStopPrimary: Boolean(body.additionalStopPrimary),
       additionalStopReturn: Boolean(body.additionalStopReturn)
