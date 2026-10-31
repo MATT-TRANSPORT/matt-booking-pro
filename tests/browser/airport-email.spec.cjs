@@ -30,6 +30,7 @@ test('airport email validation prevents invalid contact details in the mobile wi
     let data = {};
     if(url.pathname === '/api/airports') data={airports:{pyrzowice:{label:'Katowice-Pyrzowice',car:290,bus:400},balice:{label:'Kraków-Balice',car:390,bus:500}}};
     else if(url.pathname === '/api/places') data={suggestions:[]};
+    else if(url.pathname === '/api/additional-stop/quote') data={stopCount:0,totalExtraKm:0,stopFee:0,stopExtraPrice:0};
     else if(url.pathname === '/api/route') data={distanceKm:20};
     else if(url.pathname.includes('/growth/')) data={ok:true};
     else return route.fulfill({status:501,json:{error:'Test route unavailable'}});

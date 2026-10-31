@@ -48,8 +48,8 @@ export async function quoteMultiStopRoute(input: {
   const quoteLeg = async (active: boolean, stops: string[], origin: string, destination: string, reverse = false) => {
     if (!active) return { stops: [], baselineKm: 0, actualKm: 0, detourKm: 0 };
     const result = await calculateFullRouteDetour({
-      baseAddress: origin, pickupAddress: reverse ? origin : input.pickupAddress,
-      destinationAddress: destination, stops: reverse ? [...stops, input.pickupAddress] : stops, drivingKm
+      baseAddress: origin, pickupAddress: reverse ? (stops[0] ?? input.pickupAddress) : input.pickupAddress,
+      destinationAddress: destination, stops: reverse ? (stops.length ? [...stops.slice(1),input.pickupAddress] : []) : stops, drivingKm
     });
     return { stops, baselineKm: result.baselineKm, actualKm: result.actualKm, detourKm: result.extraKm };
   };

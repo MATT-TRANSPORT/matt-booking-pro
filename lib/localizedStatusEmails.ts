@@ -1,3 +1,4 @@
+import {bookingRouteText} from "@/lib/bookingRoute";
 import { driverWhatsAppButton } from "@/lib/driverWhatsAppEmail";
 import { bookingOrigin } from "@/lib/bookingOrigin";
 import { customerText } from "@/lib/customerCopy";
@@ -15,7 +16,7 @@ cs:{titles:{confirmed:"Rezervace potvrzena",assigned:"Řidič byl přidělen",co
 export function localizedStatusEmail(kind:Kind,b:Booking,options?:{reviewUrl?:string;guideHtml?:string}){
  const locale=resolveCustomerLocale(b.customer_locale);if(locale==="pl")throw new Error("Use Polish email templates for Polish bookings");
  const t=translations[locale],l=t.labels;
- const route=b.service_type==="from_airport"?b.airport_label+" → "+b.pickup_address:b.service_type==="roundtrip"?b.pickup_address+" ↔ "+b.airport_label:b.pickup_address+" → "+b.airport_label;
+ const route=bookingRouteText(b);
  const portal=b.customer_access_token?bookingOrigin()+"/rezerwacja/"+encodeURIComponent(b.customer_access_token)+"?lang="+locale:null;
  const line=(name:string,value:unknown)=>'<tr><td style="width:38%;padding:11px 12px;color:#aab1bc;font-size:13px;border-bottom:1px solid #343b49;vertical-align:top">'+esc(name)+'</td><td style="padding:11px 12px;color:#fff;font-size:14px;font-weight:700;overflow-wrap:anywhere;border-bottom:1px solid #343b49;vertical-align:top">'+esc(value)+'</td></tr>';
  const table=(rows:string)=>'<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border-collapse:collapse;table-layout:fixed">'+rows+'</table>';

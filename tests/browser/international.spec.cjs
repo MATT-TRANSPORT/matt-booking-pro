@@ -23,6 +23,7 @@ test.beforeEach(async ({context,page}, info) => {
     let data = {};
     if(url.pathname === '/api/airports') data={airports:{pyrzowice:{label:'Katowice-Pyrzowice',car:290,bus:400},balice:{label:'Kraków Balice',car:390,bus:500}}};
     else if(url.pathname === '/api/places') data={suggestions:[]};
+    else if(url.pathname === '/api/additional-stop/quote') data={stopCount:0,totalExtraKm:0,stopFee:0,stopExtraPrice:0};
     else if(url.pathname === '/api/route') data={distanceKm:20};
     else if(url.pathname === '/api/general-route') data={distanceKm:120,durationSeconds:7200};
     else if(url.pathname === '/api/bookings') data={booking_number:'TEST-ONLY',total_price:800,customer_access_token:'fixture-token'};

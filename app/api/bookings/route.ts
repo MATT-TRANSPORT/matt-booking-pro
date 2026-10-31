@@ -281,9 +281,13 @@ export async function POST(req: NextRequest) {
       customer_notification_channel: notificationChannel,
       customer_notification_opt_in_at: notificationChannel === "email" ? null : new Date().toISOString(),
       customer_notification_opt_out_at: null,
-      notes: multiStopRoute
-        ? [body.notes || "", "PRZYSTANKI WYJAZD: " + multiStopRoute.outbound.stops.join(" → "), "PRZYSTANKI POWRÓT: " + multiStopRoute.inbound.stops.join(" → ")].filter(Boolean).join("\n")
-        : body.notes || null
+      ...(multiStopRoute ? { pricing_snapshot: {
+        version: 2, route_stops: {outbound: body.serviceType==="from_airport" ? multiStopRoute.inbound.stops : multiStopRoute.outbound.stops, inbound: body.serviceType==="roundtrip" ? multiStopRoute.inbound.stops : []},
+        route_baseline_km: multiStopRoute.outbound.baselineKm + multiStopRoute.inbound.baselineKm,
+        route_actual_km: multiStopRoute.outbound.actualKm + multiStopRoute.inbound.actualKm,
+        route_detour_km: multiStopRoute.totalDetourKm
+      }} : {}),
+      notes: body.notes || null
     })
     .select("*")
     .single();

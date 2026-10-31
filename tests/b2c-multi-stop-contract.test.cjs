@@ -21,6 +21,6 @@ test("B2C UI quotes and submits the same ordered stop list",()=>{
 });
 test("B2C booking itinerary is stored for drivers even without new DB fields",()=>{
  const api=src("app/api/bookings/route.ts");
- assert.match(api,/PRZYSTANKI WYJAZD/);
- assert.match(api,/PRZYSTANKI POWRÓT/);
+ assert.match(api,/pricing_snapshot:/);
+ assert.match(api,/route_stops:/);
 });

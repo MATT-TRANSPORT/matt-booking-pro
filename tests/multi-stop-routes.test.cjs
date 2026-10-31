@@ -34,3 +34,10 @@ test("return pickup follows intermediate stops",async()=>{
 test("invalid stop count is rejected",async()=>{
  await assert.rejects(()=>quoteMultiStopRoute({baseAddress:"B",pickupAddress:"A",airportAddress:"Airport",serviceType:"to_airport",outboundStops:Array(11).fill("A"),drivingKm:async()=>100}),/Maksymalnie/);
 });
+
+test("ten return stops exclude the final passenger address from the stop limit",async()=>{
+ const stops=Array.from({length:10},(_,i)=>"Stop "+i);
+ const paths=[];
+ const q=await quoteMultiStopRoute({baseAddress:"Base",airportAddress:"Airport",pickupAddress:"Client",serviceType:"from_airport",outboundStops:stops,drivingKm:async(a,b,via)=>{paths.push(via);return via.length?106:100;}});
+ assert.deepEqual(paths,[[],[...stops,"Client"]]);assert.equal(q.chargedStopVisits,10);assert.equal(q.totalDetourKm,6);
+});

@@ -1,4 +1,5 @@
 "use client";
+import RouteStopInput from "./RouteStopInput";
 import { customerFetch } from "@/lib/customerFetch";
 import { customerText } from "@/lib/customerCopy";
 import { useCustomerLocale } from "@/lib/useCustomerLocale";
@@ -42,7 +43,8 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
   const [suggestions,setSuggestions] = useState<Suggestion[]>([]);
   const [routeStopsOut,setRouteStopsOut] = useState<string[]>([]);
   const [routeStopsBack,setRouteStopsBack] = useState<string[]>([]);
-  const multiStopActive = routeStopsOut.length > 0 || routeStopsBack.length > 0;
+  const multiStopActive = airport !== "other";
+  useEffect(()=>{ if(serviceType!=="roundtrip") setRouteStopsBack([]); },[serviceType]);
   const [additionalStopEnabled,setAdditionalStopEnabled] = useState(false);
   const [additionalStopAddress,setAdditionalStopAddress] = useState("");
   const [additionalStopPrimary,setAdditionalStopPrimary] = useState(true);
@@ -167,19 +169,21 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
       (additionalStopPrimary||(serviceType==="roundtrip"&&additionalStopReturn));
     if(!active){ setAdditionalStopQuote(null); setAdditionalStopError(""); setAdditionalStopBusy(false); return; }
     setAdditionalStopQuote(null);
+    const controller=new AbortController();
     const timer=setTimeout(async()=>{
       setAdditionalStopBusy(true); setAdditionalStopError("");
       try{
-        const r=await fetchCustomer("/api/additional-stop/quote",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+        const r=await fetchCustomer("/api/additional-stop/quote",{method:"POST",signal:controller.signal,headers:{"Content-Type":"application/json"},body:JSON.stringify({
           serviceType,address,airport,additionalStopAddress,additionalStopPrimary,additionalStopReturn:serviceType==="roundtrip"&&additionalStopReturn,
           ...(multiStopActive ? {routeStops:{outbound:routeStopsOut,inbound:serviceType==="roundtrip"?routeStopsBack:[]}} : {})
         })});
         const d=await r.json();
+        if(controller.signal.aborted) return;
         if(r.ok) setAdditionalStopQuote(d); else setAdditionalStopError(d.error??t("Nie udało się obliczyć przystanku."));
-      }catch{ setAdditionalStopError(t("Nie udało się obliczyć dodatkowego przystanku.")); }
+      }catch{ if(controller.signal.aborted) return; setAdditionalStopError(t("Nie udało się obliczyć dodatkowego przystanku.")); }
       setAdditionalStopBusy(false);
     },500);
-    return()=>clearTimeout(timer);
+    return()=>{controller.abort();clearTimeout(timer);};
   },[additionalStopEnabled,additionalStopAddress,additionalStopPrimary,additionalStopReturn,address,airport,serviceType,routeStopsOut,routeStopsBack]);
 
   function chooseAddress(value:string){
@@ -202,19 +206,8 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
   },[item,serviceType,vehicle,distanceKm,routeReady,invoice,additionalStopEnabled,additionalStopQuote,multiStopActive]);
 
   const airportLabel = airport==="other" ? (otherAirport||t("Inne lotnisko")) : (airports[airport]?.label || t("Lotnisko"));
-  const activeStop = additionalStopEnabled && additionalStopAddress.trim() ? additionalStopAddress.trim() : "";
-  const stopLegText = serviceType === "roundtrip"
-    ? additionalStopPrimary && additionalStopReturn
-      ? t("wyjazd i powrót")
-      : additionalStopReturn
-      ? t("powrót")
-      : t("wyjazd")
-    : "";
-  const routeText = serviceType==="from_airport"
-    ? (activeStop ? `${airportLabel} → ${activeStop} → ${address||"—"}` : `${airportLabel} → ${address||"—"}`)
-    : serviceType==="roundtrip"
-    ? `${address||"—"} ↔ ${airportLabel}${activeStop ? ` · ${t("przystanek")}: ${activeStop} (${stopLegText})` : ""}`
-    : (activeStop ? `${address||"—"} → ${activeStop} → ${airportLabel}` : `${address||"—"} → ${airportLabel}`);
+  const outboundText = (serviceType==="from_airport" ? [airportLabel,...routeStopsOut,address] : [address,...routeStopsOut,airportLabel]).filter(Boolean).join(" → ");
+  const routeText = serviceType==="roundtrip" ? outboundText+" · "+t("Powrót")+": "+[airportLabel,...routeStopsBack,address].filter(Boolean).join(" → ") : outboundText;
   const paymentMethodText = paymentMethod === "online"
     ? t("Płatność online po potwierdzeniu")
     : t("Gotówka u kierowcy");
@@ -371,7 +364,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
     ]).map(section=><div key={section.label}>
       <p>{section.label}</p>
       {section.stops.map((stop,index)=><div className="row" key={index} style={{gap:6}}>
-        <input aria-label={section.label+" "+(index+1)} placeholder={t("Wpisz adres przystanku")} value={stop} onChange={e=>section.update(section.stops.map((s,i)=>i===index?e.target.value:s))}/>
+        <RouteStopInput locale={locale} label={section.label+" "+(index+1)} placeholder={t("Wpisz adres przystanku")} value={stop} onChange={v=>section.update(section.stops.map((s,i)=>i===index?v:s))}/>
         <button type="button" className="btn secondary" disabled={index===0} onClick={()=>section.update(section.stops.map((s,i)=>i===index-1?section.stops[index]:i===index?section.stops[index-1]:s))}>↑</button>
         <button type="button" className="btn secondary" disabled={index===section.stops.length-1} onClick={()=>section.update(section.stops.map((s,i)=>i===index+1?section.stops[index]:i===index?section.stops[index+1]:s))}>↓</button>
         <button type="button" className="btn secondary" onClick={()=>section.update(section.stops.filter((_,i)=>i!==index))}>×</button>
