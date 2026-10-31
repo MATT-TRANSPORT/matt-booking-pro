@@ -45,11 +45,11 @@ export async function quoteMultiStopRoute(input: {
   }
   const drivingKm = input.drivingKm ?? googleDrivingKm;
   const outboundActive = input.serviceType !== "from_airport";
-  const quoteLeg = async (active: boolean, stops: string[], origin: string, destination: string) => {
+  const quoteLeg = async (active: boolean, stops: string[], origin: string, destination: string, reverse = false) => {
     if (!active) return { stops: [], baselineKm: 0, actualKm: 0, detourKm: 0 };
     const result = await calculateFullRouteDetour({
-      baseAddress: origin, pickupAddress: input.pickupAddress,
-      destinationAddress: destination, stops, drivingKm
+      baseAddress: origin, pickupAddress: reverse ? origin : input.pickupAddress,
+      destinationAddress: destination, stops: reverse ? [...stops, input.pickupAddress] : stops, drivingKm
     });
     return { stops, baselineKm: result.baselineKm, actualKm: result.actualKm, detourKm: result.extraKm };
   };
@@ -57,7 +57,7 @@ export async function quoteMultiStopRoute(input: {
   const outbound = await quoteLeg(outboundActive, outboundStops, input.baseAddress, input.airportAddress);
   const inbound = await quoteLeg(!outboundActive || input.serviceType === "roundtrip",
     input.serviceType === "from_airport" ? outboundStops : inboundStops,
-    input.airportAddress, input.baseAddress);
+    input.airportAddress, input.baseAddress, true);
   return {
     outbound, inbound,
     totalDetourKm: Math.round((outbound.detourKm + inbound.detourKm) * 10) / 10,
