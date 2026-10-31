@@ -511,7 +511,7 @@ export default function CompanyBookingForm({
           {quoteBusy
             ? t("Obliczanie odległości od siedziby kontrahenta i wyceny...")
             : quote
-            ? `✓ ${fixed(quote.distanceKm, 1)} km od siedziby kontrahenta · ${fixed(quote.billableKm, 1)} km płatne`
+            ? multiStopActive ? `✓ Objazd: ${fixed(quote.billableKm, 1)} km płatne` : `✓ ${fixed(quote.distanceKm, 1)} km od siedziby kontrahenta · ${fixed(quote.billableKm, 1)} km płatne`
             : quoteError || t("Wybierz dokładny adres, aby pobrać indywidualną wycenę.")}
         </div>
 
@@ -563,8 +563,8 @@ export default function CompanyBookingForm({
             {quote.multiplier > 1 && <div className="row"><span>{t("Mnożnik przejazdu")}</span><strong>× {quote.multiplier}</strong></div>}
             <div className="row"><span>{t("Cena bazowa")}</span><strong>{fixed(quote.basePriceNet, 2)} {t("zł netto")}</strong></div>
             <div className="row"><span>{t("Dopłata km")}</span><strong>{fixed(quote.extraPriceNet, 2)} {t("zł netto")}</strong></div>
-            {quote.additionalStopAddress && <div className="row"><span>{t("Dodatkowy przystanek")}</span><strong>{fixed(quote.additionalStopFeeNet, 2)} {t("zł netto")}</strong></div>}
-            {quote.additionalStopAddress && <div className="row"><span>{t("Objazd przystanku")}</span><strong>{fixed(quote.additionalStopExtraKm, 1)} km · {fixed(quote.additionalStopExtraPriceNet, 2)} {t("zł netto")}</strong></div>}
+            {quote.additionalStopFeeNet > 0 && <div className="row"><span>{t("Dodatkowe przystanki")}</span><strong>{fixed(quote.additionalStopFeeNet, 2)} {t("zł netto")}</strong></div>}
+            {quote.additionalStopExtraKm > 0 && <div className="row"><span>{t("Objazd przystanku")}</span><strong>{fixed(quote.additionalStopExtraKm, 1)} km · {fixed(quote.additionalStopExtraPriceNet, 2)} {t("zł netto")}</strong></div>}
             <div className="row total"><span>{t("RAZEM NETTO")}</span><strong>{fixed(quote.net, 2)} zł</strong></div>
             <div className="row"><span>{t("VAT")} {fixed(quote.vatRate, 0)}%</span><strong>{fixed(quote.vat, 2)} zł</strong></div>
             <div className="row total"><span>{t("RAZEM BRUTTO")}</span><strong>{fixed(quote.gross, 2)} zł</strong></div>
