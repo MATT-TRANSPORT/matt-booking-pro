@@ -360,7 +360,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
   const renderRouteStatus = () => airport!=="other" && <div aria-live="polite">
     {routeBusy && <div className="route-status">{t("Obliczanie dojazdu do adresu...")}</div>}
     {routeError && <div className="booking-error">{routeError}<br/><button type="button" className="btn secondary" onClick={()=>setRouteRetry(n=>n+1)}>{t("OBLICZ PONOWNIE")}</button></div>}
-    {routeReady && !multiStopActive && <div className="route-status ok">{t("Dojazd z bazy w Książenicach:")}{distanceKm.toFixed(1)} {t("km · 40 km w cenie.")}</div>}
+    {routeReady && !multiStopActive && <div className="route-status ok">{t("Dojazd z bazy w centrum Rybnika:")}{distanceKm.toFixed(1)} {t("km · 40 km w cenie.")}</div>}
   </div>;
 
   const renderAdditionalStopBox = () => <div className="additional-stop-box">
