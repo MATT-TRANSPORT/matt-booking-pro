@@ -6,6 +6,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { calculateQuote } from "@/lib/pricing";
 import { getAirportPricing } from "@/lib/airportPricingServer";
 import { calculateAdditionalStopDetour } from "@/lib/additionalStopServer";
+import { quoteMultiStopRoute } from "@/lib/multiStopRoutes";
+import { PUBLIC_BOOKING_BASE_ADDRESS } from "@/lib/bookingRouteBase";
 import { ADDITIONAL_STOP_B2C_KM_RATE, ADDITIONAL_STOP_FEE_B2C, additionalStopDirectionCount } from "@/lib/additionalStopConfig";
 import { sendMattEmail } from "@/lib/email";
 import { localizedReceivedEmail, resolveCustomerLocale } from "@/lib/localizedBookingEmails";
@@ -176,6 +178,22 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  let multiStopRoute: Awaited<ReturnType<typeof quoteMultiStopRoute>> | null = null;
+  if (body.routeStops !== undefined) {
+    try {
+      multiStopRoute = await quoteMultiStopRoute({
+        baseAddress: PUBLIC_BOOKING_BASE_ADDRESS,
+        pickupAddress: String(body.address || ""),
+        airportAddress: airportPricing.route_address,
+        serviceType: body.serviceType,
+        outboundStops: body.routeStops?.outbound,
+        inboundStops: body.routeStops?.inbound
+      });
+    } catch (error) {
+      return json({ error: error instanceof Error ? error.message : "Nie udało się wycenić trasy." }, { status: 400 });
+    }
+  }
+
   const additionalStopCount = additionalStopDirectionCount({
     serviceType: body.serviceType,
     primary: additionalStop.primary,
@@ -186,10 +204,10 @@ export async function POST(req: NextRequest) {
     serviceType: body.serviceType,
     airport: body.airport,
     vehicleType: body.vehicleType,
-    distanceKm: Number(body.distanceKm),
+    distanceKm: multiStopRoute ? 40 : Number(body.distanceKm),
     invoiceRequired: Boolean(body.invoiceRequired),
-    additionalStopCount,
-    additionalStopExtraKm: additionalStop.totalExtraKm,
+    additionalStopCount: multiStopRoute ? multiStopRoute.chargedStopVisits : additionalStopCount,
+    additionalStopExtraKm: multiStopRoute ? multiStopRoute.totalDetourKm : additionalStop.totalExtraKm,
     additionalStopFee: ADDITIONAL_STOP_FEE_B2C,
     additionalStopKmRate: ADDITIONAL_STOP_B2C_KM_RATE,
     priceRow: {
@@ -263,7 +281,9 @@ export async function POST(req: NextRequest) {
       customer_notification_channel: notificationChannel,
       customer_notification_opt_in_at: notificationChannel === "email" ? null : new Date().toISOString(),
       customer_notification_opt_out_at: null,
-      notes: body.notes || null
+      notes: multiStopRoute
+        ? [body.notes || "", "PRZYSTANKI WYJAZD: " + multiStopRoute.outbound.stops.join(" → "), "PRZYSTANKI POWRÓT: " + multiStopRoute.inbound.stops.join(" → ")].filter(Boolean).join("\n")
+        : body.notes || null
     })
     .select("*")
     .single();
