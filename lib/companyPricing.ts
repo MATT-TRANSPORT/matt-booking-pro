@@ -253,9 +253,20 @@ export async function calculateCompanyQuote(
     outboundStops: routeStops.outbound,
     inboundStops: routeStops.inbound
   }) : null;
-  const billableKm = multiStopRoute
-    ? km(multiStopRoute.totalDetourKm)
-    : km(Math.max(0, distanceKm - freeKm));
+  // The pickup allowance belongs to each leg. A pickup on the airport route
+  // is free even outside the allowance. Additional stops retain their own detour.
+  const pickupExcessKm = Math.max(0, distanceKm - freeKm);
+  let billableKm = km(pickupExcessKm);
+  if (multiStopRoute) {
+    const pickupOnly = multiStopRoute.chargedStopVisits === 0 ? multiStopRoute : await quoteMultiStopRoute({
+      baseAddress: originAddress, pickupAddress, airportAddress: airport.routeAddress,
+      serviceType: serviceType as "to_airport" | "from_airport" | "roundtrip"
+    });
+    const chargeableLegKm = (actualDetour: number, pickupDetour: number) =>
+      Math.min(actualDetour, pickupDetour, pickupExcessKm) + Math.max(0, actualDetour - pickupDetour);
+    billableKm = km(chargeableLegKm(multiStopRoute.outbound.detourKm, pickupOnly.outbound.detourKm)
+      + chargeableLegKm(multiStopRoute.inbound.detourKm, pickupOnly.inbound.detourKm));
+  }
   const extraKmRateNet = money(Number(terms.extra_km_rate_net ?? 2.4));
 
   let customPrice: any = null;
