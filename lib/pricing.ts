@@ -14,6 +14,8 @@ export function calculateQuote(input: {
   airport: string;
   vehicleType: string;
   distanceKm: number;
+  /** Measured, billable pickup detour kilometres across all booked legs. */
+  pickupBillableKm?: number;
   invoiceRequired: boolean;
   additionalStopCount?: number;
   additionalStopExtraKm?: number;
@@ -26,8 +28,12 @@ export function calculateQuote(input: {
   const vehicle = input.vehicleType === "bus" ? "bus" : "car";
   const multiplier = input.serviceType === "roundtrip" ? 2 : 1;
   const basePrice = row[vehicle] * multiplier;
-  const billableKm = Math.max(0, Number(input.distanceKm) - PUBLIC_BOOKING_FREE_PICKUP_KM);
-  const extraPrice = billableKm * 2.4 * multiplier;
+  const hasMeasuredPickup = input.pickupBillableKm !== undefined;
+  const billableKm = hasMeasuredPickup
+    ? Math.max(0, Number(input.pickupBillableKm))
+    : Math.max(0, Number(input.distanceKm) - PUBLIC_BOOKING_FREE_PICKUP_KM);
+  if (!Number.isFinite(billableKm)) throw new Error("Nieprawidłowe kilometry do wyceny.");
+  const extraPrice = billableKm * 2.4 * (hasMeasuredPickup ? 1 : multiplier);
   const additionalStopCount = Math.max(0, Number(input.additionalStopCount || 0));
   const additionalStopExtraKm = Math.max(0, Number(input.additionalStopExtraKm || 0));
   const additionalStopFee = additionalStopCount * Math.max(0, Number(input.additionalStopFee ?? 20));
