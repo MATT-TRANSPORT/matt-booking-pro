@@ -4,7 +4,6 @@ const { registerHooks } = require("node:module");
 const { pathToFileURL } = require("node:url");
 const path = require("node:path");
 const root = path.resolve(__dirname, "..");
-let pickupKm = 0;
 registerHooks({ resolve(specifier, context, next) {
   if (specifier === "@/lib/routesServer") return { url: "data:text/javascript,export async function shortestDrivingRouteKm(){return {distanceKm:globalThis.__pickupTestKm}}", shortCircuit: true };
   return next(specifier.startsWith("@/") ? pathToFileURL(path.join(root, specifier.slice(2) + ".ts")).href : specifier, context);
@@ -45,4 +44,12 @@ test("a stop that reduces the pickup detour never produces a negative charge", a
 });
 test("invalid measured pickup distance fails closed", async () => {
   await assert.rejects(() => quote(NaN, 8), /Nieprawidłowa/);
+});
+
+test("reported pickup produces only the base fare with no kilometre supplement", async () => {
+  const route = await quote(0.3, 0.7, "from_airport");
+  const { calculateQuote } = await import("../lib/pricing.ts");
+  const price = calculateQuote({serviceType: "from_airport", airport: "pyrzowice", vehicleType: "car", distanceKm: 0, invoiceRequired: false, additionalStopExtraKm: route.billableKm});
+  assert.equal(price.totalPrice, 290);
+  assert.equal(price.additionalStopExtraPrice, 0);
 });
