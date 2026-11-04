@@ -1,7 +1,7 @@
 import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
 import { NextRequest, NextResponse } from "next/server";
 import { calculateAdditionalStopDetour } from "@/lib/additionalStopServer";
-import { quoteMultiStopRoute } from "@/lib/multiStopRoutes";
+import { quotePublicMultiStopRoute } from "@/lib/publicRouteQuote";
 import { PUBLIC_BOOKING_BASE_ADDRESS } from "@/lib/bookingRouteBase";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAirportPricing } from "@/lib/airportPricingServer";
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     try {
       const airport = await getAirportPricing(createAdminClient(), String(body.airport || ""));
       if (!airport) return json({ error: "Nieprawidłowe lotnisko." }, { status: 400 });
-      const route = await quoteMultiStopRoute({
+      const route = await quotePublicMultiStopRoute({
         baseAddress: PUBLIC_BOOKING_BASE_ADDRESS,
         pickupAddress: String(body.address || ""),
         airportAddress: airport.route_address,
@@ -36,10 +36,13 @@ export async function POST(req: NextRequest) {
       });
       return json({
         routeStops: body.routeStops,
+        distanceKm: route.distanceKm,
+        freePickupKm: route.freePickupKm,
+        measuredDetourKm: route.totalDetourKm,
         stopCount: route.chargedStopVisits,
-        totalExtraKm: route.totalDetourKm,
+        totalExtraKm: route.billableKm,
         stopFee: money(route.chargedStopVisits * ADDITIONAL_STOP_FEE_B2C),
-        stopExtraPrice: money(route.totalDetourKm * ADDITIONAL_STOP_B2C_KM_RATE)
+        stopExtraPrice: money(route.billableKm * ADDITIONAL_STOP_B2C_KM_RATE)
       });
     } catch (error) {
       return json({ error: error instanceof Error ? error.message : "Nie udało się wycenić trasy." }, { status: 400 });

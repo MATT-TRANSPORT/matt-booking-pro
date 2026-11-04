@@ -6,7 +6,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { calculateQuote } from "@/lib/pricing";
 import { getAirportPricing } from "@/lib/airportPricingServer";
 import { calculateAdditionalStopDetour } from "@/lib/additionalStopServer";
-import { quoteMultiStopRoute, publicRouteSnapshot } from "@/lib/multiStopRoutes";
+import { publicRouteSnapshot } from "@/lib/multiStopRoutes";
+import { quotePublicMultiStopRoute } from "@/lib/publicRouteQuote";
 import { PUBLIC_BOOKING_BASE_ADDRESS } from "@/lib/bookingRouteBase";
 import { ADDITIONAL_STOP_B2C_KM_RATE, ADDITIONAL_STOP_FEE_B2C, additionalStopDirectionCount } from "@/lib/additionalStopConfig";
 import { sendMattEmail } from "@/lib/email";
@@ -163,9 +164,9 @@ export async function POST(req: NextRequest) {
     outbound: additionalStopPrimary ? [additionalStopAddress] : [],
     inbound: additionalStopReturn ? [additionalStopAddress] : []
   };
-  let multiStopRoute: Awaited<ReturnType<typeof quoteMultiStopRoute>>;
+  let multiStopRoute: Awaited<ReturnType<typeof quotePublicMultiStopRoute>>;
     try {
-      multiStopRoute = await quoteMultiStopRoute({
+      multiStopRoute = await quotePublicMultiStopRoute({
         baseAddress: PUBLIC_BOOKING_BASE_ADDRESS,
         pickupAddress: String(body.address || ""),
         airportAddress: airportPricing.route_address,
@@ -183,7 +184,7 @@ export async function POST(req: NextRequest) {
     distanceKm: 0, // All distance charges are based on the measured route detour.
     invoiceRequired: Boolean(body.invoiceRequired),
     additionalStopCount: multiStopRoute.chargedStopVisits,
-    additionalStopExtraKm: multiStopRoute.totalDetourKm,
+    additionalStopExtraKm: multiStopRoute.billableKm,
     additionalStopFee: ADDITIONAL_STOP_FEE_B2C,
     additionalStopKmRate: ADDITIONAL_STOP_B2C_KM_RATE,
     priceRow: {
@@ -228,7 +229,7 @@ export async function POST(req: NextRequest) {
       return_time: body.returnTime || null,
       passengers: Number(body.passengers),
       vehicle_type: vehicleType,
-      distance_km: Number(body.distanceKm),
+      distance_km: multiStopRoute.distanceKm,
       customer_name: body.customerName,
       phone: body.phone,
       email: body.email,
@@ -243,8 +244,8 @@ export async function POST(req: NextRequest) {
       additional_stop_address: additionalStop.stopAddress,
       additional_stop_primary: Boolean(additionalStop.primary),
       additional_stop_return: Boolean(additionalStop.returnLeg),
-      additional_stop_primary_extra_km: body.serviceType==="from_airport" ? multiStopRoute.inbound.detourKm : multiStopRoute.outbound.detourKm,
-      additional_stop_return_extra_km: body.serviceType==="roundtrip" ? multiStopRoute.inbound.detourKm : 0,
+      additional_stop_primary_extra_km: body.serviceType==="from_airport" ? multiStopRoute.inboundBillableKm : multiStopRoute.outboundBillableKm,
+      additional_stop_return_extra_km: body.serviceType==="roundtrip" ? multiStopRoute.inboundBillableKm : 0,
       additional_stop_fee: quote.additionalStopFee,
       additional_stop_extra_price: quote.additionalStopExtraPrice,
       vat_price: quote.vatPrice,
@@ -259,7 +260,7 @@ export async function POST(req: NextRequest) {
       customer_notification_channel: notificationChannel,
       customer_notification_opt_in_at: notificationChannel === "email" ? null : new Date().toISOString(),
       customer_notification_opt_out_at: null,
-      pricing_snapshot: publicRouteSnapshot(body.serviceType,multiStopRoute),
+      pricing_snapshot: { ...publicRouteSnapshot(body.serviceType,multiStopRoute), free_pickup_km: multiStopRoute.freePickupKm, billable_km: multiStopRoute.billableKm },
       notes: body.notes || null
     })
     .select("*")
