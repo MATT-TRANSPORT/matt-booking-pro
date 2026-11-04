@@ -61,6 +61,8 @@ jobs:
         run: node --test tests/driver-compact-install-flight-ui.test.cjs
       - name: Central Rybnik booking base regression
         run: node --test tests/booking-base-rybnik.test.cjs
+      - name: Public route quote pricing parity
+        run: node --test tests/public-route-quote-parity.test.cjs
       - name: B2C multi-stop integration contract
         run: node --test tests/b2c-multi-stop-contract.test.cjs
       - name: B2B multi-stop integration contract

@@ -41,6 +41,10 @@ export async function POST(req: NextRequest) {
         measuredDetourKm: route.totalDetourKm,
         stopCount: route.chargedStopVisits,
         totalExtraKm: route.billableKm,
+        pickupExtraKm: route.pickupBillableKm,
+        pickupExtraPrice: money(route.pickupBillableKm * ADDITIONAL_STOP_B2C_KM_RATE),
+        stopDetourKm: route.stopBillableKm,
+        stopDetourPrice: money(route.stopBillableKm * ADDITIONAL_STOP_B2C_KM_RATE),
         stopFee: money(route.chargedStopVisits * ADDITIONAL_STOP_FEE_B2C),
         stopExtraPrice: money(route.billableKm * ADDITIONAL_STOP_B2C_KM_RATE)
       });

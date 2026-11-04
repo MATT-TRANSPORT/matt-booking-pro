@@ -11,11 +11,13 @@ test("B2C quote and booking both use server-calculated multi-stop routes",()=>{
   assert.match(code,/PUBLIC_BOOKING_BASE_ADDRESS/);
   assert.match(code,/body\.routeStops !== undefined/);
  }
- assert.match(api,/additionalStopExtraKm: multiStopRoute\.billableKm/);
+ assert.match(api,/additionalStopExtraKm: multiStopRoute\.stopBillableKm/);
+ assert.match(api,/pickupBillableKm: multiStopRoute\.pickupBillableKm/);
 });
 test("B2C UI quotes and submits the same ordered stop list",()=>{
  const ui=src("components/BookingForm.tsx");
- assert.equal((ui.match(/routeStops:\{outbound:routeStopsOut/g)||[]).length,2);
+ assert.match(ui,/routeStops: multiStopActive \? \{outbound:routeStopsOut/);
+ assert.match(ui,/\.\.\.\(multiStopActive\?\{routeStops:\{outbound:routeStopsOut/);
  assert.match(ui,/renderAdditionalStopBox/);
  assert.match(ui,/routeStopsOut\.length\+routeStopsBack\.length>=10/);
 });

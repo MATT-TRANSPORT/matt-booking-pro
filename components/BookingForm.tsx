@@ -166,8 +166,9 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
   },[additionalStopEnabled,additionalStopAddress]);
 
   useEffect(()=>{
-    const active=multiStopActive ? [...routeStopsOut,...routeStopsBack].every(s=>s.trim().length>=5)&&address.trim().length>=5&&airport!=="other" : additionalStopEnabled&&additionalStopAddress.trim().length>=5&&address.trim().length>=5&&airport!=="other"&&
-      (additionalStopPrimary||(serviceType==="roundtrip"&&additionalStopReturn));
+    const active=address.trim().length>=5 && airport!=="other"
+      && (!multiStopActive || [...routeStopsOut,...routeStopsBack].every(s=>s.trim().length>=5))
+      && (!additionalStopEnabled || additionalStopAddress.trim().length>=5);
     if(!active){ setAdditionalStopQuote(null); setAdditionalStopError(""); setAdditionalStopBusy(false); return; }
     setAdditionalStopQuote(null);
     const controller=new AbortController();
@@ -176,7 +177,10 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
       try{
         const r=await fetchCustomer("/api/additional-stop/quote",{method:"POST",signal:controller.signal,headers:{"Content-Type":"application/json"},body:JSON.stringify({
           serviceType,address,airport,additionalStopAddress,additionalStopPrimary,additionalStopReturn:serviceType==="roundtrip"&&additionalStopReturn,
-          ...(multiStopActive ? {routeStops:{outbound:routeStopsOut,inbound:serviceType==="roundtrip"?routeStopsBack:[]}} : {})
+          routeStops: multiStopActive ? {outbound:routeStopsOut,inbound:serviceType==="roundtrip"?routeStopsBack:[]} : {
+            outbound: additionalStopEnabled && (serviceType!=="roundtrip" || additionalStopPrimary) ? [additionalStopAddress] : [],
+            inbound: additionalStopEnabled && serviceType==="roundtrip" && additionalStopReturn ? [additionalStopAddress] : []
+          }
         })});
         const d=await r.json();
         if(controller.signal.aborted) return;
@@ -197,10 +201,10 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
     if(!item) return {base:0,extra:0,stopFee:0,stopExtraKm:0,stopExtra:0,vat:0,total:0};
     const m=serviceType==="roundtrip"?2:1;
     const base=item[vehicle]*m;
-    const extra=multiStopActive?0:routeReady?Math.max(0,distanceKm-PUBLIC_BOOKING_FREE_PICKUP_KM)*2.4*m:0;
-    const stopFee=(multiStopActive||additionalStopEnabled)?Number(additionalStopQuote?.stopFee||0):0;
-    const stopExtraKm=(multiStopActive||additionalStopEnabled)?Number(additionalStopQuote?.totalExtraKm||0):0;
-    const stopExtra=(multiStopActive||additionalStopEnabled)?Number(additionalStopQuote?.stopExtraPrice||0):0;
+    const extra=routeReady?Number(additionalStopQuote?.pickupExtraPrice||0):0;
+    const stopFee=Number(additionalStopQuote?.stopFee||0);
+    const stopExtraKm=Number(additionalStopQuote?.stopDetourKm||0);
+    const stopExtra=Number(additionalStopQuote?.stopDetourPrice||0);
     const subtotal=base+extra+stopFee+stopExtra;
     const vat=invoice?subtotal*0.08:0;
     return {base,extra,stopFee,stopExtraKm,stopExtra,vat,total:subtotal+vat};
@@ -275,7 +279,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
   const phoneDigits = phone.replace(/\D/g, "");
   const phoneValid = phoneDigits.length >= 7 && phoneDigits.length <= 15;
   function valid(n:number){
-    if(n===2) return routeReady && (airport!=="other" || otherAirport.trim().length>=3) && (multiStopActive ? !additionalStopBusy && !!additionalStopQuote : !additionalStopEnabled || (!!additionalStopAddress.trim() && !additionalStopBusy && !!additionalStopQuote));
+    if(n===2) return routeReady && (airport!=="other" || otherAirport.trim().length>=3) && !additionalStopBusy && !!additionalStopQuote;
     if(n===3) return !!travelDate && !!travelTime && roundtripScheduleReady();
     if(n===5) return !!name.trim() && phoneValid && emailValid && (!invoice || nip10(nip).length===10);
     return true;
@@ -292,6 +296,7 @@ export default function BookingForm({initialEntry}: {initialEntry?: BookingEntry
     if(!emailValid){ setMessage(t("Podaj poprawny adres e-mail.")); return; }
     if(!phoneValid){ setMessage(t("Podaj poprawny numer telefonu.")); return; }
     if(!routeReady){ setMessage(routeError || t("Poczekaj na obliczenie dojazdu dla podanego adresu.")); return; }
+    if(additionalStopBusy || !additionalStopQuote){setMessage(t("Poczekaj na aktualną wycenę trasy."));return;}
     if(serviceType==="roundtrip"&&(!returnDate||!returnTime)){ setMessage(t("Dla przejazdu w obie strony podaj datę i godzinę powrotu.")); return; }
     if(serviceType==="roundtrip"&&!roundtripScheduleReady()){ setMessage(t("Termin powrotu musi być późniejszy niż wyjazd.")); return; }
     if(invoice&&nip10(nip).length!==10){ setMessage(t("Podaj poprawny 10-cyfrowy NIP.")); return; }
