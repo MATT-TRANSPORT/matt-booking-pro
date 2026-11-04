@@ -181,10 +181,11 @@ export async function POST(req: NextRequest) {
     serviceType: body.serviceType,
     airport: body.airport,
     vehicleType: body.vehicleType,
-    distanceKm: 0, // All distance charges are based on the measured route detour.
+    distanceKm: 0, // Authoritative detour charges use the measured leg breakdown.
+    pickupBillableKm: multiStopRoute.pickupBillableKm,
     invoiceRequired: Boolean(body.invoiceRequired),
     additionalStopCount: multiStopRoute.chargedStopVisits,
-    additionalStopExtraKm: multiStopRoute.billableKm,
+    additionalStopExtraKm: multiStopRoute.stopBillableKm,
     additionalStopFee: ADDITIONAL_STOP_FEE_B2C,
     additionalStopKmRate: ADDITIONAL_STOP_B2C_KM_RATE,
     priceRow: {
@@ -260,7 +261,7 @@ export async function POST(req: NextRequest) {
       customer_notification_channel: notificationChannel,
       customer_notification_opt_in_at: notificationChannel === "email" ? null : new Date().toISOString(),
       customer_notification_opt_out_at: null,
-      pricing_snapshot: { ...publicRouteSnapshot(body.serviceType,multiStopRoute), free_pickup_km: multiStopRoute.freePickupKm, billable_km: multiStopRoute.billableKm },
+      pricing_snapshot: { ...publicRouteSnapshot(body.serviceType,multiStopRoute), free_pickup_km: multiStopRoute.freePickupKm, billable_km: multiStopRoute.billableKm, pickup_billable_km: multiStopRoute.pickupBillableKm, stop_billable_km: multiStopRoute.stopBillableKm },
       notes: body.notes || null
     })
     .select("*")
