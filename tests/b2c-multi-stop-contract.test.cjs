@@ -7,11 +7,11 @@ test("B2C quote and booking both use server-calculated multi-stop routes",()=>{
  const quote=src("app/api/additional-stop/quote/route.ts");
  const api=src("app/api/bookings/route.ts");
  for(const code of [quote,api]) {
-  assert.match(code,/quoteMultiStopRoute/);
+  assert.match(code,/quotePublicMultiStopRoute/);
   assert.match(code,/PUBLIC_BOOKING_BASE_ADDRESS/);
   assert.match(code,/body\.routeStops !== undefined/);
  }
- assert.match(api,/additionalStopExtraKm: multiStopRoute\.totalDetourKm/);
+ assert.match(api,/additionalStopExtraKm: multiStopRoute\.billableKm/);
 });
 test("B2C UI quotes and submits the same ordered stop list",()=>{
  const ui=src("components/BookingForm.tsx");

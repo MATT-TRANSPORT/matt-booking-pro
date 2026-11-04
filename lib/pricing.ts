@@ -1,3 +1,4 @@
+import { PUBLIC_BOOKING_FREE_PICKUP_KM } from "@/lib/bookingRouteBase";
 export const PRICES: Record<string, { label: string; car: number; bus: number }> = {
   pyrzowice: { label: "Katowice-Pyrzowice", car: 290, bus: 400 },
   balice: { label: "Kraków-Balice", car: 390, bus: 500 },
@@ -25,7 +26,7 @@ export function calculateQuote(input: {
   const vehicle = input.vehicleType === "bus" ? "bus" : "car";
   const multiplier = input.serviceType === "roundtrip" ? 2 : 1;
   const basePrice = row[vehicle] * multiplier;
-  const billableKm = Math.max(0, Number(input.distanceKm) - 40);
+  const billableKm = Math.max(0, Number(input.distanceKm) - PUBLIC_BOOKING_FREE_PICKUP_KM);
   const extraPrice = billableKm * 2.4 * multiplier;
   const additionalStopCount = Math.max(0, Number(input.additionalStopCount || 0));
   const additionalStopExtraKm = Math.max(0, Number(input.additionalStopExtraKm || 0));

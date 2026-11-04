@@ -65,6 +65,8 @@ jobs:
         run: node --test tests/b2c-multi-stop-contract.test.cjs
       - name: B2B multi-stop integration contract
         run: node --test tests/b2b-multi-stop-contract.test.cjs
+      - name: Public pickup allowance regression
+        run: node --test tests/public-pickup-allowance.test.cjs
       - name: Multi-stop routing engine
         run: node --test tests/multi-stop-routes.test.cjs
       - name: Full-route detour pricing policy

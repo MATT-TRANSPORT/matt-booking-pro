@@ -1,6 +1,6 @@
 import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
 import { NextRequest, NextResponse } from "next/server";
-import { PUBLIC_BOOKING_BASE_ADDRESS as BASE_ADDRESS } from "@/lib/bookingRouteBase";
+import { PUBLIC_BOOKING_BASE_ADDRESS as BASE_ADDRESS, PUBLIC_BOOKING_FREE_PICKUP_KM } from "@/lib/bookingRouteBase";
 export async function POST(req: NextRequest) {
   let responseLocale=requestCustomerLocale(req);
   const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     const routes=(data.routes??[]).filter((r:any)=>typeof r.distanceMeters==="number" && Number.isFinite(r.distanceMeters) && r.distanceMeters>=0).sort((a:any,b:any)=>a.distanceMeters-b.distanceMeters);
     if(!routes.length) return json({error:"Nie znaleziono trasy."},{status:404});
     const distanceKm=Math.round((routes[0].distanceMeters/1000)*10)/10;
-    const billableKm=Math.max(0,distanceKm - 40);
+    const billableKm=Math.max(0,distanceKm - PUBLIC_BOOKING_FREE_PICKUP_KM);
     return json({distanceKm,billableKm:Math.round(billableKm*10)/10,extraOneWay:Math.round(billableKm*2.4*100)/100});
   } catch {
     return json({error:"Nie udało się obliczyć dojazdu. Sprawdź adres i spróbuj ponownie."},{status:502});
