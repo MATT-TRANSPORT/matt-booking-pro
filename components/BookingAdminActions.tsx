@@ -35,6 +35,22 @@ export default function BookingAdminActions({
   const [returnVehicleId, setReturnVehicleId] = useState(initialReturnVehicleId ?? "");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [priceReview, setPriceReview] = useState<{oldPrice: number; newPrice: number; reviewToken: string} | null>(null);
+  async function reprice(approve = false) {
+    setSaving(true); setMessage("");
+    try {
+      const response = await fetch(`/api/admin/bookings/${bookingId}/reprice`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: approve ? "approve" : "preview", reviewToken: priceReview?.reviewToken })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Nie udało się przeliczyć ceny.");
+      if (approve) { setPriceReview(null); setMessage("✓ Nowa cena zatwierdzona. Rezerwacja nadal oczekuje na potwierdzenie."); router.refresh(); }
+      else setPriceReview(data);
+    } catch (error) { setPriceReview(null); setMessage(error instanceof Error ? error.message : "Błąd przeliczenia."); }
+    finally { setSaving(false); }
+  }
+
 
   async function sendUpdate(mode: "status" | "resources") {
     if (saving) return;
@@ -110,6 +126,15 @@ export default function BookingAdminActions({
   return (
     <div className="card admin-actions-card">
       <h2>Zarządzanie rezerwacją</h2>
+      {initialStatus === "pending" && <div>
+        <button className="btn secondary" disabled={saving} onClick={() => reprice()}>PRZELICZ CENĘ</button>
+        {priceReview && <div role="status">
+          <p>Dotychczas: {priceReview.oldPrice.toFixed(2)} zł · Nowa cena: {priceReview.newPrice.toFixed(2)} zł</p>
+          <p>30 km dojazdu od centrum Rybnika. Maksymalnie 10 km rzeczywistego objazdu bez dopłaty; kilometry naliczane raz.</p>
+          <button className="btn" disabled={saving} onClick={() => reprice(true)}>ZATWIERDŹ NOWĄ CENĘ</button>
+        </div>}
+      </div>}
+
       <div className="admin-action-grid">
         <label>Status
           <select value={status} onChange={(e) => setStatus(e.target.value)}>

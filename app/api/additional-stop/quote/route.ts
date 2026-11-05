@@ -1,14 +1,12 @@
 import { customerJson, requestCustomerLocale } from "@/lib/customerErrors";
-import { NextRequest, NextResponse } from "next/server";
-import { calculateAdditionalStopDetour } from "@/lib/additionalStopServer";
+import { NextRequest } from "next/server";
 import { quotePublicMultiStopRoute } from "@/lib/publicRouteQuote";
 import { PUBLIC_BOOKING_BASE_ADDRESS } from "@/lib/bookingRouteBase";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAirportPricing } from "@/lib/airportPricingServer";
 import {
   ADDITIONAL_STOP_B2C_KM_RATE,
-  ADDITIONAL_STOP_FEE_B2C,
-  additionalStopDirectionCount
+  ADDITIONAL_STOP_FEE_B2C
 } from "@/lib/additionalStopConfig";
 
 export const runtime = "nodejs";
@@ -22,6 +20,13 @@ export async function POST(req: NextRequest) {
   const json=(payload:any,init?:ResponseInit)=>customerJson(responseLocale,payload,init);
   const body = await req.json();
  responseLocale=requestCustomerLocale(req,body?.locale);
+  if (body.routeStops === undefined) {
+    const stop = String(body.additionalStopAddress || "").trim();
+    body.routeStops = {
+      outbound: stop && (body.serviceType !== "roundtrip" || body.additionalStopPrimary) ? [stop] : [],
+      inbound: stop && body.serviceType === "roundtrip" && body.additionalStopReturn ? [stop] : []
+    };
+  }
   if (body.routeStops !== undefined) {
     try {
       const airport = await getAirportPricing(createAdminClient(), String(body.airport || ""));
@@ -51,59 +56,5 @@ export async function POST(req: NextRequest) {
     } catch (error) {
       return json({ error: error instanceof Error ? error.message : "Nie udało się wycenić trasy." }, { status: 400 });
     }
-  }
-  const stopAddress = String(body.additionalStopAddress || "").trim();
-  const serviceType = String(body.serviceType || "to_airport");
-  const primary = Boolean(
-    stopAddress && (serviceType === "roundtrip" ? body.additionalStopPrimary : true)
-  );
-  const returnLeg = Boolean(
-    stopAddress && serviceType === "roundtrip" && body.additionalStopReturn
-  );
-
-  if (!stopAddress || (!primary && !returnLeg)) {
-    return json({
-      stopAddress: null,
-      primaryExtraKm: 0,
-      returnExtraKm: 0,
-      totalExtraKm: 0,
-      stopCount: 0,
-      stopFee: 0,
-      stopExtraPrice: 0
-    });
-  }
-
-  try {
-    const airport = await getAirportPricing(createAdminClient(), String(body.airport || ""));
-    if (!airport) {
-      return json({ error: "Nieprawidłowe lub nieaktywne lotnisko." }, { status: 400 });
-    }
-
-    const detour = await calculateAdditionalStopDetour({
-      serviceType,
-      pickupAddress: String(body.address || ""),
-      airportKey: String(body.airport || ""),
-      stopAddress,
-      primary,
-      returnLeg,
-      airportAddress: airport.route_address
-    });
-    const stopCount = additionalStopDirectionCount({
-      serviceType,
-      primary: detour.primary,
-      returnLeg: detour.returnLeg
-    });
-
-    return json({
-      ...detour,
-      stopCount,
-      stopFee: money(stopCount * ADDITIONAL_STOP_FEE_B2C),
-      stopExtraPrice: money(detour.totalExtraKm * ADDITIONAL_STOP_B2C_KM_RATE)
-    });
-  } catch (error) {
-    return json(
-      { error: error instanceof Error ? error.message : "Nie udało się obliczyć dodatkowego przystanku." },
-      { status: 400 }
-    );
   }
 }

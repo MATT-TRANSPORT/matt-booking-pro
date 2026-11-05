@@ -39,15 +39,15 @@ export default function CompanyTermsSummaryCard({customerLocale,
       <div className={compact ? "b2b-terms-grid compact" : "b2b-terms-grid"}>
         <div>
           <span>{t("Siedziba do kalkulacji")}</span>
-          <strong>{terms.pricing_origin_address || "—"}</strong>
+          <strong>{t("Centrum Rybnika")}</strong>
         </div>
         <div>
           <span>{t("Limit bez dopłaty")}</span>
-          <strong>{Number(terms.free_km ?? 0).toFixed(1)} km</strong>
+          <strong>30 km · {t("do 10 km objazdu")}</strong>
         </div>
         <div>
           <span>{t("Powyżej limitu")}</span>
-          <strong>{Number(terms.extra_km_rate_net ?? 0).toFixed(2)}  {t("zł netto/km")}</strong>
+          <strong>2.40  {t("zł netto/km")}</strong>
         </div>
         <div>
           <span>{t("Cennik")}</span>

@@ -139,8 +139,8 @@ test('public roundtrip persists the quoted stops and charges the detour only onc
  const input={...base,distanceKm:9999,routeStops:stops};
  const failed=await routes.airport(request({...input,expectedTotal:1},"en"));
  assert.equal(failed.status,409);assert.equal(writes.length,0);
- const res=await routes.airport(request({...input,expectedTotal:881.60},"en"));assert.equal(res.status,200);
+ const res=await routes.airport(request({...input,expectedTotal:860.00},"en"));assert.equal(res.status,200);
  const row=writes.find(w=>w.table==="bookings").value;
- assert.deepEqual(row.pricing_snapshot.route_stops,stops);assert.equal(row.total_price,881.6);
+ assert.deepEqual(row.pricing_snapshot.route_stops,stops);assert.equal(row.total_price,860);
  assert.ok(emails.some(m=>m.html?.includes("A Street → B Street")));
 });
