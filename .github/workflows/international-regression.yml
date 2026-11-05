@@ -69,6 +69,8 @@ jobs:
         run: node --test tests/b2b-multi-stop-contract.test.cjs
       - name: Public pickup allowance regression
         run: node --test tests/public-pickup-allowance.test.cjs
+      - name: Unified B2B/B2C pricing and guarded administrator repricing
+        run: node --test tests/unified-pricing.test.cjs tests/admin-reprice.test.cjs
       - name: Multi-stop routing engine
         run: node --test tests/multi-stop-routes.test.cjs
       - name: Full-route detour pricing policy

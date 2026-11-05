@@ -3,6 +3,10 @@ import { resolveCustomerLocale } from "@/lib/bookingLocale";
 import { customerText } from "@/lib/customerCopy";
 
 export const companyCopy: Record<string,[string,string,string]> = {
+  "Centrum Rybnika": ["Rybnik centre", "Zentrum von Rybnik", "Centrum Rybnika"],
+  "do 10 km objazdu": ["up to 10 km detour", "bis zu 10 km Umweg", "až 10 km objížďky"],
+  "Cena bazowa za przejazd w jedną stronę. W obie strony każdy kierunek jest wyceniany osobno.": ["Base fare for one direction. Each direction is priced separately for round trips.", "Grundpreis pro Richtung. Bei Hin- und Rückfahrten wird jede Richtung separat berechnet.", "Základní cena za jeden směr. U zpátečních cest se každý směr počítá samostatně."],
+  "Dojazd od centrum Rybnika: 30 km w cenie. Rzeczywisty objazd: do 10 km w cenie. Odbiór po trasie nie generuje dopłaty kilometrowej. Nadwyżka kosztuje 2,40 zł netto/km i jest naliczana tylko raz dla całej trasy z przystankami.": ["Pickup from Rybnik centre: 30 km included. Actual detour: up to 10 km included. Pickup on the route has no mileage surcharge. Excess costs PLN 2.40 net/km, charged once for the complete route including stops.", "Anfahrt ab Zentrum Rybnik: 30 km inklusive. Tatsächlicher Umweg: bis zu 10 km inklusive. Abholung auf der Strecke ohne Kilometerzuschlag. Mehrkilometer kosten 2,40 PLN netto/km und werden einmal für die gesamte Strecke mit Zwischenstopps berechnet.", "Příjezd z centra Rybnika: 30 km v ceně. Skutečná objížďka: až 10 km v ceně. Vyzvednutí po trase bez příplatku za kilometry. Nadlimitní kilometry stojí 2,40 PLN netto/km a účtují se jednou za celou trasu se zastávkami."],
   "Sposób płatności": ["Payment method", "Zahlungsart", "Způsob platby"],
   "Płatność online firmy": ["Company online payment", "Online-Zahlung des Unternehmens", "Online platba firmy"],
   "Zmiany oczekują na potwierdzenie przez MATT TRANSPORT.": ["Changes are awaiting confirmation by MATT TRANSPORT.", "Die Änderungen warten auf die Bestätigung durch MATT TRANSPORT.", "Změny čekají na potvrzení od MATT TRANSPORT."],

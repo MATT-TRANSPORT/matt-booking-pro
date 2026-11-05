@@ -1,4 +1,5 @@
-import {quoteMultiStopRoute,publicRouteSnapshot} from "@/lib/multiStopRoutes";
+import { quotePublicMultiStopRoute } from "@/lib/publicRouteQuote";
+import {publicRouteSnapshot} from "@/lib/multiStopRoutes";
 import {PUBLIC_BOOKING_BASE_ADDRESS} from "@/lib/bookingRouteBase";
 import {calculateQuote} from "@/lib/pricing";
 import {bookingRouteText} from "@/lib/bookingRoute";
@@ -107,7 +108,7 @@ export async function PATCH(
   const vehicleType = passengers > 3 ? "bus" : String(body.vehicleType ?? booking.vehicle_type);
   const pickupAddress = String(body.pickupAddress ?? booking.pickup_address).trim();
 
-  let invoiceRequired = isB2B ? true : Boolean(body.invoiceRequired);
+  let invoiceRequired = isB2B ? true : Boolean(body.invoiceRequired ?? booking.invoice_required);
   const nip = !isB2B && invoiceRequired ? cleanNip(body.companyNip) : booking.company_nip ?? null;
 
   if (!isB2B && invoiceRequired && nip?.length !== 10) {
@@ -129,7 +130,9 @@ export async function PATCH(
   let priceChanged = false;
   let pricingUpdate: Record<string, unknown> = {};
 
-  if (isB2B) {
+  if (!routeChanged && vehicleType === booking.vehicle_type && invoiceRequired === Boolean(booking.invoice_required || isB2B)) {
+    // Contact/date edits retain the agreed fare, including confirmed and paid bookings.
+  } else if (isB2B) {
     try {
       // B2B zawsze przeliczamy po siedzibie kontrahenta i po wersji warunków
       // zapisanej na tej rezerwacji. Klient nie może podać własnego dystansu/ceny.
@@ -154,18 +157,23 @@ export async function PATCH(
         { status: 400 }
       );
     }
-  } else if (booking.pricing_snapshot?.version===2 && booking.pricing_snapshot.route_stops) {
+  } else {
     const saved=booking.pricing_snapshot;
-    const stops=saved.route_stops;
+    const stops=saved?.route_stops ?? {
+      outbound: booking.additional_stop_address && booking.additional_stop_primary ? [booking.additional_stop_address] : [],
+      inbound: booking.additional_stop_address && booking.additional_stop_return ? [booking.additional_stop_address] : []
+    };
     try {
       // For a date/contact edit the saved route remains authoritative.
-      const updatedRoute=routeChanged ? await quoteMultiStopRoute({
+      const updatedRoute=await quotePublicMultiStopRoute({
         baseAddress:PUBLIC_BOOKING_BASE_ADDRESS, pickupAddress,airportAddress:airportPricing.route_address,
         serviceType:booking.service_type,outboundStops:stops.outbound,inboundStops:stops.inbound
-      }) : null;
-      const snapshot=updatedRoute ? publicRouteSnapshot(booking.service_type,updatedRoute) : saved;
+      });
+      const snapshot=updatedRoute ? { ...publicRouteSnapshot(booking.service_type,updatedRoute), billable_km:updatedRoute.billableKm,
+        pickup_billable_km:updatedRoute.pickupBillableKm, stop_billable_km:updatedRoute.stopBillableKm, free_pickup_km:30 } : saved;
       const q=calculateQuote({serviceType:booking.service_type,airport,vehicleType,distanceKm:0,invoiceRequired,
-        additionalStopCount:stops.outbound.length+stops.inbound.length,additionalStopExtraKm:snapshot.route_detour_km,
+        pickupBillableKm:Number(snapshot.pickup_billable_km ?? 0),
+        additionalStopCount:stops.outbound.length+stops.inbound.length,additionalStopExtraKm:Number(snapshot.stop_billable_km ?? snapshot.route_detour_km),
         priceRow:{car:airportPricing.car_price,bus:airportPricing.bus_price}});
       total=q.totalPrice;priceChanged=Math.round(total*100)!==Math.round(Number(booking.total_price)*100);
       pricingUpdate={pricing_snapshot:snapshot,base_price:q.basePrice,extra_price:q.extraPrice,
@@ -174,24 +182,6 @@ export async function PATCH(
           additional_stop_return_extra_km:booking.service_type==="roundtrip" ? updatedRoute.inbound.detourKm : 0} : {}),
         total_price:total,vat_price:q.vatPrice};
     } catch {return json({error:"Nie udało się obliczyć trasy."},{status:400});}
-  } else {
-    // B2C: zachowujemy dotychczasowy model. Zmiana adresu wymaga ponownego
-    // potwierdzenia, a dystans pozostaje kontrolowany przez MATT.
-    const multiplier = booking.service_type === "roundtrip" ? 2 : 1;
-    const unitPrice = vehicleType === "bus" ? airportPricing.bus_price : airportPricing.car_price;
-    const base = Number(unitPrice) * multiplier;
-    const extra = Math.max(0, Number(booking.distance_km ?? 0) - 40) * 2.4 * multiplier;
-    const subtotal = base + extra;
-    const vat = invoiceRequired ? subtotal * 0.08 : 0;
-    total = subtotal + vat;
-    pricingUpdate = {
-      base_price: base,
-      extra_price: extra,
-      vat_price: vat,
-      total_price: total
-    };
-    priceChanged =
-      Math.round(Number(booking.total_price || 0) * 100) !== Math.round(total * 100);
   }
 
   const vehicleChanged = String(booking.vehicle_type ?? "") !== vehicleType;

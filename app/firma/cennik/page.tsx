@@ -81,7 +81,7 @@ export default async function Page({searchParams}:{searchParams:Promise<CompanyS
             <span className="badge">{t("CENY NETTO")}</span>
             <h2>{t("Transfery lotniskowe")}</h2>
             <p className="muted">
-               {t("Cena bazowa za przejazd w jedną stronę. W obie strony system liczy 2× cenę bazową oraz 2× ewentualną dopłatę za kilometry.")} </p>
+               {t("Cena bazowa za przejazd w jedną stronę. W obie strony każdy kierunek jest wyceniany osobno.")} </p>
           </div>
           <a className="btn" href={href("/firma/nowa-rezerwacja")}>{t("+ ZAMÓW TRANSPORT")}</a>
         </div>
@@ -150,7 +150,7 @@ export default async function Page({searchParams}:{searchParams:Promise<CompanyS
         <div className="b2b-pricing-explainer">
           <h3>{t("Jak liczona jest cena?")}</h3>
           <p>
-             {t("System mierzy najkrótszą trasę samochodową od siedziby kontrahenta do adresu pasażera. Kilometry mieszczące się w limicie są bez dopłaty. Nadwyżka jest mnożona przez stawkę netto za kilometr i dodawana do ceny bazowej transferu.")} </p>
+             {t("Dojazd od centrum Rybnika: 30 km w cenie. Rzeczywisty objazd: do 10 km w cenie. Odbiór po trasie nie generuje dopłaty kilometrowej. Nadwyżka kosztuje 2,40 zł netto/km i jest naliczana tylko raz dla całej trasy z przystankami.")} </p>
           <strong>
              {t("Cena końcowa = cena bazowa NETTO + dopłata za km NETTO + VAT 8%.")} </strong>
         </div>

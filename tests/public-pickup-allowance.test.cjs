@@ -36,7 +36,7 @@ test("only excess pickup kilometres are charged and on-route pickup remains free
 test("extra stop detour is charged once without removing the free pickup allowance", async () => {
   const result = await quote(14.3, 8, "from_airport", 3);
   assert.equal(result.totalDetourKm, 11);
-  assert.equal(result.billableKm, 3);
+  assert.equal(result.billableKm, 1);
   assert.equal(result.chargedStopVisits, 1);
 });
 test("a stop that reduces the pickup detour never produces a negative charge", async () => {
@@ -52,4 +52,19 @@ test("reported pickup produces only the base fare with no kilometre supplement",
   const price = calculateQuote({serviceType: "from_airport", airport: "pyrzowice", vehicleType: "car", distanceKm: 0, invoiceRequired: false, additionalStopExtraKm: route.billableKm});
   assert.equal(price.totalPrice, 290);
   assert.equal(price.additionalStopExtraPrice, 0);
+});
+
+test("large real detour inside pickup radius is never free (reported regression)", async () => {
+  const result = await quote(29, 69.9);
+  assert.equal(result.billableKm, 59.9);
+  const { calculateQuote } = await import("../lib/pricing.ts");
+  assert.equal(calculateQuote({ serviceType:"to_airport", airport:"balice", vehicleType:"car", distanceKm:29,
+    pickupBillableKm:result.pickupBillableKm, additionalStopExtraKm:result.stopBillableKm, invoiceRequired:false }).totalPrice,533.76);
+});
+test("10 km limit is applied once per complete direction, not once per stop", async () => {
+  assert.equal((await quote(20, 10)).billableKm, 0);
+  assert.equal((await quote(20, 10.1)).billableKm, 0.1);
+  assert.equal((await quote(20, 8, "to_airport", 12)).billableKm, 10);
+  assert.equal((await quote(20, 20, "roundtrip")).billableKm, 20);
+  assert.equal((await quote(100, 0, "roundtrip")).billableKm, 0);
 });

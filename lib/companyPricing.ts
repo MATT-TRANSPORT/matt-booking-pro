@@ -1,9 +1,8 @@
 import { getAirportPricing } from "@/lib/airportPricingServer";
-import { calculateAdditionalStopDetour } from "@/lib/additionalStopServer";
-import { quoteMultiStopRoute } from "@/lib/multiStopRoutes";
+import { quotePublicMultiStopRoute } from "@/lib/publicRouteQuote";
 import { PUBLIC_BOOKING_BASE_ADDRESS } from "@/lib/bookingRouteBase";
 import { normalizeRouteStops } from "@/lib/routeDetourPolicy";
-import { ADDITIONAL_STOP_FEE_B2B_NET, additionalStopDirectionCount } from "@/lib/additionalStopConfig";
+import { ADDITIONAL_STOP_FEE_B2B_NET } from "@/lib/additionalStopConfig";
 
 export const B2B_VAT_RATE = 8;
 
@@ -215,8 +214,7 @@ export async function calculateCompanyQuote(
     termsId: input.termsId
   });
 
-  const contractedOrigin = String(terms.pricing_origin_address || "").trim();
-  const originAddress = contractedOrigin && contractedOrigin !== "UZUPEŁNIJ SIEDZIBĘ KONTRAHENTA" ? contractedOrigin : PUBLIC_BOOKING_BASE_ADDRESS;
+  const originAddress = PUBLIC_BOOKING_BASE_ADDRESS;
 
   const pickupAddress = String(input.pickupAddress || "").trim();
   if (!pickupAddress) throw new Error("Podaj adres pasażera.");
@@ -231,43 +229,21 @@ export async function calculateCompanyQuote(
     : "to_airport";
 
   const multiplier = serviceType === "roundtrip" ? 2 : 1;
-  const distanceKm = await shortestDrivingDistanceKm(
-    originAddress,
-    pickupAddress
-  );
 
-  const freeKm = km(Number(terms.free_km ?? 40));
-  const isMultiStop = input.routeStops !== undefined;
-  const routeStops = isMultiStop ? {
-    outbound: normalizeRouteStops(input.routeStops?.outbound ?? []),
-    inbound: normalizeRouteStops(input.routeStops?.inbound ?? [])
-  } : null;
-  // Multi-stop bookings compare the complete route with the direct route.
-  // Contractual free kilometres still apply, but never bill a pickup simply
-  // because it is distant from the base while lying on the airport route.
-  const multiStopRoute = routeStops ? await quoteMultiStopRoute({
-    baseAddress: originAddress,
-    pickupAddress,
-    airportAddress: airport.routeAddress,
+  const freeKm = 30;
+  // Legacy single stops are converted before pricing, so every path uses the same engine.
+  const routeStops = {
+    outbound: normalizeRouteStops(input.routeStops?.outbound ?? (input.additionalStopAddress && (serviceType !== "roundtrip" || input.additionalStopPrimary) ? [input.additionalStopAddress] : [])),
+    inbound: normalizeRouteStops(input.routeStops?.inbound ?? (input.additionalStopAddress && serviceType === "roundtrip" && input.additionalStopReturn ? [input.additionalStopAddress] : []))
+  };
+  const multiStopRoute = await quotePublicMultiStopRoute({
+    baseAddress: originAddress, pickupAddress, airportAddress: airport.routeAddress,
     serviceType: serviceType as "to_airport" | "from_airport" | "roundtrip",
-    outboundStops: routeStops.outbound,
-    inboundStops: routeStops.inbound
-  }) : null;
-  // The pickup allowance belongs to each leg. A pickup on the airport route
-  // is free even outside the allowance. Additional stops retain their own detour.
-  const pickupExcessKm = Math.max(0, distanceKm - freeKm);
-  let billableKm = km(pickupExcessKm);
-  if (multiStopRoute) {
-    const pickupOnly = multiStopRoute.chargedStopVisits === 0 ? multiStopRoute : await quoteMultiStopRoute({
-      baseAddress: originAddress, pickupAddress, airportAddress: airport.routeAddress,
-      serviceType: serviceType as "to_airport" | "from_airport" | "roundtrip"
-    });
-    const chargeableLegKm = (actualDetour: number, pickupDetour: number) =>
-      Math.min(actualDetour, pickupDetour, pickupExcessKm) + Math.max(0, actualDetour - pickupDetour);
-    billableKm = km(chargeableLegKm(multiStopRoute.outbound.detourKm, pickupOnly.outbound.detourKm)
-      + chargeableLegKm(multiStopRoute.inbound.detourKm, pickupOnly.inbound.detourKm));
-  }
-  const extraKmRateNet = money(Number(terms.extra_km_rate_net ?? 2.4));
+    outboundStops: routeStops.outbound, inboundStops: routeStops.inbound
+  });
+  const distanceKm = multiStopRoute.distanceKm;
+  const billableKm = multiStopRoute.billableKm;
+  const extraKmRateNet = 2.4;
 
   let customPrice: any = null;
 
@@ -307,34 +283,14 @@ export async function calculateCompanyQuote(
   );
   const basePriceNet = money(baseOneWayNet * multiplier);
   const extraPriceNet = money(
-    billableKm * extraKmRateNet * (multiStopRoute ? 1 : multiplier)
+    billableKm * extraKmRateNet
   );
 
-  const additionalStopAddress = String(input.additionalStopAddress || "").trim();
-  const additionalStopPrimary = Boolean(additionalStopAddress && input.additionalStopPrimary);
-  const additionalStopReturn = Boolean(
-    additionalStopAddress && serviceType === "roundtrip" && input.additionalStopReturn
-  );
-  const additionalStop = multiStopRoute ? {
+  const additionalStop = {
     stopAddress: null, primary: false, returnLeg: false,
     primaryExtraKm: 0, returnExtraKm: 0, totalExtraKm: 0
-  } : await calculateAdditionalStopDetour({
-    serviceType,
-    pickupAddress,
-    airportKey: input.airportKey,
-    stopAddress: additionalStopAddress,
-    primary: additionalStopPrimary,
-    returnLeg: additionalStopReturn,
-    // W B2B objazd liczymy względem normalnej trasy z siedziby kontrahenta
-    // do lotniska. Jeżeli dodatkowy adres leży na tej trasie, dopłata km = 0.
-    routeBaseAddress: originAddress,
-    airportAddress: airport.routeAddress
-  });
-  const additionalStopCount = multiStopRoute ? multiStopRoute.chargedStopVisits : additionalStopDirectionCount({
-    serviceType,
-    primary: additionalStop.primary,
-    returnLeg: additionalStop.returnLeg
-  });
+  };
+  const additionalStopCount = multiStopRoute.chargedStopVisits;
   const additionalStopFeeNet = money(additionalStopCount * ADDITIONAL_STOP_FEE_B2B_NET);
   const additionalStopExtraPriceNet = money(additionalStop.totalExtraKm * extraKmRateNet);
   const net = money(basePriceNet + extraPriceNet + additionalStopFeeNet + additionalStopExtraPriceNet);
@@ -345,7 +301,7 @@ export async function calculateCompanyQuote(
     terms.legacy ? "legacy" : hasCustom ? "custom" : "standard";
 
   const snapshot = {
-    version: multiStopRoute ? 2 : 1,
+    version: 3, free_detour_km: 10,
     ...(multiStopRoute ? { route_stops: routeStops, route_baseline_km: multiStopRoute.outbound.baselineKm + multiStopRoute.inbound.baselineKm, route_actual_km: multiStopRoute.outbound.actualKm + multiStopRoute.inbound.actualKm, route_detour_km: multiStopRoute.totalDetourKm } : {}),
     terms_id: terms.id,
     effective_from: terms.effective_from,
