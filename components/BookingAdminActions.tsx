@@ -35,7 +35,7 @@ export default function BookingAdminActions({
   const [returnVehicleId, setReturnVehicleId] = useState(initialReturnVehicleId ?? "");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
-  const [priceReview, setPriceReview] = useState<{oldPrice: number; newPrice: number; reviewToken: string} | null>(null);
+  const [priceReview, setPriceReview] = useState<{oldPrice: number; newPrice: number; reviewToken: string; snapshot: {route_detour_km?: number; billable_km?: number}} | null>(null);
   async function reprice(approve = false) {
     setSaving(true); setMessage("");
     try {
@@ -130,6 +130,7 @@ export default function BookingAdminActions({
         <button className="btn secondary" disabled={saving} onClick={() => reprice()}>PRZELICZ CENĘ</button>
         {priceReview && <div role="status">
           <p>Dotychczas: {priceReview.oldPrice.toFixed(2)} zł · Nowa cena: {priceReview.newPrice.toFixed(2)} zł</p>
+          <p>Rzeczywisty objazd: {Number(priceReview.snapshot.route_detour_km ?? 0).toFixed(1)} km · Płatne kilometry: {Number(priceReview.snapshot.billable_km ?? 0).toFixed(1)} km</p>
           <p>30 km dojazdu od centrum Rybnika. Maksymalnie 10 km rzeczywistego objazdu bez dopłaty; kilometry naliczane raz.</p>
           <button className="btn" disabled={saving} onClick={() => reprice(true)}>ZATWIERDŹ NOWĄ CENĘ</button>
         </div>}
