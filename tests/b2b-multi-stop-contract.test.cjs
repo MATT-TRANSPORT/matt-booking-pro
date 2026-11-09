@@ -12,9 +12,11 @@ test("B2B quote and booking APIs both forward route stops to server pricing",()=
 });
 test("B2B price is recomputed by the server and ordered stops survive in snapshot",()=>{
  const code=source("lib/companyPricing.ts");
- assert.match(code,/quotePublicMultiStopRoute/);
+ assert.match(code,/quoteMultiStopRoute/);
  assert.match(code,/route_stops: routeStops/);
  assert.match(code,/route_detour_km: multiStopRoute\.totalDetourKm/);
+ assert.match(code,/terms\.pricing_origin_address/);
+ assert.match(code,/multiStopRoute\.totalDetourKm - freeKm/);
  assert.match(code,/pricing_snapshot: quote\.snapshot/);
 });
 test("B2B UI sends the same ordered route stops for quote and submission",()=>{
