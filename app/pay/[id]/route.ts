@@ -128,6 +128,14 @@ export async function GET(
   const { data: saved, error: saveError } = await updateQuery.select("id").maybeSingle();
 
   if (saveError || !saved) {
+    const { data: latest } = await admin
+      .from("admin_stripe_payments")
+      .select("checkout_session_id,status")
+      .eq("id", payment.id)
+      .maybeSingle();
+    if (latest?.status === "pending" && latest.checkout_session_id === checkout.id && checkout.url) {
+      return NextResponse.redirect(checkout.url, 303);
+    }
     try { await stripe.checkout.sessions.expire(checkout.id); } catch {}
     return statusPage("Odśwież link", "Płatność została równolegle zaktualizowana. Otwórz ten sam link ponownie, aby przejść do aktualnej sesji.", 409);
   }
