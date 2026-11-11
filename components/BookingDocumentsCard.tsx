@@ -66,7 +66,7 @@ export default function BookingDocumentsCard({
 
     if (d.emailSent) {
       setMessage(t("✓ Dokument dodany. E-mail z linkiem został wysłany pasażerowi."));
-    } else if (d.emailSkipped) {
+    } else if (d.emailSkipped || d.emailError) {
       setMessage(t("Dokument dodany, ale e-mail nie został wysłany: ") + (d.emailError || ""));
     } else {
       setMessage(t("✓ Dokument został dodany."));
@@ -137,7 +137,7 @@ export default function BookingDocumentsCard({
           <div className="grid">
             <label>
                {t("Typ")} <select value={documentType} onChange={(e) => setDocumentType(e.target.value)}>
-                <option value="invoice">{t("Faktura")}</option>
+                <option value="invoice">{t("Faktura / rachunek")}</option>
                                 <option value="correction">{t("Korekta")}</option>
                 <option value="payment_confirmation">{t("Potwierdzenie płatności")}</option>
                 <option value="other">{t("Inny dokument")}</option>
