@@ -6,8 +6,8 @@ import { b2bDocumentEmail } from "@/lib/b2bDocumentEmail";
 import { bookingOrigin } from "@/lib/bookingOrigin";
 
 const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png"];
-const ALLOWED_DOCUMENT_TYPES = ["invoice", "receipt", "correction", "payment_confirmation", "other"];
-const CUSTOMER_EMAIL_TYPES = new Set(["invoice", "receipt", "correction"]);
+const ALLOWED_DOCUMENT_TYPES = ["invoice", "correction", "payment_confirmation", "other"];
+const CUSTOMER_EMAIL_TYPES = new Set(["invoice", "correction"]);
 
 export const runtime = "nodejs";
 
@@ -139,7 +139,7 @@ export async function POST(
       const mail = b2bDocumentEmail({
         customerName: booking.customer_name || "Kliencie",
         bookingNumber: booking.booking_number,
-        documentType: documentType as "invoice" | "receipt" | "correction",
+        documentType: documentType as "invoice" | "correction",
         documentNumber,
         fileName: file.name,
         downloadUrl,
