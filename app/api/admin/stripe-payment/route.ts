@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { apiAdmin } from "@/lib/apiAdmin";
 import { getStripe } from "@/lib/stripeServer";
+import { appBaseUrl } from "@/lib/payment";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -165,11 +166,13 @@ export async function POST(req: NextRequest) {
 
     const checkout = await stripe.checkout.sessions.create(checkoutPayload);
 
+    const stableUrl = `${appBaseUrl()}/pay/${payment.id}`;
+
     await session.admin
       .from("admin_stripe_payments")
       .update({
         checkout_session_id: checkout.id,
-        checkout_url: checkout.url || null,
+        checkout_url: stableUrl,
         updated_at: new Date().toISOString()
       })
       .eq("id", payment.id);
@@ -178,7 +181,7 @@ export async function POST(req: NextRequest) {
       ok: true,
       paymentId: payment.id,
       sessionId: checkout.id,
-      url: checkout.url
+      url: stableUrl
     });
   } catch (error) {
     const message =
