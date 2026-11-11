@@ -30,6 +30,29 @@ export async function GET(
     return statusPage("Link nieaktywny", "Nie znaleziono płatności. Skontaktuj się z MATT TRANSPORT.", 404);
   }
 
+  if (payment.booking_id) {
+    const { data: linkedBooking } = await admin
+      .from("bookings")
+      .select("status,payment_status")
+      .eq("id", payment.booking_id)
+      .maybeSingle();
+    if (!linkedBooking || linkedBooking.status === "cancelled" ||
+        ["paid", "refunded", "review"].includes(String(linkedBooking.payment_status || ""))) {
+      return statusPage("Płatność niedostępna", "Powiązana rezerwacja jest już opłacona, anulowana albo wymaga weryfikacji. Nie rozpoczynaj kolejnej płatności — skontaktuj się z MATT TRANSPORT.", 409);
+    }
+  }
+
+  if (payment.wedding_booking_id) {
+    const { data: linkedWedding } = await admin
+      .from("wedding_bookings")
+      .select("status")
+      .eq("id", payment.wedding_booking_id)
+      .maybeSingle();
+    if (!linkedWedding || linkedWedding.status === "cancelled") {
+      return statusPage("Płatność niedostępna", "Powiązane zlecenie jest anulowane albo niedostępne. Skontaktuj się z MATT TRANSPORT.", 409);
+    }
+  }
+
   if (payment.status === "succeeded" || payment.status === "paid") {
     return statusPage("Płatność opłacona", "Dziękujemy. Płatność została już zaksięgowana. Nie musisz wykonywać kolejnej płatności.");
   }
