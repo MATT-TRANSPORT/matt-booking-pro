@@ -1,3 +1,4 @@
+import { visiblePaymentUrl } from "@/lib/payment";
 import {bookingRouteText} from "@/lib/bookingRoute";
 import { driverWhatsAppButton } from "@/lib/driverWhatsAppEmail";
 import { bookingOrigin, panelOrigin } from "@/lib/bookingOrigin";
