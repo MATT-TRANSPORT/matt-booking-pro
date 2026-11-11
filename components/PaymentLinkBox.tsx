@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import {
   onlinePaymentEligible,
   paymentBookingStatusAllowed,
-  paymentStatusLabel
+  paymentStatusLabel,
+  visiblePaymentUrl
 } from "@/lib/payment";
 
 export default function PaymentLinkBox({
@@ -31,10 +32,7 @@ export default function PaymentLinkBox({
     return null;
   }
 
-  const stableLink = booking.customer_access_token
-    ? `/rezerwacja/${booking.customer_access_token}?pay=1`
-    : "";
-  const effectiveLink = isCompanyOnline ? "" : (link || stableLink);
+  const effectiveLink = visiblePaymentUrl({ ...booking, payment_link: link }) || "";
   const paymentAvailable =
     paymentBookingStatusAllowed(booking.status) &&
     paymentStatus !== "paid";
