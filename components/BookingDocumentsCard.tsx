@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 
 const TYPE_LABELS: Record<string, string> = {
   invoice: "Faktura",
+  receipt: "Rachunek",
   correction: "Korekta",
   payment_confirmation: "Potwierdzenie płatności",
   other: "Inny dokument"
@@ -64,7 +65,13 @@ export default function BookingDocumentsCard({
       return;
     }
 
-    setMessage(t("✓ Dokument został dodany."));
+    if (d.emailSent) {
+      setMessage(t("✓ Dokument dodany. E-mail z linkiem został wysłany pasażerowi."));
+    } else if (d.emailSkipped) {
+      setMessage(t("Dokument dodany, ale e-mail nie został wysłany: ") + (d.emailError || ""));
+    } else {
+      setMessage(t("✓ Dokument został dodany."));
+    }
     setFile(null);
     setDocumentNumber("");
     setBusy(false);
@@ -132,6 +139,7 @@ export default function BookingDocumentsCard({
             <label>
                {t("Typ")} <select value={documentType} onChange={(e) => setDocumentType(e.target.value)}>
                 <option value="invoice">{t("Faktura")}</option>
+                <option value="receipt">{t("Rachunek")}</option>
                 <option value="correction">{t("Korekta")}</option>
                 <option value="payment_confirmation">{t("Potwierdzenie płatności")}</option>
                 <option value="other">{t("Inny dokument")}</option>
