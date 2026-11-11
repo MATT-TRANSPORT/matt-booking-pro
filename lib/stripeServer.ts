@@ -64,6 +64,13 @@ export async function expireCheckoutSessionForChange(sessionId?: string | null) 
   if (session.status !== "open" || session.payment_status !== "unpaid") {
     throw new Error("Payment requires review before changing its method");
   }
-  const expired = await stripe.checkout.sessions.expire(sessionId);
-  if (expired.status !== "expired") throw new Error("Checkout expiration failed");
+  try {
+    const expired = await stripe.checkout.sessions.expire(sessionId);
+    if (expired.status !== "expired") throw new Error("Checkout expiration failed");
+  } catch (error) {
+    // Concurrent renewal may have expired the same session milliseconds earlier.
+    const latest = await stripe.checkout.sessions.retrieve(sessionId);
+    if (latest.status === "expired" && latest.payment_status === "unpaid") return;
+    throw error;
+  }
 }
