@@ -11,6 +11,7 @@ import {
   sortCompanyBookings
 } from "@/lib/companyPortal";
 import { statusPl } from "@/lib/status";
+import { isCompletedOnlineUnpaid } from "@/lib/payment";
 
 export default async function Page({searchParams}:{searchParams:Promise<CompanySearchParams>}) {
   const {locale,t,href}=await companyLanguage(searchParams);
@@ -22,6 +23,7 @@ export default async function Page({searchParams}:{searchParams:Promise<CompanyS
   const rows = sortCompanyBookings(data ?? [], nowKey);
   const activeRows = rows.filter((booking: any) => !companyBookingScheduleInfo(booking, nowKey).archived);
   const archiveRows = rows.filter((booking: any) => companyBookingScheduleInfo(booking, nowKey).archived);
+  const unpaidOnlineRows = rows.filter(isCompletedOnlineUnpaid);
 
   const companyDriver = (b: any) => {
     const primary = Array.isArray(b.drivers) ? b.drivers[0] : b.drivers;
@@ -45,7 +47,7 @@ export default async function Page({searchParams}:{searchParams:Promise<CompanyS
       <td className="company-route-cell">{companyRouteLabel(b)}</td>
       <td>{money.net.toFixed(2)} zł</td>
       <td><CompanyPaymentCell booking={b} canPay={canPayOnline} /></td>
-      <td><span className={`status ${String(b.status).toLowerCase()}`}>{t(statusPl(b.status))}</span></td>
+      <td><span className={`status ${isCompletedOnlineUnpaid(b) ? "completed_online_unpaid" : String(b.status).toLowerCase()}`}>{t(statusPl(isCompletedOnlineUnpaid(b) ? "completed_online_unpaid" : b.status))}</span></td>
     </tr>;
   };
 
@@ -67,7 +69,7 @@ export default async function Page({searchParams}:{searchParams:Promise<CompanyS
       <div className="company-dashboard-footer">
         {driver.name ? <span className="driver-color-badge" style={{ borderColor: driver.color }}><i style={{ background: driver.color }} />{driver.name}</span> : <span className="dashboard-driver-empty">{t("— bez kierowcy")}</span>}
         <DashboardPaymentBadge customerLocale={locale} booking={b} />
-        <span className={`status ${String(b.status).toLowerCase()}`}>{t(statusPl(b.status))}</span>
+        <span className={`status ${isCompletedOnlineUnpaid(b) ? "completed_online_unpaid" : String(b.status).toLowerCase()}`}>{t(statusPl(isCompletedOnlineUnpaid(b) ? "completed_online_unpaid" : b.status))}</span>
       </div>
       <a className="company-card-open" href={href(`/firma/rezerwacje/${b.id}`)}>{t("OTWÓRZ REZERWACJĘ →")}</a>
     </article>;
@@ -76,7 +78,7 @@ export default async function Page({searchParams}:{searchParams:Promise<CompanyS
   return <main className="container">
     <span className="badge">MATT BOOKING PRO · B2B PRO</span><h1>{company.name}</h1><CompanyNav customerLocale={locale} />
     <div className="card company-dashboard-transport-card">
-      <div className="company-section-head"><div><span className="badge">{t("ZAMÓWIONE TRANSPORTY")}</span><h2>{t("Nadchodzące i aktywne")}</h2><p className="muted">{t("Najbliższy termin jest zawsze najwyżej. Zakończone, anulowane i minione przejazdy pozostają poniżej w historii.")}</p></div><a className="btn" href={href("/firma/nowa-rezerwacja")}>{t("+ ZAMÓW TRANSPORT")}</a></div>
+      <div className="company-section-head"><div><span className="badge">{t("ZAMÓWIONE TRANSPORTY")}</span><h2>{t("Nadchodzące i aktywne")}</h2><p className="muted">{t("Najbliższy termin jest zawsze najwyżej. Zakończone, anulowane i minione przejazdy pozostają poniżej w historii.")}</p>{unpaidOnlineRows.length > 0 && <p className="company-unpaid-online-alert" role="alert">⚠ {t("Zakończony – Nieopłacony")}: <strong>{unpaidOnlineRows.length}</strong></p>}</div><a className="btn" href={href("/firma/nowa-rezerwacja")}>{t("+ ZAMÓW TRANSPORT")}</a></div>
       {!rows.length ? <div className="company-dashboard-empty"><strong>{t("Brak zamówionych transportów.")}</strong><span>{t("Nową rezerwację możesz utworzyć przyciskiem powyżej.")}</span></div> : <>
         <div className="company-bookings-table"><table className="table company-table"><thead><tr><th>{t("Numer")}</th><th>{t("Termin")}</th><th>{t("Pasażer")}</th><th>{t("Kierowca")}</th><th>{t("Trasa")}</th><th>{t("Netto")}</th><th>{t("Płatność")}</th><th>{t("Status")}</th></tr></thead><tbody>
           {activeRows.map((b:any)=>bookingRow(b))}
