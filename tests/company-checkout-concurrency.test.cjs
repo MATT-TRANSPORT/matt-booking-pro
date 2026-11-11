@@ -6,7 +6,7 @@ const admin={from:query};const old=Module._load;
 Module._load=function(id,parent,main){
  if(id==='@/lib/supabase/admin')return {createAdminClient:()=>admin};
  if(id==='@/lib/supabase/server')return {createClient:async()=>({...admin,auth:{getUser:async()=>({data:{user:{id:'user'}}})}})};
- if(id==='@/lib/stripeServer')return {expireCheckoutSession:async()=>{},getStripe:()=>({checkout:{sessions:{create:async()=>({id:'cs_fixture',url:'https://example.invalid/checkout'}),expire:async id=>{expired.push(id)}}}})};
+ if(id==='@/lib/stripeServer')return {expireCheckoutSession:async()=>{},expireCheckoutSessionForChange:async()=>{},getStripe:()=>({checkout:{sessions:{create:async()=>({id:'cs_fixture',url:'https://example.invalid/checkout'}),expire:async id=>{expired.push(id)}}}})};
  if(id==='@/lib/payment')return {paymentCanStart:b=>b.status==='confirmed',appBaseUrl:()=> 'https://example.invalid'};
  if(id.startsWith('@/'))id=path.join(__dirname,'..',id.slice(2));return old.call(this,id,parent,main);
 };
