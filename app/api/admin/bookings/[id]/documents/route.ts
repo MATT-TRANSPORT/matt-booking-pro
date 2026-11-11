@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendMattEmail } from "@/lib/email";
+import { b2bDocumentEmail } from "@/lib/b2bDocumentEmail";
+import { bookingOrigin } from "@/lib/bookingOrigin";
 
 const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png"];
 const ALLOWED_DOCUMENT_TYPES = ["invoice", "correction", "payment_confirmation", "other"];
+const CUSTOMER_EMAIL_TYPES = new Set(["invoice", "correction"]);
 
 export const runtime = "nodejs";
 
@@ -32,7 +36,7 @@ export async function POST(
 
   const { data: booking } = await admin
     .from("bookings")
-    .select("id,company_id,booking_number")
+    .select("id,company_id,booking_number,customer_access_token,email,customer_name,customer_locale")
     .eq("id", bookingId)
     .single();
 
@@ -123,5 +127,45 @@ export async function POST(
     created_by: user.id
   });
 
-  return NextResponse.json({ ok: true, document });
+  let emailSent = false;
+  let emailSkipped = false;
+  let emailError: string | undefined;
+
+  // Send only after the file and its document row have both been saved successfully.
+  // The passenger receives the message; no copy is sent to the B2B company.
+  if (CUSTOMER_EMAIL_TYPES.has(documentType)) {
+    if (booking.email && booking.customer_access_token) {
+      const downloadUrl = `${bookingOrigin()}/api/booking-documents/${documentId}/download?token=${encodeURIComponent(booking.customer_access_token)}`;
+      const mail = b2bDocumentEmail({
+        customerName: booking.customer_name || "Kliencie",
+        bookingNumber: booking.booking_number,
+        documentType: documentType as "invoice" | "correction",
+        documentNumber,
+        fileName: file.name,
+        downloadUrl,
+        locale: booking.customer_locale
+      });
+      const result = await sendMattEmail({
+        to: booking.email,
+        ...mail,
+        idempotencyKey: `b2b-document-${documentId}`
+      });
+      emailSent = result.sent;
+      emailSkipped = result.skipped;
+      emailError = result.error;
+    } else {
+      emailSkipped = true;
+      emailError = !booking.email
+        ? "Brak adresu e-mail pasażera w rezerwacji."
+        : "Brak indywidualnego tokenu dostępu do rezerwacji.";
+    }
+  }
+
+  return NextResponse.json({
+    ok: true,
+    document,
+    emailSent,
+    emailSkipped,
+    ...(emailError ? { emailError } : {})
+  });
 }

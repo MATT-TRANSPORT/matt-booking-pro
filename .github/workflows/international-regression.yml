@@ -16,6 +16,8 @@ permissions:
 jobs:
   regression:
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
     timeout-minutes: 15
     env:
       CI: "true"
@@ -85,8 +87,8 @@ jobs:
         run: npx tsc --noEmit
       - name: Payment method change safety
         run: node --test tests/stripe-method-change.test.cjs tests/company-checkout-concurrency.test.cjs
-      - name: Install Chromium for B2B payment UI regression
-        run: npx playwright install --with-deps chromium
+      - name: Verify preinstalled Playwright Chromium
+        run: npx playwright --version && npx playwright install --list
       - name: Build with local test-only backend
         run: npm run build
         env:
