@@ -8,8 +8,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 const TYPE_LABELS: Record<string, string> = {
-  invoice: "Faktura",
-  receipt: "Rachunek",
+  invoice: "Faktura / rachunek",
   correction: "Korekta",
   payment_confirmation: "Potwierdzenie płatności",
   other: "Inny dokument"
@@ -139,8 +138,7 @@ export default function BookingDocumentsCard({
             <label>
                {t("Typ")} <select value={documentType} onChange={(e) => setDocumentType(e.target.value)}>
                 <option value="invoice">{t("Faktura")}</option>
-                <option value="receipt">{t("Rachunek")}</option>
-                <option value="correction">{t("Korekta")}</option>
+                                <option value="correction">{t("Korekta")}</option>
                 <option value="payment_confirmation">{t("Potwierdzenie płatności")}</option>
                 <option value="other">{t("Inny dokument")}</option>
               </select>
