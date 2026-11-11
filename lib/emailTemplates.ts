@@ -1,3 +1,4 @@
+import { visiblePaymentUrl } from "@/lib/payment";
 import {bookingRouteText} from "@/lib/bookingRoute";
 import { driverWhatsAppButton } from "@/lib/driverWhatsAppEmail";
 import { bookingOrigin, panelOrigin } from "@/lib/bookingOrigin";
@@ -138,10 +139,7 @@ function paymentButton(b: BookingMail) {
 
   const url = b.company_id
     ? (b.id ? `${panelBaseUrl()}/firma/rezerwacje/${b.id}` : null)
-    : (b.payment_link ||
-      (b.customer_access_token
-        ? `${customerBaseUrl()}/rezerwacja/${b.customer_access_token}?pay=1`
-        : null));
+    : visiblePaymentUrl(b);
 
   if (!url) return "";
 

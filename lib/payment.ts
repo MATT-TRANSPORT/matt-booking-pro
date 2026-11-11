@@ -66,10 +66,18 @@ export function appBaseUrl() {
 
 export function stablePaymentUrl(booking: any) {
   if (!booking?.customer_access_token) return null;
-
-  return withCustomerLocale(`${appBaseUrl()}/rezerwacja/${encodeURIComponent(booking.customer_access_token)}?pay=1`, booking.customer_locale);
+  const company = Boolean(booking.company_id && booking.payment_method === "employee_payment");
+  const route = company ? "platnosc" : "rezerwacja";
+  const suffix = company ? "" : "?pay=1";
+  return withCustomerLocale(
+    `${appBaseUrl()}/${route}/${encodeURIComponent(booking.customer_access_token)}${suffix}`,
+    booking.customer_locale
+  );
 }
 
 export function visiblePaymentUrl(booking: any) {
-  return booking?.payment_link || stablePaymentUrl(booking);
+  const link = String(booking?.payment_link || "").trim();
+  // Direct Stripe Checkout links expire; only MATT links are durable.
+  if (link && !/^https?:\/\/checkout\.stripe\.com\//i.test(link)) return link;
+  return stablePaymentUrl(booking);
 }

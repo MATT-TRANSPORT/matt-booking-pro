@@ -11,7 +11,7 @@ import {
   onlinePaymentEligible,
   paymentCanStart
 } from "@/lib/payment";
-import { getStripe } from "@/lib/stripeServer";
+import { expireCheckoutSession, expireCheckoutSessionForChange, getStripe } from "@/lib/stripeServer";
 
 export const runtime = "nodejs";
 
@@ -111,6 +111,7 @@ export async function POST(
   }
 
   try {
+    await expireCheckoutSessionForChange(booking.payment_checkout_session_id);
     const stripe = getStripe();
     const base = appBaseUrl();
 
@@ -155,7 +156,7 @@ export async function POST(
         `${base}/rezerwacja/${token}?lang=${resolveCustomerLocale(booking.customer_locale)}&payment=cancelled`
     });
 
-    await admin
+    const { data: savedPayment, error: savePaymentError } = await admin
       .from("bookings")
       .update({
         payment_provider: "stripe",
@@ -167,7 +168,15 @@ export async function POST(
         payment_review_reason: null,
         updated_at: new Date().toISOString()
       })
-      .eq("id", booking.id);
+      .eq("id", booking.id)
+      .eq("updated_at", booking.updated_at)
+      .select("id")
+      .maybeSingle();
+
+    if (savePaymentError || !savedPayment) {
+      await expireCheckoutSession(session.id);
+      return json({ error: "Rezerwacja została zmieniona. Odśwież stronę i spróbuj ponownie." }, { status: 409 });
+    }
 
     await admin.from("booking_history").insert({
       booking_id: booking.id,
@@ -197,7 +206,7 @@ export async function POST(
 
     return json(
       { error: message },
-      { status: 500 }
+      { status: message.includes("Payment requires review") ? 409 : 500 }
     );
   }
 }
