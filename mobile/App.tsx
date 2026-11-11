@@ -22,7 +22,7 @@ import {
 } from "react-native-webview";
 
 type PaymentRequest = {
-  accessToken: string;
+  handoffToken: string;
   bookingId: string;
   bookingNumber: string;
   customerName: string;
@@ -80,7 +80,7 @@ function TerminalPaymentModal({
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${request.accessToken}`
+          Authorization: `Bearer ${request.handoffToken}`
         }
       }
     );
@@ -194,7 +194,7 @@ function TerminalPaymentBody({
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${request.accessToken}`
+            Authorization: `Bearer ${request.handoffToken}`
           },
           body: JSON.stringify({
             bookingId: request.bookingId,
@@ -369,10 +369,10 @@ export default function App() {
       const message = JSON.parse(event.nativeEvent.data);
 
       if (message?.type !== "MATT_TERMINAL_PAYMENT") return;
-      if (!message.accessToken || !message.bookingId) return;
+      if (!message.handoffToken || !message.bookingId) return;
 
       setPaymentRequest({
-        accessToken: String(message.accessToken),
+        handoffToken: String(message.handoffToken),
         bookingId: String(message.bookingId),
         bookingNumber: String(message.bookingNumber || ""),
         customerName: String(message.customerName || ""),
