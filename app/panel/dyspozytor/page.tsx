@@ -151,7 +151,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ v
           <a href="/panel/dyspozytor?scope=tomorrow#kursy">JUTRO</a>
           <a href="/panel/dyspozytor?scope=7d#kursy">7 DNI</a>
           <a href="/panel/dyspozytor?scope=overdue#kursy">⚠ TERMIN MINĄŁ</a>
-          <a className={selectedView === "unpaid_online" ? "active danger" : unpaidOnlineCount ? "danger" : ""} aria-current={selectedView === "unpaid_online" ? "page" : undefined}\n            href="/panel/dyspozytor?view=unpaid_online#kursy">⚠ ZAKOŃCZONE – NIEOPŁACONE ONLINE ({unpaidOnlineCount})</a>\n          <a className={selectedView === "completed" ? "active" : ""} aria-current={selectedView === "completed" ? "page" : undefined}
+          <a className={selectedView === "unpaid_online" ? "active danger" : unpaidOnlineCount ? "danger" : ""} aria-current={selectedView === "unpaid_online" ? "page" : undefined}
+            href="/panel/dyspozytor?view=unpaid_online#kursy">⚠ ZAKOŃCZONE – NIEOPŁACONE ONLINE ({unpaidOnlineCount})</a>
+          <a className={selectedView === "completed" ? "active" : ""} aria-current={selectedView === "completed" ? "page" : undefined}
             href="/panel/dyspozytor?view=completed#kursy">✓ ZAKOŃCZONE</a>
           <a className={selectedView === "cancelled" ? "active" : ""} aria-current={selectedView === "cancelled" ? "page" : undefined}
             href="/panel/dyspozytor?view=cancelled#kursy">✕ ANULOWANE</a>
