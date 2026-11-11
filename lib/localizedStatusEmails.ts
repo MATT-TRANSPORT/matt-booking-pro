@@ -1,3 +1,4 @@
+import { visiblePaymentUrl } from "@/lib/payment";
 import {bookingRouteText} from "@/lib/bookingRoute";
 import { driverWhatsAppButton } from "@/lib/driverWhatsAppEmail";
 import { bookingOrigin } from "@/lib/bookingOrigin";
@@ -34,7 +35,7 @@ export function localizedStatusEmail(kind:Kind,b:Booking,options?:{reviewUrl?:st
      +'</div>'
    : "";
  const button=(url:string,label:string)=>'<p style="margin-top:22px"><a href="'+esc(url)+'" style="background:#d5ae5d;color:#111;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:bold">'+esc(label)+'</a></p>';
- const payment=kind==="confirmed"&&b.payment_link&&b.payment_status!=="paid"?button(b.payment_link,l.payment):"";
+ const paymentUrl=visiblePaymentUrl(b);\n const payment=kind==="confirmed"&&paymentUrl&&b.payment_status!=="paid"&&b.payment_status!=="refunded"&&b.payment_status!=="review"?button(paymentUrl,l.payment):"";
  const review=kind==="review"&&options?.reviewUrl?button(withCustomerLocale(options.reviewUrl,locale),l.review):"";
  const warning=kind==="cancelled"&&(b.payment_status==="paid"||b.payment_status==="review")?'<p>'+esc(l.warning)+'</p>':"";
  const assignmentHero=kind==="assigned"
