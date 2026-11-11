@@ -1339,6 +1339,11 @@ export const companyCopy: Record<string,[string,string,string]> = {
     "Abrechnung per Firmenüberweisung",
     "Vyúčtování firemním převodem"
   ],
+  "Zakończony – Nieopłacony": [
+    "Completed – Unpaid",
+    "Abgeschlossen – Unbezahlt",
+    "Dokončeno – Nezaplaceno"
+  ],
   "Płatność online — oczekuje": [
     "Online payment — pending",
     "Online-Zahlung — ausstehend",
