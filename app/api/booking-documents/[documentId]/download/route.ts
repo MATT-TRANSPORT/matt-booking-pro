@@ -4,16 +4,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
-function safeFilename(value: string) {
-  return value.replace(/[\r\n"]/g, "_").replace(/[^\x20-\x7E]/g, "_");
-}
-
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ documentId: string }> }
 ) {
   const { documentId } = await params;
-  const token = req.nextUrl.searchParams.get("token");
+  const token = new URL(req.url).searchParams.get("token");
   const admin = createAdminClient();
   const { data: document } = await admin
     .from("company_booking_documents")
@@ -26,7 +22,6 @@ export async function GET(
   }
 
   if (token) {
-    // Public passenger access is limited to the booking's existing, unguessable customer token.
     const { data: booking } = await admin
       .from("bookings")
       .select("id,customer_access_token,company_id")
@@ -47,8 +42,7 @@ export async function GET(
 
     const [{ data: profile }, { data: membership }] = await Promise.all([
       admin.from("profiles").select("role").eq("id", user.id).maybeSingle(),
-      admin
-        .from("company_users")
+      admin.from("company_users")
         .select("company_id,active")
         .eq("user_id", user.id)
         .eq("company_id", document.company_id)
@@ -56,35 +50,25 @@ export async function GET(
         .maybeSingle()
     ]);
 
-    const staffAccess = Boolean(
-      profile && ["admin", "dispatcher", "accounting"].includes(profile.role)
-    );
-    const companyAccess = Boolean(membership);
-
-    if (!staffAccess && !companyAccess) {
+    const staffAccess = Boolean(profile && ["admin", "dispatcher", "accounting"].includes(profile.role));
+    if (!staffAccess && !membership) {
       return NextResponse.json({ error: "Brak dostępu do dokumentu." }, { status: 403 });
     }
   }
 
-  const { data: file, error } = await admin.storage
+  // The emailed URL is stable. Mint a fresh short-lived Storage URL only after
+  // authorization, so the passenger can reuse the same link later.
+  const { data: signed, error } = await admin.storage
     .from("company-booking-documents")
-    .download(document.storage_path);
+    .createSignedUrl(document.storage_path, 60, { download: document.original_name || true });
 
-  if (error || !file) {
-    return NextResponse.json({ error: error?.message || "Błąd pliku." }, { status: 500 });
+  if (error || !signed?.signedUrl) {
+    return NextResponse.json({ error: error?.message || "Błąd generowania linku." }, { status: 500 });
   }
 
-  const filename = String(document.original_name || "dokument");
-  const disposition = `attachment; filename="${safeFilename(filename)}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
-
-  return new NextResponse(file, {
-    headers: {
-      "Content-Type": document.mime_type || "application/octet-stream",
-      "Content-Length": String(file.size),
-      "Content-Disposition": disposition,
-      "Cache-Control": "private, no-store",
-      "X-Content-Type-Options": "nosniff",
-      "Referrer-Policy": "no-referrer"
-    }
-  });
+  const response = NextResponse.redirect(signed.signedUrl, 307);
+  response.headers.set("Cache-Control", "private, no-store");
+  response.headers.set("Referrer-Policy", "no-referrer");
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  return response;
 }
