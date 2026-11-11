@@ -7,6 +7,7 @@ export type MailPayload = {
   subject: string;
   html?: string;
   text?: string;
+  idempotencyKey?: string;
 };
 
 function htmlToText(html: string) {
@@ -140,6 +141,6 @@ export async function sendPreparedMattEmail(body: Record<string, unknown>, idemp
 
 export async function sendMattEmail(payload: MailPayload): Promise<MailResult> {
   if (isTestEnvironment()) return { sent: false, skipped: true, error: "Test environment: email delivery disabled" };
-  try { return await sendPreparedMattEmail(prepareMattEmail(payload)); }
+  try { return await sendPreparedMattEmail(prepareMattEmail(payload), payload.idempotencyKey); }
   catch (error) { return { sent: false, skipped: true, error: error instanceof Error ? error.message : "Błąd przygotowania e-mail." }; }
 }
