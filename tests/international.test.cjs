@@ -13,7 +13,7 @@ const admin = {from(table){ const chain={select(){return chain},eq(){return chai
 Module._load = function(id,parent,isMain){
   if(id==='@/lib/supabase/server') return {createClient:async()=>({auth:{getUser:async()=>({data:{user:{id:'test-user'}}})},from:()=>({select(){return this},eq(){return this},single:async()=>({data:{company_id:'test-company',role:'admin'}})})})};
   if(id==='@/lib/supabase/admin') return {createAdminClient:()=>admin};
-  if(id==='@/lib/stripeServer') return {getStripe:()=>({checkout:{sessions:{create:async input=>{checkoutCalls.push(input);return {id:'cs_test_fixture',url:'https://example.invalid/local-checkout'}}}}}),expireCheckoutSession:async()=>{}};
+  if(id==='@/lib/stripeServer') return {getStripe:()=>({checkout:{sessions:{create:async input=>{checkoutCalls.push(input);return {id:'cs_test_fixture',url:'https://example.invalid/local-checkout'}}}}}),expireCheckoutSession:async()=>{},expireCheckoutSessionForChange:async()=>{}};
   if(id.startsWith('@/')) id=path.join(root,id.slice(2));
   return originalLoad.call(this,id,parent,isMain);
 };
