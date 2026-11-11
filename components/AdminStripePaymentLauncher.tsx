@@ -78,7 +78,7 @@ export default function AdminStripePaymentLauncher({
       }
 
       setCheckoutUrl(data.url || "");
-      setMessage("✓ Płatność Stripe została utworzona.");
+      setMessage("✓ Płatność utworzona. Klient otrzymuje stały link MATT — sesja Stripe odnowi się automatycznie po wygaśnięciu.");
 
       if (data.url && popup) {
         popup.location.href = data.url;
@@ -203,15 +203,20 @@ export default function AdminStripePaymentLauncher({
                   <strong>{(Number(payment.amount_cents || 0) / 100).toFixed(2)} zł</strong>
                   <small>{payment.description || "Płatność MATT TRANSPORT"}</small>
                 </span>
-                <b className={`admin-stripe-status ${payment.status || "pending"}`}>
-                  {payment.status === "succeeded"
-                    ? "OPŁACONO"
-                    : payment.status === "refunded"
-                    ? "ZWROT"
-                    : payment.status === "failed"
-                    ? "BŁĄD"
-                    : "OCZEKUJE"}
-                </b>
+                <span className="admin-stripe-history-actions">
+                  <b className={`admin-stripe-status ${payment.status || "pending"}`}>
+                    {payment.status === "succeeded"
+                      ? "OPŁACONO"
+                      : payment.status === "refunded"
+                      ? "ZWROT"
+                      : payment.status === "failed"
+                      ? "BŁĄD"
+                      : "OCZEKUJE"}
+                  </b>
+                  {payment.status === "pending" && payment.checkout_url && (
+                    <a className="btn secondary" href={payment.checkout_url} target="_blank" rel="noreferrer">OTWÓRZ / KOPIUJ LINK MATT</a>
+                  )}
+                </span>
               </div>
             ))}
           </div>
