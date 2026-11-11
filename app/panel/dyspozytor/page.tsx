@@ -136,6 +136,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ v
       <span className="muted">AirLabs · cache 20 min · maks. 8 zapytań na jedno zbiorcze odświeżenie</span>
     </div>
 
+    {unpaidOnlineCount > 0 && <a className="dispatcher-unpaid-online-alert" href="/panel/dyspozytor?view=unpaid_online#kursy" role="alert">⚠ ZAKOŃCZONE – NIEOPŁACONE ONLINE · {unpaidOnlineCount} · OTWÓRZ LISTĘ →</a>}
+
     {selectedView === "active" ? (
       <DispatcherClient bookings={bookingsWithFlights} drivers={drivers ?? []} vehicles={vehicles ?? []}
         seenNewIds={(reads ?? []).map((row: any) => row.booking_id)}
