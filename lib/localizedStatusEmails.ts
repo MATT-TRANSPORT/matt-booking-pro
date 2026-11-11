@@ -1,4 +1,4 @@
-import { visiblePaymentUrl } from "@/lib/payment";
+import { onlinePaymentEligible, visiblePaymentUrl } from "@/lib/payment";
 import {bookingRouteText} from "@/lib/bookingRoute";
 import { driverWhatsAppButton } from "@/lib/driverWhatsAppEmail";
 import { bookingOrigin } from "@/lib/bookingOrigin";
@@ -7,7 +7,7 @@ import { withCustomerLocale } from "@/lib/bookingLocale";
 import { resolveCustomerLocale } from "@/lib/localizedBookingEmails";
 import type { BookingLocale } from "@/lib/bookingLocale";
 type Kind = "confirmed" | "assigned" | "completed" | "cancelled" | "paymentReceived" | "paymentRefunded" | "review";
-type Booking = { booking_number:string; customer_name:string; customer_locale?:string|null; customer_access_token?:string|null; pickup_address:string; airport_label:string; service_type:string; travel_date:string; travel_time:string; return_date?:string|null; return_time?:string|null; passengers:number; vehicle_type:string; flight_number?:string|null; total_price:number|string; driver_name?:string|null; driver_phone?:string|null; vehicle_name?:string|null; vehicle_registration?:string|null; return_driver_name?:string|null; return_driver_phone?:string|null; return_vehicle_name?:string|null; return_vehicle_registration?:string|null; payment_status?:string|null; payment_link?:string|null };
+type Booking = { company_id?:string|null; payment_method?:string|null; online_payment_requested?:boolean|null; price_gross?:number|string|null; booking_number:string; customer_name:string; customer_locale?:string|null; customer_access_token?:string|null; pickup_address:string; airport_label:string; service_type:string; travel_date:string; travel_time:string; return_date?:string|null; return_time?:string|null; passengers:number; vehicle_type:string; flight_number?:string|null; total_price:number|string; driver_name?:string|null; driver_phone?:string|null; vehicle_name?:string|null; vehicle_registration?:string|null; return_driver_name?:string|null; return_driver_phone?:string|null; return_vehicle_name?:string|null; return_vehicle_registration?:string|null; payment_status?:string|null; payment_link?:string|null };
 const esc=(v:unknown)=>String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
 const translations:Record<Exclude<BookingLocale,"pl">,{titles:Record<Kind,string>;intro:Record<Kind,string>;labels:Record<string,string>}> = {
 en:{titles:{confirmed:"Booking confirmed",assigned:"Your driver has been assigned",completed:"Thank you for travelling with us",cancelled:"Booking cancelled",paymentReceived:"Payment received",paymentRefunded:"Payment refunded",review:"How was your journey?"},intro:{confirmed:"Your booking has been confirmed.",assigned:"Your driver and vehicle details are below.",completed:"Your journey is complete. Thank you for choosing MATT TRANSPORT.",cancelled:"Your booking has been cancelled and will not be carried out.",paymentReceived:"We have received your payment.",paymentRefunded:"A refund has been registered for your booking.",review:"We hope you enjoyed your journey. Please consider leaving us a Google review."},labels:{reference:"Booking reference",route:"Route",departure:"Departure",arrival:"Arrival",return:"Return",passengers:"Passengers",vehicle:"Vehicle",flight:"Flight",price:"Price",driver:"Driver",phone:"Phone",registration:"Registration",unassigned:"Not assigned yet",portal:"VIEW YOUR BOOKING",review:"LEAVE A GOOGLE REVIEW",payment:"PAY ONLINE",paid:"PAID",warning:"If you have already paid, we will review any refund under the cancellation terms. Do not pay again.",private:"This link is private. Do not share it."}},
@@ -35,7 +35,7 @@ export function localizedStatusEmail(kind:Kind,b:Booking,options?:{reviewUrl?:st
      +'</div>'
    : "";
  const button=(url:string,label:string)=>'<p style="margin-top:22px"><a href="'+esc(url)+'" style="background:#d5ae5d;color:#111;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:bold">'+esc(label)+'</a></p>';
- const paymentUrl=visiblePaymentUrl(b);
+ const paymentUrl=onlinePaymentEligible(b)?visiblePaymentUrl(b):null;
  const payment=kind==="confirmed"&&paymentUrl&&b.payment_status!=="paid"&&b.payment_status!=="refunded"&&b.payment_status!=="review"?button(paymentUrl,l.payment):"";
  const review=kind==="review"&&options?.reviewUrl?button(withCustomerLocale(options.reviewUrl,locale),l.review):"";
  const warning=kind==="cancelled"&&(b.payment_status==="paid"||b.payment_status==="review")?'<p>'+esc(l.warning)+'</p>':"";
