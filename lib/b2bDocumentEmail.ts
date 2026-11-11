@@ -15,11 +15,11 @@ const COPY = {
     subject: "Dokument do rezerwacji",
     title: "Dokument jest gotowy",
     hello: "Dzień dobry",
-    body: "W załączeniu przesyłamy informację o dokumencie wystawionym do Twojej rezerwacji. Dokument możesz pobrać bezpiecznie, korzystając z poniższego przycisku.",
+    body: "Dokument został wystawiony do Twojej rezerwacji. Możesz pobrać go bezpiecznie, korzystając z poniższego przycisku.",
     labels: { invoice: "Faktura / rachunek", correction: "Korekta" },
     number: "Numer dokumentu",
     booking: "Numer rezerwacji",
-    button: "POBIERZ DOKUMENT PDF",
+    button: "POBIERZ DOKUMENT",
     note: "Link jest indywidualny dla tej rezerwacji. Możesz użyć go ponownie, gdy będziesz potrzebować dokumentu.",
     support: "W razie pytań skontaktuj się z nami: kontakt@matt-transport.pl"
   },
