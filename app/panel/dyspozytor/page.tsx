@@ -8,8 +8,9 @@ import FlightAlertBadge from "@/components/FlightAlertBadge";
 import { statusPl } from "@/lib/status";
 import { bookingHasReturnLeg, sortBookingsChronologically } from "@/lib/bookingOps";
 import { bookingRouteText } from "@/lib/bookingRoute";
+import { isCompletedOnlineUnpaid } from "@/lib/payment";
 
-type DispatcherView = "active" | "all" | "completed" | "cancelled";
+type DispatcherView = "active" | "all" | "completed" | "cancelled" | "unpaid_online";
 
 type DispatcherScope = "all" | "next3h" | "today" | "tomorrow" | "7d" | "overdue";
 
@@ -17,7 +18,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ v
   const { view = "active", scope = "all" } = await searchParams;
   const allowedScopes: DispatcherScope[] = ["all", "next3h", "today", "tomorrow", "7d", "overdue"];
   const initialScope: DispatcherScope = allowedScopes.includes(scope as DispatcherScope) ? scope as DispatcherScope : "all";
-  const selectedView: DispatcherView = ["all", "completed", "cancelled"].includes(view)
+  const selectedView: DispatcherView = ["all", "completed", "cancelled", "unpaid_online"].includes(view)
     ? (view as DispatcherView)
     : "active";
 
@@ -29,6 +30,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ v
   if (selectedView === "active") bookingsQuery = bookingsQuery.not("status", "in", "(completed,cancelled)");
   if (selectedView === "completed") bookingsQuery = bookingsQuery.eq("status", "completed");
   if (selectedView === "cancelled") bookingsQuery = bookingsQuery.eq("status", "cancelled");
+  if (selectedView === "unpaid_online") bookingsQuery = bookingsQuery.eq("status", "completed").in("payment_status", ["pending", "failed", "review"]).or("payment_method.eq.online,online_payment_requested.eq.true,payment_method.eq.employee_payment");
 
   const [
     { data: bookings, error: bookingsError },
@@ -47,7 +49,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ v
       .limit(20)
   ]);
 
-  const bookingRows = bookings ?? [];
+  const bookingRows = (bookings ?? []).filter((b: any) => selectedView !== "unpaid_online" || isCompletedOnlineUnpaid(b));
   const bookingIds = bookingRows.map((b: any) => b.id);
   let flightRows: any[] = [];
   let alertRows: any[] = [];
@@ -79,6 +81,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ v
     const currentRank = current?.severity === "critical" ? 3 : current?.severity === "warning" ? 2 : current ? 1 : 0;
     if (!current || rank > currentRank) alertByBookingLeg.set(key, alert);
   }
+
+  const { data: unpaidOnlineCandidates } = await s.from("bookings").select("id,company_id,payment_method,online_payment_requested,payment_status,status").eq("status", "completed").in("payment_status", ["pending", "failed", "review"]).or("payment_method.eq.online,online_payment_requested.eq.true,payment_method.eq.employee_payment").limit(2000);
+  const unpaidOnlineCount = (unpaidOnlineCandidates ?? []).filter(isCompletedOnlineUnpaid).length;
 
   const { data: lastRun } = await s.from("flight_monitor_runs").select("*").order("started_at", { ascending: false }).limit(1).maybeSingle();
 
@@ -144,7 +149,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ v
           <a href="/panel/dyspozytor?scope=tomorrow#kursy">JUTRO</a>
           <a href="/panel/dyspozytor?scope=7d#kursy">7 DNI</a>
           <a href="/panel/dyspozytor?scope=overdue#kursy">⚠ TERMIN MINĄŁ</a>
-          <a className={selectedView === "completed" ? "active" : ""} aria-current={selectedView === "completed" ? "page" : undefined}
+          <a className={selectedView === "unpaid_online" ? "active danger" : unpaidOnlineCount ? "danger" : ""} aria-current={selectedView === "unpaid_online" ? "page" : undefined}\n            href="/panel/dyspozytor?view=unpaid_online#kursy">⚠ ZAKOŃCZONE – NIEOPŁACONE ONLINE ({unpaidOnlineCount})</a>\n          <a className={selectedView === "completed" ? "active" : ""} aria-current={selectedView === "completed" ? "page" : undefined}
             href="/panel/dyspozytor?view=completed#kursy">✓ ZAKOŃCZONE</a>
           <a className={selectedView === "cancelled" ? "active" : ""} aria-current={selectedView === "cancelled" ? "page" : undefined}
             href="/panel/dyspozytor?view=cancelled#kursy">✕ ANULOWANE</a>
@@ -179,7 +184,7 @@ function ReadOnlyDispatcherList({ bookings, title }: { bookings: any[]; title: s
                 {b.return_flight_number && <div className="dispatcher-return-flight"><small>POWRÓT</small><FlightStatusBadge flight={b.returnFlight} flightNumber={b.return_flight_number} compact={false} />{b.returnFlightAlert && <FlightAlertBadge alert={b.returnFlightAlert} compact />}</div>}
               </div>
             </div>
-            <div className="dashboard-feed-meta"><span className={`status ${b.status}`}>{statusPl(b.status)}</span><a className="btn secondary" href={`/panel/rezerwacje/${b.id}`}>OTWÓRZ</a></div>
+            <div className="dashboard-feed-meta"><span className={`status ${isCompletedOnlineUnpaid(b) ? "completed_online_unpaid" : b.status}`}>{statusPl(isCompletedOnlineUnpaid(b) ? "completed_online_unpaid" : b.status)}</span><a className="btn secondary" href={`/panel/rezerwacje/${b.id}`}>OTWÓRZ</a></div>
           </article>;
         })}
       </div>}
