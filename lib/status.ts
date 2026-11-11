@@ -6,6 +6,7 @@ export const STATUS_PL: Record<string,string> = {
   arrived: "Kierowca na miejscu",
   picked_up: "Pasażer odebrany",
   completed: "Zakończona",
+  completed_online_unpaid: "Zakończony – Nieopłacony",
   cancelled: "Anulowana"
 };
 

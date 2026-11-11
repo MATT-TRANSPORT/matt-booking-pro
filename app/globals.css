@@ -2961,3 +2961,10 @@ main.container.dispatcher-page{max-width:1760px}
  .driver-install-menu-content{width:calc(100vw - 38px)}
  .driver-trip-top>div:first-child{width:100%}
 }
+
+
+/* Completed journey with an outstanding online payment */
+.status.completed_online_unpaid,.dispatcher-scope a.danger{background:rgba(220,75,65,.16);border:1px solid rgba(235,95,85,.65);color:#ffaaa4;font-weight:900}
+.company-unpaid-online-alert{margin:12px 0 0;padding:12px 14px;border:1px solid rgba(235,95,85,.65);border-radius:10px;background:rgba(220,75,65,.12);color:#ffaaa4;font-weight:800}
+
+.dispatcher-unpaid-online-alert{display:block;margin:14px 0;padding:14px 16px;border:1px solid rgba(235,95,85,.7);border-radius:12px;background:rgba(220,75,65,.15);color:#ffaaa4;font-weight:900;text-align:center}

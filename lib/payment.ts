@@ -29,6 +29,13 @@ export function onlinePaymentEligible(booking: any) {
   return booking.payment_method === "employee_payment";
 }
 
+/** A completed journey that was explicitly configured for online payment but is still unpaid. */
+export function isCompletedOnlineUnpaid(booking: any) {
+  if (!booking || String(booking.status || "").toLowerCase() !== "completed") return false;
+  if (!onlinePaymentEligible(booking)) return false;
+  return ["pending", "failed", "review"].includes(String(booking.payment_status || "pending").toLowerCase());
+}
+
 export const PAYMENT_ALLOWED_BOOKING_STATUSES = [
   "confirmed",
   "assigned",
