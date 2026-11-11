@@ -211,6 +211,8 @@ export default function AdminStripePaymentLauncher({
                       ? "ZWROT"
                       : payment.status === "failed"
                       ? "BŁĄD"
+                      : payment.status === "superseded"
+                      ? "ZASTĄPIONO LINKIEM REZERWACJI"
                       : "OCZEKUJE"}
                   </b>
                   {payment.status === "pending" && payment.checkout_url && (
