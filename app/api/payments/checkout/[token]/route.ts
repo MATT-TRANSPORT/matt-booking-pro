@@ -11,7 +11,7 @@ import {
   onlinePaymentEligible,
   paymentCanStart
 } from "@/lib/payment";
-import { expireCheckoutSession, getStripe } from "@/lib/stripeServer";
+import { expireCheckoutSession, expireCheckoutSessionForChange, getStripe } from "@/lib/stripeServer";
 
 export const runtime = "nodejs";
 
@@ -111,7 +111,7 @@ export async function POST(
   }
 
   try {
-    await expireCheckoutSession(booking.payment_checkout_session_id);
+    await expireCheckoutSessionForChange(booking.payment_checkout_session_id);
     const stripe = getStripe();
     const base = appBaseUrl();
 
@@ -206,7 +206,7 @@ export async function POST(
 
     return json(
       { error: message },
-      { status: 500 }
+      { status: message.includes("Payment requires review") ? 409 : 500 }
     );
   }
 }
