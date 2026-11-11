@@ -3,7 +3,7 @@ import { resolveCustomerLocale } from "@/lib/bookingLocale";
 type DocumentEmailInput = {
   customerName: string;
   bookingNumber: string;
-  documentType: "invoice" | "receipt" | "correction";
+  documentType: "invoice" | "correction";
   documentNumber?: string | null;
   fileName: string;
   downloadUrl: string;
@@ -16,7 +16,7 @@ const COPY = {
     title: "Dokument jest gotowy",
     hello: "Dzień dobry",
     body: "W załączeniu przesyłamy informację o dokumencie wystawionym do Twojej rezerwacji. Dokument możesz pobrać bezpiecznie, korzystając z poniższego przycisku.",
-    labels: { invoice: "Faktura", receipt: "Rachunek", correction: "Korekta" },
+    labels: { invoice: "Faktura / rachunek", correction: "Korekta" },
     number: "Numer dokumentu",
     booking: "Numer rezerwacji",
     button: "POBIERZ DOKUMENT PDF",
@@ -28,7 +28,7 @@ const COPY = {
     title: "Your document is ready",
     hello: "Hello",
     body: "A document has been issued for your booking. You can download it securely using the button below.",
-    labels: { invoice: "Invoice", receipt: "Receipt", correction: "Correction" },
+    labels: { invoice: "Invoice / receipt", correction: "Correction" },
     number: "Document number",
     booking: "Booking reference",
     button: "DOWNLOAD DOCUMENT",
@@ -40,7 +40,7 @@ const COPY = {
     title: "Ihr Dokument ist verfügbar",
     hello: "Guten Tag",
     body: "Für Ihre Buchung wurde ein Dokument ausgestellt. Sie können es sicher über die Schaltfläche unten herunterladen.",
-    labels: { invoice: "Rechnung", receipt: "Quittung", correction: "Korrektur" },
+    labels: { invoice: "Rechnung / Quittung", correction: "Korrektur" },
     number: "Dokumentnummer",
     booking: "Buchungsnummer",
     button: "DOKUMENT HERUNTERLADEN",
@@ -52,7 +52,7 @@ const COPY = {
     title: "Váš dokument je připraven",
     hello: "Dobrý den",
     body: "K vaší rezervaci byl vystaven dokument. Bezpečně si jej můžete stáhnout pomocí tlačítka níže.",
-    labels: { invoice: "Faktura", receipt: "Účtenka", correction: "Opravný doklad" },
+    labels: { invoice: "Faktura / účtenka", correction: "Opravný doklad" },
     number: "Číslo dokumentu",
     booking: "Číslo rezervace",
     button: "STÁHNOUT DOKUMENT",
