@@ -109,12 +109,12 @@ for(const locale of ['pl','en','de','cs'])test(`${locale}: account login email u
   assert.equal(mail.locale,locale);assert.match(mail.html,new RegExp(`lang="${locale}"`));assert.ok(mail.html.includes('&lt;test&gt;'));assert.ok(mail.html.includes('&amp;lang='+locale));
 });
 const {b2bEmployeeConfirmedEmail,b2bEmployeeAssignedEmail}=require('../lib/b2bEmployeeNotifications.ts');
-for(const locale of ['pl','en','de','cs'])test(`${locale}: B2B employee templates use one language, gross amount and both assignments`,()=>{
+for(const locale of ['pl','en','de','cs'])test(`${locale}: B2B employee templates preserve selected language and append English`,()=>{
  const booking={...base,customer_locale:locale,company_id:'test-company',payment_method:'employee_payment',price_gross:864,driver_name:'<Driver>',return_driver_name:'Return Driver'};
  for(const template of [b2bEmployeeConfirmedEmail(booking),b2bEmployeeAssignedEmail(booking)]){
-  assert.ok(template.html.includes(`lang="${locale}"`));assert.ok(template.html.includes('/platnosc/test-token?lang='+locale));assert.ok(template.html.includes('864.00 PLN'));assert.ok(!template.html.includes(' / Online payment'));
+  assert.ok(template.html.includes(`lang="${locale}"`));assert.ok(template.html.includes('/platnosc/test-token?lang='+locale));assert.ok(template.html.includes('864.00 PLN'));assert.ok(!template.html.includes(' / Online payment'));if(locale==='en')assert.equal((template.html.match(/lang="en"/g)||[]).length,1);else{assert.ok(template.html.includes('ENGLISH VERSION'));assert.ok(template.html.includes('lang="en"'));}
  }
- const assigned=b2bEmployeeAssignedEmail(booking).html;assert.ok(assigned.includes('&lt;Driver&gt;'));assert.ok(assigned.includes('Return Driver'));assert.equal((assigned.match(/<section lang=/g)||[]).length,2);
+ const assigned=b2bEmployeeAssignedEmail(booking).html;assert.ok(assigned.includes('&lt;Driver&gt;'));assert.ok(assigned.includes('Return Driver'));assert.ok(assigned.includes('lang="en"'));
  for(const payment_status of ['paid','review','refunded'])assert.ok(!b2bEmployeeConfirmedEmail({...booking,payment_status}).html.includes('/platnosc/'));
  assert.ok(!b2bEmployeeConfirmedEmail({...booking,status:'cancelled'}).html.includes('/platnosc/'));
 });
@@ -161,7 +161,7 @@ const {companyBookingUpdateEmail}=require('../lib/companyBookingUpdateEmail.ts')
 for(const locale of ['pl','en','de','cs'])test(`${locale}: company change and cancellation mail preserve language and refund review`,()=>{
  for(const kind of ['updated','cancelled']){
   const mail=companyBookingUpdateEmail(kind,{...base,customer_locale:locale,booking_number:'<test>'},true);
-  assert.equal(mail.locale,locale);assert.ok(mail.html.includes(`lang="${locale}"`));assert.ok(mail.html.includes('lang='+locale));assert.ok(mail.html.includes('&lt;test&gt;'));assert.ok(!mail.html.includes('<test>'));
+  assert.equal(mail.locale,locale);assert.ok(mail.html.includes(`lang="${locale}"`));assert.ok(mail.html.includes('lang='+locale));assert.ok(mail.html.includes('&lt;test&gt;'));assert.ok(!mail.html.includes('<test>'));if(locale!=='en')assert.ok(mail.html.includes('ENGLISH VERSION'));
  }
 });
 
