@@ -2,7 +2,7 @@ import { bookingDateTime } from "@/lib/bookingDateTime";
 import { customerJson, requestCustomerLocale, readCustomerBody } from "@/lib/customerErrors";
 import { resolveCustomerLocale } from "@/lib/bookingLocale";
 import { localizedReceivedEmail } from "@/lib/localizedBookingEmails";
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMattEmail } from "@/lib/email";
@@ -236,93 +236,97 @@ export async function POST(req: NextRequest) {
     created_by: user.id
   });
 
-  const { data: companyForMail } = await admin
-    .from("companies")
-    .select("email")
-    .eq("id", membership.company_id)
-    .single();
-
-  let emailSent = false;
-  let adminEmailSent = false;
-  let emailWarning: string | null = null;
-
-  try {
-    const companyAdminEmail = companyForMail?.email || user.email || null;
-
-    if (companyAdminEmail) {
-      const customerMail = resolveCustomerLocale(data.customer_locale) === "pl"
-        ? receivedEmail(data)
-        : localizedReceivedEmail({ ...data, locale: resolveCustomerLocale(data.customer_locale) });
-      const customerResult = await sendMattEmail({
-        to: companyAdminEmail,
-        subject: customerMail.subject,
-        html: customerMail.html
-      });
-      emailSent = customerResult.sent;
-
-      if (!customerResult.sent) {
-        emailWarning = `Firma: ${customerResult.error || "nie udało się wysłać"}`;
+  // Notifications are deliberately deferred until after the HTTP response.
+  // A slow mail/push provider must never leave the booking form stuck on “ordering”.
+  after(async () => {
+    try {
+    const { data: companyForMail } = await admin
+      .from("companies")
+      .select("email")
+      .eq("id", membership.company_id)
+      .single();
+  
+    let emailSent = false;
+    let adminEmailSent = false;
+    let emailWarning: string | null = null;
+  
+    try {
+      const companyAdminEmail = companyForMail?.email || user.email || null;
+  
+      if (companyAdminEmail) {
+        const customerMail = resolveCustomerLocale(data.customer_locale) === "pl"
+          ? receivedEmail(data)
+          : localizedReceivedEmail({ ...data, locale: resolveCustomerLocale(data.customer_locale) });
+        const customerResult = await sendMattEmail({
+          to: companyAdminEmail,
+          subject: customerMail.subject,
+          html: customerMail.html
+        });
+        emailSent = customerResult.sent;
+  
+        if (!customerResult.sent) {
+          emailWarning = `Firma: ${customerResult.error || "nie udało się wysłać"}`;
+        }
+      } else {
+        emailWarning = "Firma: brak adresu e-mail odbiorcy.";
       }
-    } else {
-      emailWarning = "Firma: brak adresu e-mail odbiorcy.";
+  
+      const adminMail = adminNewBookingEmail(data, data.email, data.phone);
+      const adminResult = await sendMattEmail({
+        to: "kontakt@matt-transport.pl",
+        subject: `B2B · ${adminMail.subject}`,
+        text: adminMail.text
+      });
+      adminEmailSent = adminResult.sent;
+  
+      if (!adminResult.sent) {
+        emailWarning = [
+          emailWarning,
+          `MATT: ${adminResult.error || "nie udało się wysłać"}`
+        ].filter(Boolean).join(" · ");
+      }
+    } catch (mailError) {
+      emailWarning =
+        mailError instanceof Error ? mailError.message : "Nieznany błąd e-mail B2B";
     }
-
-    const adminMail = adminNewBookingEmail(data, data.email, data.phone);
-    const adminResult = await sendMattEmail({
-      to: "kontakt@matt-transport.pl",
-      subject: `B2B · ${adminMail.subject}`,
-      text: adminMail.text
-    });
-    adminEmailSent = adminResult.sent;
-
-    if (!adminResult.sent) {
-      emailWarning = [
-        emailWarning,
-        `MATT: ${adminResult.error || "nie udało się wysłać"}`
-      ].filter(Boolean).join(" · ");
+  
+    const { error: emailHistoryError } = await admin
+      .from("booking_history")
+      .insert({
+        booking_id: data.id,
+        event:
+          emailSent && adminEmailSent
+            ? "E-mail B2B: firma i MATT otrzymali powiadomienie."
+            : `E-mail B2B: firma=${emailSent ? "OK" : "BŁĄD"}, MATT=${adminEmailSent ? "OK" : "BŁĄD"}${emailWarning ? ` · ${emailWarning}` : ""}`,
+        created_by: user.id
+      });
+  
+    if (emailHistoryError) {
+      console.error("Historia e-mail B2B:", emailHistoryError);
     }
-  } catch (mailError) {
-    emailWarning =
-      mailError instanceof Error ? mailError.message : "Nieznany błąd e-mail B2B";
-  }
-
-  const { error: emailHistoryError } = await admin
-    .from("booking_history")
-    .insert({
+  
+    let adminPushResult: any = null;
+    try {
+      adminPushResult = await sendNewBookingAdminPush(admin, data, "B2B");
+    } catch (pushError) {
+      console.error("Admin push po nowej rezerwacji B2B:", pushError);
+    }
+  
+    await admin.from("booking_history").insert({
       booking_id: data.id,
       event:
-        emailSent && adminEmailSent
-          ? "E-mail B2B: firma i MATT otrzymali powiadomienie."
-          : `E-mail B2B: firma=${emailSent ? "OK" : "BŁĄD"}, MATT=${adminEmailSent ? "OK" : "BŁĄD"}${emailWarning ? ` · ${emailWarning}` : ""}`,
-      created_by: user.id
+        adminPushResult?.sent > 0
+          ? `Push administratora: OK · wysłano=${adminPushResult.sent}`
+          : `Push administratora: BŁĄD · wysłano=${Number(adminPushResult?.sent || 0)} · nieudane=${Number(adminPushResult?.failed || 0)}${adminPushResult?.skipped ? " · pominięto" : ""}${adminPushResult?.errors?.[0]?.statusCode ? ` · HTTP ${adminPushResult.errors[0].statusCode}` : ""}`,
+      created_by: null
     });
-
-  if (emailHistoryError) {
-    console.error("Historia e-mail B2B:", emailHistoryError);
-  }
-
-  let adminPushResult: any = null;
-  try {
-    adminPushResult = await sendNewBookingAdminPush(admin, data, "B2B");
-  } catch (pushError) {
-    console.error("Admin push po nowej rezerwacji B2B:", pushError);
-  }
-
-  await admin.from("booking_history").insert({
-    booking_id: data.id,
-    event:
-      adminPushResult?.sent > 0
-        ? `Push administratora: OK · wysłano=${adminPushResult.sent}`
-        : `Push administratora: BŁĄD · wysłano=${Number(adminPushResult?.sent || 0)} · nieudane=${Number(adminPushResult?.failed || 0)}${adminPushResult?.skipped ? " · pominięto" : ""}${adminPushResult?.errors?.[0]?.statusCode ? ` · HTTP ${adminPushResult.errors[0].statusCode}` : ""}`,
-    created_by: null
+    } catch (notificationError) {
+      console.error("Powiadomienia po utworzeniu rezerwacji B2B:", notificationError);
+    }
   });
 
   return json({
     ...data,
-    quote,
-    email_sent: emailSent,
-    admin_email_sent: adminEmailSent,
-    email_warning: emailWarning,
-    admin_push_sent: Number(adminPushResult?.sent || 0)
+    quote
   });
 }

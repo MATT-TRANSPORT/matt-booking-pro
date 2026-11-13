@@ -7,10 +7,10 @@ const Module=require('node:module');
 const ts=require('typescript');
 const {randomUUID}=require('node:crypto');
 const root=path.resolve(__dirname,'..');
-let writes=[],emails=[],adminAccess=0;
+let writes=[],emails=[],adminAccess=0,afterCallbacks=[];
 let repeatSource=null, expiredSessions=[], strictExpiryFails=false;
 const allRecords=[];
-function reset(){writes=[];emails=[];adminAccess=0;expiredSessions=[];strictExpiryFails=false}
+function reset(){writes=[];emails=[];adminAccess=0;afterCallbacks=[];expiredSessions=[];strictExpiryFails=false}
 function query(table){
  let insert,update;
  const q={select(){return q},eq(){return q},limit(){return q},order(){return q},single(){return q},maybeSingle(){return q},insert(value){insert=value;return q},update(value){update=value;return q},
@@ -25,6 +25,7 @@ function query(table){
 const admin={from:query};
 const originalLoad=Module._load;
 Module._load=function(id,parent,isMain){
+ if(id==='next/server')return {NextResponse:{json:(body,init={})=>new Response(JSON.stringify(body),{status:init.status||200,headers:{'content-type':'application/json'}})},after:callback=>{afterCallbacks.push(callback)}};
  if(id==='@/lib/supabase/admin')return {createAdminClient:()=>{adminAccess++;return admin}};
  if(id==='@/lib/supabase/server')return {createClient:async()=>({from:query,auth:{getUser:async()=>({data:{user:{id:'test-user',email:'company@example.invalid'}}})}})};
  if(id==='@/lib/stripeServer')return {expireCheckoutSession:async id=>{expiredSessions.push(id)},expireCheckoutSessionForChange:async id=>{if(strictExpiryFails)throw new Error("Stripe unavailable");expiredSessions.push(id)}};
@@ -58,7 +59,8 @@ for(const locale of ['pl','en','de','cs'])for(const [kind,post] of Object.entrie
  });
  for(const mode of ['body','header','query'])test(`${kind}/${locale}: ${mode} locale survives persistence and response`,async()=>{
   reset();const input={...base,...(mode==='body'?{locale}:{})};const response=await post(request(input,locale,mode));
-  assert.equal(response.status,200);const data=await response.json();assert.equal(data.customer_locale,locale);
+  assert.equal(response.status,200);
+  if(kind==='company') { assert.equal(afterCallbacks.length,1); await afterCallbacks.shift()(); }const data=await response.json();assert.equal(data.customer_locale,locale);
   const record=writes.find(w=>['bookings','wedding_bookings'].includes(w.table));assert.equal(record.value.customer_locale,locale);
   assert.equal(data.return_date??input.returnDate,input.returnDate);assert.equal(data.return_time??input.returnTime,input.returnTime);
   const customerMail=emails.find(m=>['test@example.invalid','company@example.invalid'].includes(m.to));assert.ok(customerMail);
@@ -72,6 +74,20 @@ for(const locale of ['pl','en','de','cs'])test(`company/${locale}: missing, inva
   reset();const response=await routes.company(request({...base,...overrides,locale},locale));assert.equal(response.status,400);assert.equal(writes.length,0);
  }
 });
+
+test('company booking responds immediately after persistence and defers slow notifications',async()=>{
+ reset();
+ const response=await routes.company(request({...base,locale:'pl'},'pl'));
+ assert.equal(response.status,200);
+ const data=await response.json();
+ assert.equal(data.booking_number,'TEST-ONLY');
+ assert.ok(writes.some(w=>w.table==='bookings'));
+ assert.equal(emails.length,0);
+ assert.equal(afterCallbacks.length,1);
+ await afterCallbacks.shift()();
+ assert.ok(emails.length>=1);
+});
+
 test('export safe database contract fixtures when explicitly requested',()=>{
  if(process.env.MATT_BOOKING_CONTRACT_FILE)fs.writeFileSync(process.env.MATT_BOOKING_CONTRACT_FILE,JSON.stringify(allRecords),{mode:0o600});
 });

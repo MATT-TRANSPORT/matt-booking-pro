@@ -94,6 +94,7 @@ export default function CompanyBookingForm({
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState<any>(null);
+  const [submissionUncertain, setSubmissionUncertain] = useState(false);
 
   const employee = employeeRows.find((x) => String(x?.id) === String(employeeId));
 
@@ -220,7 +221,7 @@ export default function CompanyBookingForm({
   }
 
   async function submit() {
-    if (saving) return;
+    if (saving || submissionUncertain) return;
 
     if (passengerMode === "existing" && !employeeId) {
       setMessage(t("Wybierz pracownika."));
@@ -257,43 +258,53 @@ export default function CompanyBookingForm({
     setSaving(true);
     setMessage(t("Zapisywanie rezerwacji i ponowne przeliczanie ceny na serwerze..."));
 
-    const response = await fetchCustomer("/api/company/bookings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ expectedTotal: quote.gross, locale,
-        employeeId: passengerMode === "existing" ? employeeId : null,
-        newEmployee: passengerMode === "new" ? newEmployee : null,
-        serviceType,
-        address,
-        airport,
-        vehicleType: vehicle,
-        passengers,
-        travelDate,
-        travelTime,
-        returnDate,
-        returnTime,
-        flightNumber,
-        returnFlightNumber,
-        ...(multiStopActive ? { routeStops: { outbound: routeStopsOut, inbound: serviceType === "roundtrip" ? routeStopsBack : [] } } : {}),
-        additionalStopAddress: multiStopActive ? null : additionalStopEnabled ? additionalStopAddress : null,
-        additionalStopPrimary: additionalStopEnabled && additionalStopPrimary,
-        additionalStopReturn: additionalStopEnabled && serviceType === "roundtrip" && additionalStopReturn,
-        notes,
-        paymentMethod
-      })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      setMessage(data.error ?? t("Nie udało się zapisać rezerwacji."));
+    try {
+      const response = await fetchCustomer("/api/company/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expectedTotal: quote.gross, locale,
+          employeeId: passengerMode === "existing" ? employeeId : null,
+          newEmployee: passengerMode === "new" ? newEmployee : null,
+          serviceType,
+          address,
+          airport,
+          vehicleType: vehicle,
+          passengers,
+          travelDate,
+          travelTime,
+          returnDate,
+          returnTime,
+          flightNumber,
+          returnFlightNumber,
+          ...(multiStopActive ? { routeStops: { outbound: routeStopsOut, inbound: serviceType === "roundtrip" ? routeStopsBack : [] } } : {}),
+          additionalStopAddress: multiStopActive ? null : additionalStopEnabled ? additionalStopAddress : null,
+          additionalStopPrimary: additionalStopEnabled && additionalStopPrimary,
+          additionalStopReturn: additionalStopEnabled && serviceType === "roundtrip" && additionalStopReturn,
+          notes,
+          paymentMethod
+        })
+      });
+  
+      const data = await response.json();
+  
+      if (!response.ok) {
+        setMessage(data.error ?? t("Nie udało się zapisać rezerwacji."));
+        setSaving(false);
+        return;
+      }
+  
+      setSuccess(data);
+      setMessage("");
       setSaving(false);
-      return;
+    } catch (error) {
+      console.error("B2B booking submission failed:", error);
+      // The server may have saved the booking even if the response was lost.
+      // Block a second submit until the user checks the booking list.
+      setSubmissionUncertain(true);
+      setMessage(t("Nie otrzymaliśmy potwierdzenia odpowiedzi. Rezerwacja mogła zostać zapisana. Sprawdź „Moje rezerwacje” przed ponowną próbą."));
+    } finally {
+      setSaving(false);
     }
-
-    setSuccess(data);
-    setMessage("");
-    setSaving(false);
   }
 
   if (success) {
@@ -548,8 +559,8 @@ export default function CompanyBookingForm({
           <p className="muted">{t("Wycena pojawi się po wskazaniu dokładnego adresu pasażera.")}</p>
         )}
 
-        <button className="btn" style={{ width: "100%", marginTop: 16 }} disabled={saving || quoteBusy || !quote} onClick={submit}>
-          {saving ? t("ZAMAWIANIE...") : t("ZAMÓW TRANSPORT")}
+        <button className="btn" style={{ width: "100%", marginTop: 16 }} disabled={saving || submissionUncertain || quoteBusy || !quote} onClick={submit}>
+          {saving ? t("ZAMAWIANIE...") : submissionUncertain ? t("SPRAWDŹ REZERWACJE") : t("ZAMÓW TRANSPORT")}
         </button>
         {message && <div className="admin-save-message">{message}</div>}
       </aside>
