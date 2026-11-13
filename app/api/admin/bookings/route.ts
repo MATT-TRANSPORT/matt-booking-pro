@@ -5,6 +5,8 @@ import { sendMattEmail } from "@/lib/email";
 import { sendDriverPush } from "@/lib/pushServer";
 import { syncBookingCalendar } from "@/lib/googleCalendar";
 import { sendBookingNotification } from "@/lib/customerNotifications";
+import { resolveCustomerLocale } from "@/lib/bookingLocale";
+import { localizedStatusEmail } from "@/lib/localizedStatusEmails";
 import { bookingLegs, findResourceConflicts } from "@/lib/dispatcherOps";
 import {
   confirmedEmail,
