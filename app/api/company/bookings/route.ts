@@ -327,10 +327,6 @@ export async function POST(req: NextRequest) {
 
   return json({
     ...data,
-    quote,
-    email_sent: emailSent,
-    admin_email_sent: adminEmailSent,
-    email_warning: emailWarning,
-    admin_push_sent: Number(adminPushResult?.sent || 0)
+    quote
   });
 }
