@@ -25,7 +25,7 @@ function query(table){
 const admin={from:query};
 const originalLoad=Module._load;
 Module._load=function(id,parent,isMain){
- if(id==='next/server')return {after:callback=>{afterCallbacks.push(callback)}};
+ if(id==='next/server')return {NextResponse:{json:(body,init={})=>new Response(JSON.stringify(body),{status:init.status||200,headers:{'content-type':'application/json'}})},after:callback=>{afterCallbacks.push(callback)}};
  if(id==='@/lib/supabase/admin')return {createAdminClient:()=>{adminAccess++;return admin}};
  if(id==='@/lib/supabase/server')return {createClient:async()=>({from:query,auth:{getUser:async()=>({data:{user:{id:'test-user',email:'company@example.invalid'}}})}})};
  if(id==='@/lib/stripeServer')return {expireCheckoutSession:async id=>{expiredSessions.push(id)},expireCheckoutSessionForChange:async id=>{if(strictExpiryFails)throw new Error("Stripe unavailable");expiredSessions.push(id)}};
