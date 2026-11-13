@@ -5,6 +5,8 @@ import { sendMattEmail } from "@/lib/email";
 import { sendDriverPush } from "@/lib/pushServer";
 import { syncBookingCalendar } from "@/lib/googleCalendar";
 import { sendBookingNotification } from "@/lib/customerNotifications";
+import { resolveCustomerLocale } from "@/lib/bookingLocale";
+import { localizedStatusEmail } from "@/lib/localizedStatusEmails";
 import { bookingLegs, findResourceConflicts } from "@/lib/dispatcherOps";
 import {
   confirmedEmail,
@@ -66,6 +68,13 @@ async function recipientForBooking(admin:any, booking:any){
   return booking.email
     ? String(booking.email).trim()
     : null;
+}
+
+function appendEnglishB2BStatus(template:any,booking:any,kind:"confirmed"|"assigned") {
+  const locale=resolveCustomerLocale(booking.customer_locale);
+  if(!booking.company_id || locale==="en") return template;
+  const english=localizedStatusEmail(kind,{...booking,customer_locale:"en"});
+  return {...template,html:template.html+`<hr style="border:0;border-top:2px solid #d5ae5d;margin:28px 0"><p style="font-weight:700;color:#a77b2d">ENGLISH VERSION</p>${english.html}`};
 }
 
 async function employeeRecipientForBooking(admin: any, booking: any) {
@@ -269,10 +278,13 @@ export async function POST(req: NextRequest) {
 
   if (action === "resend_confirmation") {
     const enrichedCurrent = await enrichBooking(admin, current);
-    const template =
+    const rawTemplate =
       current.status === "assigned"
         ? assignedEmail(enrichedCurrent)
         : confirmedEmail(enrichedCurrent);
+    const template = current.company_id
+      ? appendEnglishB2BStatus(rawTemplate,enrichedCurrent,current.status==="assigned"?"assigned":"confirmed")
+      : rawTemplate;
 
     const mailResult = await sendMattEmail({
       to: await recipientForBooking(admin,current),
@@ -640,6 +652,7 @@ export async function POST(req: NextRequest) {
     if (statusChanged && nextStatus === "confirmed") {
       template = confirmedEmail(enriched);
       if (updated.company_id) {
+        template = appendEnglishB2BStatus(template,enriched,"confirmed");
         employeeTemplate = b2bEmployeeConfirmedEmail(enriched);
       }
     } else if (
@@ -655,6 +668,7 @@ export async function POST(req: NextRequest) {
     ) {
       template = assignedEmail(enriched);
       if (updated.company_id) {
+        template = appendEnglishB2BStatus(template,enriched,"assigned");
         employeeTemplate = b2bEmployeeAssignedEmail(enriched);
       }
     } else if (

@@ -6,7 +6,7 @@ import { after, NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendMattEmail } from "@/lib/email";
-import { receivedEmail, adminNewBookingEmail } from "@/lib/emailTemplates";
+import { adminNewBookingEmail } from "@/lib/emailTemplates";
 import { bookingPricingFields, calculateCompanyQuote } from "@/lib/companyPricing";
 import { sendNewBookingAdminPush } from "@/lib/adminNotifications";
 
@@ -254,9 +254,17 @@ export async function POST(req: NextRequest) {
       const companyAdminEmail = companyForMail?.email || user.email || null;
   
       if (companyAdminEmail) {
-        const customerMail = resolveCustomerLocale(data.customer_locale) === "pl"
-          ? receivedEmail(data)
-          : localizedReceivedEmail({ ...data, locale: resolveCustomerLocale(data.customer_locale) });
+        const customerLocale = resolveCustomerLocale(data.customer_locale);
+        const primaryMail = localizedReceivedEmail({ ...data, locale: customerLocale });
+        const englishMail = customerLocale === "en"
+          ? null
+          : localizedReceivedEmail({ ...data, locale: "en" });
+        const customerMail = {
+          subject: primaryMail.subject,
+          html: primaryMail.html + (englishMail
+            ? `<hr style="border:0;border-top:2px solid #d5ae5d;margin:28px 0"><p style="font-weight:700;color:#a77b2d">ENGLISH VERSION</p>${englishMail.html}`
+            : "")
+        };
         const customerResult = await sendMattEmail({
           to: companyAdminEmail,
           subject: customerMail.subject,
