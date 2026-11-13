@@ -1136,6 +1136,16 @@ export const customerCopy: Record<string, [string, string, string]> = {
     "Bitte warten Sie auf ein gültiges B2B-Angebot.",
     "Počkejte na platnou nabídku B2B."
   ],
+  "Nie otrzymaliśmy potwierdzenia odpowiedzi. Rezerwacja mogła zostać zapisana. Sprawdź „Moje rezerwacje” przed ponowną próbą.": [
+    "We did not receive confirmation. The booking may have been saved. Check “My bookings” before trying again.",
+    "Wir haben keine Bestätigung erhalten. Die Buchung wurde möglicherweise gespeichert. Prüfen Sie „Meine Buchungen“, bevor Sie es erneut versuchen.",
+    "Nedostali jsme potvrzení. Rezervace mohla být uložena. Před dalším pokusem zkontrolujte „Moje rezervace“."
+  ],
+  "SPRAWDŹ REZERWACJE": [
+    "CHECK BOOKINGS",
+    "BUCHUNGEN PRÜFEN",
+    "ZKONTROLOVAT REZERVACE"
+  ],
   "Nie udało się zapisać rezerwacji.": [
     "Could not save your booking.",
     "Buchung konnte nicht gespeichert werden.",
