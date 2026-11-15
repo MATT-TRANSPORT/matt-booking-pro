@@ -44,7 +44,7 @@ export default async function CompanyHelpPage({searchParams}:{searchParams:Promi
     <CompanyNav customerLocale={locale}/>
     <section className="card" style={{marginTop:16}}>
       <p className="muted">{english?"A practical guide to using your company transport portal.":"Praktyczny przewodnik po obsłudze firmowego panelu transportowego."}</p>
-      <p><a className="btn secondary" href="/docs/INSTRUKCJA-B2B-PL-EN.md" target="_blank" rel="noreferrer">{english?"Open full PL + EN manual":"Otwórz pełną instrukcję PL + EN"}</a></p>
+      <p><a className="btn secondary" href="/INSTRUKCJA-B2B-PL-EN.md" target="_blank" rel="noreferrer">{english?"Open full PL + EN manual":"Otwórz pełną instrukcję PL + EN"}</a></p>
       <div className="company-help-sections">
         {items.map(([heading,body],i)=><details key={heading} style={{padding:"14px 0",borderTop:"1px solid var(--border,#ddd)"}}>
           <summary style={{cursor:"pointer",fontWeight:700}}>{i+1}. {heading}</summary>
