@@ -11,7 +11,8 @@ const links = [
   ["/firma/cennik","Cennik i warunki"],
   ["/firma/pracownicy","Pracownicy"],
   ["/firma/faktury","Rozliczenia"],
-  ["/firma/ustawienia","Dane firmy"]
+  ["/firma/ustawienia","Dane firmy"],
+  ["/firma/pomoc","Pomoc / Help"]
 ] as const;
 export default function CompanyNav({ customerLocale }: { customerLocale?: unknown } = {}) {
   const locale=useCustomerLocale(customerLocale);
