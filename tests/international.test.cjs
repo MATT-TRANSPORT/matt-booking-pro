@@ -119,9 +119,14 @@ for(const locale of ['pl','en','de','cs'])test(`${locale}: B2B employee template
  assert.ok(!b2bEmployeeConfirmedEmail({...booking,status:'cancelled'}).html.includes('/platnosc/'));
 });
 const {reviewRatingEmail}=require('../lib/reviewRatingEmail.ts');
-for(const locale of ['pl','en','de','cs'])test(`${locale}: review mail preserves language in cron-generated rating links`,()=>{
+for(const locale of ['pl','en','de','cs'])test(`${locale}: review mail has direct Google and Wesele z Klasą links without an intermediate form`,()=>{
  const mail=reviewRatingEmail({...base,customer_locale:locale},'https://booking.matt-transport.pl/opinia/test-token?source=email');
- assert.ok(mail.html.includes(`lang="${locale}"`));assert.ok(mail.html.includes('source=email&amp;lang='+locale));assert.ok(mail.html.includes('&lt;script&gt;test&lt;/script&gt;'));assert.ok(!mail.html.includes('<script>'));
+ assert.ok(mail.html.includes(`lang="${locale}"`));
+ assert.ok(mail.html.includes('https://g.page/r/Ce8RDPaWkNhrEBM/review'));
+ assert.ok(mail.html.includes('https://www.weselezklasa.pl/matt-transport/#opinie'));
+ assert.ok(!mail.html.includes('/opinia/test-token'));
+ assert.ok(mail.html.includes('&lt;script&gt;test&lt;/script&gt;'));
+ assert.ok(!mail.html.includes('<script>'));
 });
 const {customerFlightStatus,customerFlightAlert}=require('../lib/customerFlightText.ts');
 for(const locale of ['pl','en','de','cs'])test(`${locale}: public flight alerts are localized and omit dispatcher instructions`,()=>{
