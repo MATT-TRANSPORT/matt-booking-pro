@@ -1,6 +1,6 @@
 export const REVIEW_DELAY_MINUTES = 45;
 
-export const MATT_GOOGLE_REVIEW_URL = "https://g.page/r/Ce8RDPaWkNhrEBE/review";
+export const MATT_GOOGLE_REVIEW_URL = "https://g.page/r/Ce8RDPaWkNhrEBM/review";
 
 export function googleReviewUrl() {
   const configured = String(process.env.NEXT_PUBLIC_GOOGLE_REVIEW_URL || "").trim();
