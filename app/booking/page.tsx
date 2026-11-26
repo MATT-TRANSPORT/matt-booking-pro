@@ -1,3 +1,4 @@
+import BookingChat from "@/components/BookingChat";
 import { resolveCustomerLocale } from "@/lib/bookingLocale";
 import { customerText } from "@/lib/customerCopy";
 import Script from "next/script";
@@ -42,6 +43,6 @@ export default async function BookingPage({searchParams}: {
 
   return <>
     {tracking}
-    <main className="container"><BookingLanding initialEntry={initialEntry}/></main>
+    <main className="container"><BookingLanding initialEntry={initialEntry}/>{params.chat === "test" && <BookingChat locale={locale}/>}</main>
   </>;
 }
